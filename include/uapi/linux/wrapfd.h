@@ -86,6 +86,12 @@ struct wrapfd_events {
 	__u64 count;
 };
 
+struct wrapfd_repopulate {
+	__u32 wrapfd;		/* [in] wrapfd file to populate */
+	__u32 fd;		/* [in] file to populate with */
+	__u64 reserved;
+};
+
 #define WRAPFD_MAX_NR_MONITORS	(PAGE_SIZE / sizeof(struct wrapfd_monitor))
 #define WRAPFD_MAX_NR_EVENTS	(PAGE_SIZE / sizeof(struct wrapfd_event))
 
@@ -95,6 +101,7 @@ struct wrapfd_events {
 #define WRAPFD_DEV_IOC_ADD_MONITOR	_IOWR(WRAPFD_DEV_IOC, 9, struct wrapfd_add_monitors)
 #define WRAPFD_DEV_IOC_DEL_MONITOR	_IOWR(WRAPFD_DEV_IOC, 10, struct wrapfd_del_monitors)
 #define WRAPFD_DEV_IOC_QUERY_EVENTS	_IOWR(WRAPFD_DEV_IOC, 11, struct wrapfd_events)
+#define WRAPFD_DEV_IOC_REPOPULATE	_IOW(WRAPFD_DEV_IOC, 12, struct wrapfd_repopulate)
 
 /* ioctl for wrapfd */
 #define WRAPFD_DEV_IOC_GET_STATE	_IOWR(WRAPFD_DEV_IOC, 1, \
