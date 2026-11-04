@@ -1,4 +1,12 @@
 [abi_symbol_list]
+  __traceiter_android_vh_binder_desc_init
+  __traceiter_android_vh_binder_find_desc
+  __traceiter_android_vh_binder_set_desc_bit
+  __traceiter_android_vh_customize_alloc_gfp
+  __tracepoint_android_vh_binder_desc_init
+  __tracepoint_android_vh_binder_find_desc
+  __tracepoint_android_vh_binder_set_desc_bit
+  __tracepoint_android_vh_customize_alloc_gfp
   address_space_init_once
   add_timer
   alloc_anon_inode

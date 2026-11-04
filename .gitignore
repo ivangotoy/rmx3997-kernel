@@ -161,3 +161,42 @@ x509.genkey
 
 # Documentation toolchain
 sphinx_*/
+
+# RMX3997 local build outputs and downloaded tooling
+/out/
+/out-*/
+/build-output*/
+/dist/
+/prebuilts/
+/toolchains/
+/cache/
+/scratch/
+/tmp/
+__pycache__/
+*.py[cod]
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Device binaries, release archives, firmware and partition captures
+*.img
+*.img.*
+*.raw
+*.qcow2
+*.cpio
+*.apk
+*.zip
+*.7z
+*.tgz
+*.tar.*
+*.btf
+Image
+Image.*
+/firmware-dumps/
+/partition-dumps/
+/dumps/
+/backups/
+/stock-images/

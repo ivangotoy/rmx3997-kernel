@@ -1,0 +1,18 @@
+[
+  "make",
+  "-C",
+  "/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/oem-f2fs-implementation-20261103/kernel/common",
+  "O=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/oem-f2fs-implementation-20261103/out",
+  "ARCH=arm64",
+  "LLVM=1",
+  "LLVM_IAS=1",
+  "CROSS_COMPILE=aarch64-linux-gnu-",
+  "CROSS_COMPILE_COMPAT=arm-linux-gnueabi-",
+  "HOSTCC=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang",
+  "HOSTCXX=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang++",
+  "PAHOLE=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/kernel-build-tools/linux-x86/bin/pahole",
+  "LD=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/ld.lld --threads=1",
+  "-j4",
+  "Image",
+  "modules"
+]

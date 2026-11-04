@@ -86,7 +86,10 @@ static struct inode *f2fs_new_inode(struct user_namespace *mnt_userns,
 
 	if (f2fs_sb_has_extra_attr(sbi)) {
 		set_inode_flag(inode, FI_EXTRA_ATTR);
-		F2FS_I(inode)->i_extra_isize = F2FS_TOTAL_EXTRA_ATTR_SIZE;
+		if (sbi->oplus_feats & OPLUS_FEAT_DEDUP)
+			F2FS_I(inode)->i_extra_isize = F2FS_TOTAL_EXTRA_ATTR_SIZE;
+		else
+			F2FS_I(inode)->i_extra_isize = F2FS_LEGACY_EXTRA_ATTR_SIZE;
 	}
 
 	if (test_opt(sbi, INLINE_XATTR))
@@ -1341,3 +1344,36 @@ const struct inode_operations f2fs_special_inode_operations = {
 	.set_acl	= f2fs_set_acl,
 	.listxattr	= f2fs_listxattr,
 };
+
+void f2fs_update_atime(struct inode *inode, bool oneshot)
+{
+#ifdef CONFIG_F2FS_FS_COMPRESSION_FIXED_OUTPUT
+	struct f2fs_inode_info *fi = F2FS_I(inode);
+
+	if (!f2fs_compressed_file(inode))
+		return;
+
+	if (!sb_start_write_trylock(inode->i_sb))
+		return;
+
+	if (!inode_trylock(inode))
+		goto out_unlock_sb;
+
+	if (IS_RDONLY(inode))
+		goto out_unlock_inode;
+
+	if (fi->i_compress_flag & COMPRESS_ATIME_MASK) {
+		struct timespec64 now;
+
+		if (oneshot)
+			fi->i_compress_flag &= ~COMPRESS_ATIME_MASK;
+		now = current_time(inode);
+		inode_update_time(inode, &now, S_ATIME);
+	}
+
+out_unlock_inode:
+	inode_unlock(inode);
+out_unlock_sb:
+	sb_end_write(inode->i_sb);
+#endif
+}

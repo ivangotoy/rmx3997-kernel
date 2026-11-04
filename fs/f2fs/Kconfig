@@ -150,3 +150,21 @@ config F2FS_UNFAIR_RWSEM
 	help
 	  Use unfair rw_semaphore, if system configured IO priority by block
 	  cgroup.
+
+config F2FS_FS_COMPRESSION_FIXED_OUTPUT
+	bool "F2FS compression feature (fixed output)"
+	depends on F2FS_FS_COMPRESSION
+	help
+	  Enable fixed-output compression.
+
+config F2FS_FS_DEDUP
+	bool "F2FS dedup feature"
+	depends on F2FS_FS
+	help
+	  Enable the file dedup function.
+
+config F2FS_APPBOOST
+       bool "Oplus F2FS Appboost compatibility"
+       depends on F2FS_FS && F2FS_FS_DEDUP
+       help
+         Enable Appboost

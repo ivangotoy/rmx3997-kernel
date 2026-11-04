@@ -23,6 +23,7 @@
 
 #define NULL_ADDR		((block_t)0)	/* used as block_t addresses */
 #define NEW_ADDR		((block_t)-1)	/* used as block_t addresses */
+#define DEDUP_ADDR		((block_t)-1024)
 #define COMPRESS_ADDR		((block_t)-2)	/* used as compressed data flag */
 
 #define F2FS_BYTES_TO_BLK(bytes)	((bytes) >> F2FS_BLKSIZE_BITS)
@@ -318,6 +319,9 @@ struct f2fs_inode {
 						/* 0 bit: chksum flag
 						 * [10,15] bits: compress level
 						 */
+			__le32 i_inner_ino;
+			__le32 i_dedup_flags;
+			__le32 i_dedup_rsvd;
 			__le32 i_extra_end[0];	/* for attribute size calculation */
 		} __packed;
 		__le32 i_addr[DEF_ADDRS_PER_INODE];	/* Pointers to data blocks */
