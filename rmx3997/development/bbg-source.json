@@ -1,0 +1,8 @@
+{
+  "commit": "028ff7fd509e2104596da7cc1ef8e6ce2a0c9082",
+  "url": "https://github.com/vc-teahouse/Baseband-guard",
+  "recipe": "Wild GKI c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e bbg action",
+  "adaptation": "Vendored identity; modern LSM via CONFIG_LSM; upstream boot protection stays disabled for on-device installer",
+  "status": "PASS targeted ARM64 compilation; full ABI and LSM runtime pending",
+  "compile_record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/bbg-compile.json"
+}
