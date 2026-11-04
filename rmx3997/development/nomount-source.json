@@ -1,0 +1,9 @@
+{
+  "commit": "bf1847f98fed382369c43bfd652cd93774b9b8e3",
+  "url": "https://github.com/maxsteeel/nomount",
+  "version": "2.2.0",
+  "recipe": "Wild GKI c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e .github/actions/nomount",
+  "adaptation": "vendored kernel/src; retain default kernel stack protector",
+  "status": "PASS targeted ARM64 compilation; full ABI and runtime pending",
+  "compile_record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/nomount-compile.json"
+}
