@@ -13,7 +13,7 @@
     "patch": "50_add_susfs_in_gki-android13-5.15.patch",
     "compatibility_recipes": "Wild GKI c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e susfs_guard_priority_helpers.py, susfs_idmap_compat.py"
   },
-  "status": "UNVALIDATED until compile/ABI/runtime checks",
+  "status": "Pinned sources integrated; core build/ABI/all463/20 production-guest checks PASS. Individual SUSFS hiding/Android enforcing SELinux/device boot remain unvalidated. See delivery-core/validation.json.",
   "adaptations": [
     "Vendored clean upstream Git blobs plus the exact root uapi/ directory (upstream kernel/include/uapi symlink materialized).",
     "Pinned Kbuild identity and mandatory UPSTREAM_COMMIT replace nested-submodule discovery and build-time fetch.",

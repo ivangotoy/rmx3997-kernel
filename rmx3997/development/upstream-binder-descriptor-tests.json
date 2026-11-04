@@ -1,0 +1,23 @@
+{
+  "baseline": "d7086885fca360b611a0e09686117dd344460cdc",
+  "upstream": "2316d138a3c3f2ec12cfb4b2f09ca9c95aa92ce5",
+  "old_function_sha256": "c28aec59fe3ae989ef35e1995e93fe6db3610a9be79489b2c5b2fd86e9573e4f",
+  "new_function_sha256": "01a686489d7b8329c694ebf794e02052e0b63dc439c5661b8a629cdc22f4613d",
+  "argv": [
+    "/usr/bin/cc",
+    "-O2",
+    "-g",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wno-misleading-indentation",
+    "/home/build/.cache/codex-work/rmx3997-feature-parity/binder-descriptor-fixture/actual-allocators.c",
+    "-o",
+    "/home/build/.cache/codex-work/rmx3997-feature-parity/binder-descriptor-fixture/test"
+  ],
+  "exit": 0,
+  "stdout": "PASS cases=5120 actual old/new bodies, descriptor identity and ownership\n",
+  "stderr": "",
+  "status": "PASS",
+  "scope": "Actual extracted allocator functions with host BST/bitmap/callback/lock stubs; neither kernel runtime nor shipping module execution. Covers no-hook, no-op callback, changed start, callback-owned insertion, fast-toggle ownership, retry and existing descriptor sets."
+}

@@ -121,6 +121,54 @@
     {
       "source": "wild-gki",
       "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/bbrv3/patches/0001-net-tcp-backport-BBRv3-to-android14-5.15-lts.patch",
+      "stages": [],
+      "config_mentions": [
+        "CONFIG_INET_RAW_DIAG",
+        "CONFIG_INET_TCP_DIAG",
+        "CONFIG_INET_UDP_DIAG",
+        "CONFIG_TCP_CONG_BBR",
+        "CONFIG_TCP_CONG_BBR3",
+        "CONFIG_TCP_CONG_BIC",
+        "CONFIG_TCP_CONG_CDG",
+        "CONFIG_TCP_CONG_CUBIC"
+      ],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/bbrv3/patches/0001-net-tcp-backport-BBRv3-to-android14-5.15.patch",
+      "stages": [],
+      "config_mentions": [
+        "CONFIG_INET_RAW_DIAG",
+        "CONFIG_INET_TCP_DIAG",
+        "CONFIG_INET_UDP_DIAG",
+        "CONFIG_TCP_CONG_BBR",
+        "CONFIG_TCP_CONG_BBR3",
+        "CONFIG_TCP_CONG_BIC",
+        "CONFIG_TCP_CONG_CDG",
+        "CONFIG_TCP_CONG_CUBIC"
+      ],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/bbrv3/patches/0002-net-tcp-add-tcp_snd_cwnd-and-tcp_snd_cwnd_set-helper-functions.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
       "path": ".github/actions/btf/action.yml",
       "stages": [
         "Apply libbpf feature-detection fix (android12-5.10)",
@@ -160,6 +208,56 @@
         "CONFIG_UPROBES=y",
         "CONFIG_UPROBE_EVENTS=y"
       ],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/btf/patches/0001-ANDROID-GKI-rework-the-ANDROID_KABI_USE-macro-to-not.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/btf/patches/0001-libbpf-remove-feature-detection-BTF.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/btf/patches/0002-resolve_btfids-inherit-host-linker-flags.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/btf/patches/0003-btf-emit-xdp-buff.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/btf/patches/0004-resolve_btfids-elf-word.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
       "review": "PENDING: recipe references are inventory, not integration or test evidence"
     },
     {
@@ -449,6 +547,54 @@
     {
       "source": "wild-gki",
       "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/networking/patches/0001-net-tcp-backport-BBRv3-to-android14-5.15.patch",
+      "stages": [],
+      "config_mentions": [
+        "CONFIG_INET_RAW_DIAG",
+        "CONFIG_INET_TCP_DIAG",
+        "CONFIG_INET_UDP_DIAG",
+        "CONFIG_TCP_CONG_BBR",
+        "CONFIG_TCP_CONG_BBR3",
+        "CONFIG_TCP_CONG_BIC",
+        "CONFIG_TCP_CONG_CDG",
+        "CONFIG_TCP_CONG_CUBIC"
+      ],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/networking/patches/0001-net-tcp-backport-BBRv3-to-android16-6.12.patch",
+      "stages": [],
+      "config_mentions": [
+        "CONFIG_INET_RAW_DIAG",
+        "CONFIG_INET_TCP_DIAG",
+        "CONFIG_INET_UDP_DIAG",
+        "CONFIG_TCP_CONG_BBR",
+        "CONFIG_TCP_CONG_BBR3",
+        "CONFIG_TCP_CONG_BIC",
+        "CONFIG_TCP_CONG_CDG",
+        "CONFIG_TCP_CONG_CUBIC"
+      ],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/networking/patches/0002-net-tcp-add-tcp_snd_cwnd-and-tcp_snd_cwnd_set-helper-functions.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
       "path": ".github/actions/networking-config/action.yml",
       "stages": [
         "Enable IP Set & Firewall Configs",
@@ -565,6 +711,26 @@
         "}}/patches/0001-lockdep-detect-recursive-read.patch",
         "}}/patches/0002-lockdep-assert-none-held.patch"
       ],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/ntsync/patches/0001-lockdep-detect-recursive-read.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/ntsync/patches/0002-lockdep-assert-none-held.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
       "baseline_config_matches": [],
       "review": "PENDING: recipe references are inventory, not integration or test evidence"
     },
@@ -796,6 +962,64 @@
         "10_enable_susfs_for_ksu.patch",
         "}}/susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch"
       ],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/susfs/susfs618/kernel_patches/50_add_susfs_in_gki-android17-6.18.patch",
+      "stages": [],
+      "config_mentions": [
+        "CONFIG_BUFFER_HEAD",
+        "CONFIG_FANOTIFY",
+        "CONFIG_INOTIFY_USER",
+        "CONFIG_KSU_SUSFS",
+        "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS",
+        "CONFIG_KSU_SUSFS_OPEN_REDIRECT",
+        "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER",
+        "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG",
+        "CONFIG_KSU_SUSFS_SPOOF_UNAME",
+        "CONFIG_KSU_SUSFS_SUS_KSTAT",
+        "CONFIG_KSU_SUSFS_SUS_MAP",
+        "CONFIG_KSU_SUSFS_SUS_MOUNT",
+        "CONFIG_KSU_SUSFS_SUS_PATH",
+        "CONFIG_LEGACY_DIRECT_IO",
+        "CONFIG_PROC_FS",
+        "CONFIG_SMP",
+        "CONFIG_SYSCTL"
+      ],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "wild-gki",
+      "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+      "path": ".github/actions/susfs/susfs618/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch",
+      "stages": [],
+      "config_mentions": [
+        "CONFIG_ARM64",
+        "CONFIG_COMPAT",
+        "CONFIG_KSU_DEBUG",
+        "CONFIG_KSU_DEBUG=1",
+        "CONFIG_KSU_DISABLE_POLICY",
+        "CONFIG_KSU_SUSFS",
+        "CONFIG_KSU_SUSFS_ENABLE_LOG",
+        "CONFIG_KSU_SUSFS_OPEN_REDIRECT",
+        "CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER",
+        "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG",
+        "CONFIG_KSU_SUSFS_SPOOF_UNAME",
+        "CONFIG_KSU_SUSFS_SUS_KSTAT",
+        "CONFIG_KSU_SUSFS_SUS_MAP",
+        "CONFIG_KSU_SUSFS_SUS_MOUNT",
+        "CONFIG_KSU_SUSFS_SUS_PATH",
+        "CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER",
+        "CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER=1",
+        "CONFIG_RISCV",
+        "CONFIG_X86_64"
+      ],
+      "patch_mentions": [],
       "baseline_config_matches": [],
       "review": "PENDING: recipe references are inventory, not integration or test evidence"
     },
@@ -1600,6 +1824,66 @@
         "Manage Notification Issue",
         "Update Status Branch README"
       ],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "aimax-fork",
+      "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a",
+      "path": ".github/actions/btf/patches/0001-ANDROID-GKI-rework-the-ANDROID_KABI_USE-macro-to-not.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "aimax-fork",
+      "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a",
+      "path": ".github/actions/btf/patches/0001-libbpf-remove-feature-detection-BTF.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "aimax-fork",
+      "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a",
+      "path": ".github/actions/btf/patches/0002-resolve_btfids-inherit-host-linker-flags.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "aimax-fork",
+      "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a",
+      "path": ".github/actions/btf/patches/0003-btf-emit-xdp-buff.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "aimax-fork",
+      "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a",
+      "path": ".github/actions/btf/patches/0004-resolve_btfids-elf-word.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "aimax-fork",
+      "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a",
+      "path": ".github/actions/kernelsu/patches/static.patch",
+      "stages": [],
       "config_mentions": [],
       "patch_mentions": [],
       "baseline_config_matches": [],

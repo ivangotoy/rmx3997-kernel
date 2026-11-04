@@ -1,0 +1,22 @@
+{
+  "upstream_commit": "2316d138a3c3f2ec12cfb4b2f09ca9c95aa92ce5",
+  "upstream_version": "5.15.223",
+  "base_tree": "7bdd6d06fa9df6cbb36f22b1e96c84f689c5c838",
+  "feature_parent": "17de73b38",
+  "worktree": "/home/build/Downloads/rmx3997-kernel/.worktrees/upstream-5.15.223",
+  "state": "ISOLATED, UNVALIDATED; no source promotion or package",
+  "reference_ABI": "Original approved reference retained unchanged",
+  "conflicts_resolved": [
+    "Binder descriptor callback retains original arguments/RB ownership; retire private upstream bitmap on OEM-hook path",
+    "F2FS fixed-output LZ4 expected length preserved with upstream sbi lifetime",
+    "F2FS decompress layout cached before deferred cleanup; updated OEM page-array allocator argument",
+    "OEM appboost sysfs retained with upstream typed accessor"
+  ],
+  "history_note": "Explicit baseline-tree merge; upstream shallow source pin is retained, ancestry not claimed",
+  "stage": "/home/build/.cache/codex-work/rmx3997-feature-parity/upstream-stage223",
+  "inherited_outputs": "Copied core output is stale until this stage is built; never certify inherited Image as5.15.223",
+  "index_tree": "b09b200116813cf776488e0c0fadb6b21e145a50",
+  "targeted_Binder_differential_tests": "5120 PASS: upstream-binder-descriptor-tests.json",
+  "build_status": "NOT STARTED: repeated memory failure in preceding feature stage; automatic retries stopped",
+  "full_feature_parity": false
+}

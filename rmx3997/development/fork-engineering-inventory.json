@@ -7,7 +7,8 @@
       "assert_exact_branch_head",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "OTHER FAMILY source/release contract; pinned Android13 5.15 upstream stage isolated. Automatic publication excluded by user. Remaining equivalent 5.15 semantic contract adaptation UNRESOLVED.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/android15_6_6_release_resolver.py",
@@ -17,7 +18,8 @@
       "assert_exact_branch_head",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "OTHER FAMILY source/release contract; pinned Android13 5.15 upstream stage isolated. Automatic publication excluded by user. Remaining equivalent 5.15 semantic contract adaptation UNRESOLVED.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/baseband-guard-contract.py",
@@ -42,7 +44,8 @@
       "parse_args",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/cache-correctness-audit.py",
@@ -74,13 +77,15 @@
       "parse_args",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "NOT USED: this build uses neither ccache nor Android15 source cache. Optional host acceleration/cache workflow, not a missing hardware/runtime capability.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/ccache-clang-wrapper.sh",
     "sha256": "585bbb8da4fe65670a47952c8534c0699247fa44d8db44e31b298a19cf93f4ce",
     "functions": [],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "NOT USED: this build uses neither ccache nor Android15 source cache. Optional host acceleration/cache workflow, not a missing hardware/runtime capability.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/ccache_contract.py",
@@ -91,7 +96,8 @@
       "parse_evidence",
       "preflight"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "NOT USED: this build uses neither ccache nor Android15 source cache. Optional host acceleration/cache workflow, not a missing hardware/runtime capability.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/compiled-config-inventory.py",
@@ -109,7 +115,8 @@
       "verify_expected_compiler_identity",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "EXECUTED unchanged pinned reader on actual core Image; embedded config/compiler PASS; FULL profile correctly reports missing BBR3/defaultBBR3. See fork-core-compiled-inventory.json.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/disk_storage.py",
@@ -118,7 +125,8 @@
       "safe",
       "disk"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "Equivalent disk-only prerequisites enforced by task paths on ext4 NVMe and retained resource guard/cgroup build admission. No RAM scratch or host dependency install.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/droidspaces_semantic_freshness.py",
@@ -129,7 +137,8 @@
       "verify_remote",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/gki_6_6_contract.py",
@@ -157,7 +166,8 @@
       "load_target",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "OTHER FAMILY source/release contract; pinned Android13 5.15 upstream stage isolated. Automatic publication excluded by user. Remaining equivalent 5.15 semantic contract adaptation UNRESOLVED.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/gki_archive_provenance.py",
@@ -166,7 +176,8 @@
       "provenance",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "OTHER FAMILY source/release contract; pinned Android13 5.15 upstream stage isolated. Automatic publication excluded by user. Remaining equivalent 5.15 semantic contract adaptation UNRESOLVED.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/kernel_patches_semantic_freshness.py",
@@ -193,7 +204,8 @@
       "verify_remote",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/kernelsu_kbuild_context.py",
@@ -210,7 +222,8 @@
       "preflight",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/kernelsu_official_freshness.py",
@@ -245,7 +258,8 @@
       "workspace_tuple",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/kernelsu_semantic_freshness.py",
@@ -266,7 +280,8 @@
       "verify_remote",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/nomount_contract.py",
@@ -292,7 +307,8 @@
       "stage_module",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/nomount_refresh.py",
@@ -314,7 +330,8 @@
       "asset_bytes",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/pstore-audit.py",
@@ -334,7 +351,8 @@
       "parse_args",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "DEVICE RUNTIME PENDING: reserved-memory mapping and fresh new-kernel pstore/boot evidence unavailable because no phone operations are authorized. Compiled support does not certify persistence.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/refresh_android12_components.py",
@@ -425,7 +443,8 @@
       "correlate_child_run",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "OTHER FAMILY source/release contract; pinned Android13 5.15 upstream stage isolated. Automatic publication excluded by user. Remaining equivalent 5.15 semantic contract adaptation UNRESOLVED.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/refresh_android15_6_6_components.py",
@@ -491,7 +510,8 @@
       "correlate_child_run",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "OTHER FAMILY source/release contract; pinned Android13 5.15 upstream stage isolated. Automatic publication excluded by user. Remaining equivalent 5.15 semantic contract adaptation UNRESOLVED.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/refresh_source_contract.py",
@@ -510,7 +530,8 @@
       "finish",
       "audit"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/resolve_android15_source_cache.py",
@@ -522,19 +543,22 @@
       "resolve",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "NOT USED: this build uses neither ccache nor Android15 source cache. Optional host acceleration/cache workflow, not a missing hardware/runtime capability.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/run-gki-5.10-sandbox.sh",
     "sha256": "8798d8256576c18adb048f217d5b96c1c8756d2417eeccad65d8393de988bdbe",
     "functions": [],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "OTHER KERNEL FAMILY wrapper; retain actual RMX3997 5.15 Clang14/fullLTO/CFI guard/toolchain. Does not establish runtime feature inapplicability.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/run-gki-6.6-sandbox.sh",
     "sha256": "e83a7cfd0179816b38fc1c6bf51fd7f7886f5be236e2c84c7c7785048d988763",
     "functions": [],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "OTHER KERNEL FAMILY wrapper; retain actual RMX3997 5.15 Clang14/fullLTO/CFI guard/toolchain. Does not establish runtime feature inapplicability.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/runtime-kernelsu-susfs-validation.py",
@@ -555,7 +579,8 @@
       "parse_args",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "PARTIAL ADAPTATION: actual built-in Baka35257/UAPI6, signed-manager grant, untrusted deny and original-init LKM skip PASS in production guest. Android enforcing SELinux, all SUSFS hiding cases and phone boot remain unvalidated. No Next identity substitution.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/selinux_hide_compat.py",
@@ -570,7 +595,8 @@
       "rewrite",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "NEXT/Android15 pointer-linkage adapter cannot be copied into Baka unchanged. Baka-specific SUSFS integration compiles with CFI; equivalent side-channel semantics remain UNRESOLVED.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/susfs_patch_contract.py",
@@ -596,7 +622,8 @@
       "apply",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/susfs_read_context.py",
@@ -607,7 +634,8 @@
       "integrate",
       "verify"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/susfs_source_context.py",
@@ -622,7 +650,8 @@
       "load_evidence",
       "main"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/susfs_statfs_context.py",
@@ -634,7 +663,8 @@
       "integrate",
       "verify"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   },
   {
     "path": "tools/verify_manifest_source.py",
@@ -648,6 +678,7 @@
       "verify_project_paths",
       "verify"
     ],
-    "status": "PENDING applicability review; source pin 51d8178a3cde8f529ef71c5592f05b9ae513f96a"
+    "status": "UNRESOLVED equivalent5.15/Baka semantic contract adaptation; original pinned implementation and functions inventoried. Not claimed integrated or hardware-inapplicable.",
+    "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a"
   }
 ]

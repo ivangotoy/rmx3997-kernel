@@ -1,0 +1,8 @@
+{
+  "approved_branch": "d7086885fca360b611a0e09686117dd344460cdc",
+  "approved_source_files_unchanged": 28,
+  "production_config_sha256": "67f136c8edf04b57f976efb8f808d2210b9ec413194fe7d92cce6772bf7b38da",
+  "working_boot_sha256": "64da6e27c094fd43afe33a345fd53b023f5201c1150d2a1b1e8ff0428cf48881",
+  "core_package_sha256": "f6b95c104f8e5f0ccb03feba06b85664fe9e9aec2bd86b54426b8f109c349f0b",
+  "full_parity": false
+}

@@ -1,0 +1,125 @@
+{
+  "status": "BLOCKED: repeated host-memory admission/runtime contention; no more automatic build retries",
+  "utc": "2026-11-04T16:02:46.284027+00:00",
+  "source_commit": "877f0350ab13b94c40f5a3bb1f399ca8964be707",
+  "stage": "/home/build/.cache/codex-work/rmx3997-feature-parity/performance-stage197",
+  "attempts": [
+    {
+      "argv": [
+        "make",
+        "-C",
+        "/home/build/Downloads/rmx3997-kernel",
+        "O=/home/build/.cache/codex-work/rmx3997-feature-parity/performance-stage197/out",
+        "ARCH=arm64",
+        "LLVM=1",
+        "LLVM_IAS=1",
+        "CROSS_COMPILE=aarch64-linux-gnu-",
+        "CROSS_COMPILE_COMPAT=arm-linux-gnueabi-",
+        "HOSTCC=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang",
+        "HOSTCXX=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang++",
+        "PAHOLE=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/kernel-build-tools/linux-x86/bin/pahole",
+        "LD=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/ld.lld --threads=1",
+        "-j4",
+        "Image",
+        "modules"
+      ],
+      "cwd": "/home/build/Downloads/rmx3997-kernel",
+      "memory_floor_bytes": 8589934592,
+      "poll_seconds": 0.2,
+      "started_utc": "2026-11-04T15:44:42Z",
+      "test_only_injected_pressure": false,
+      "process_group": 3333180,
+      "exit_code": 137,
+      "reason": "memory_floor",
+      "elapsed_seconds": 371.3922026157379,
+      "minimum_actual_MemAvailable_bytes": 8560979968,
+      "events": [
+        {
+          "elapsed": 371.38922595977783,
+          "MemAvailable_actual": 8560979968,
+          "observed_for_test": 8560979968,
+          "action": "SIGSTOP then SIGKILL process group"
+        }
+      ],
+      "finished_utc": "2026-11-04T15:50:54Z",
+      "cgroup": {
+        "memory.high": "12884901888",
+        "memory.max": "15032385536",
+        "memory.swap.max": "25769803776",
+        "memory.events": "low 0\nhigh 21141\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0",
+        "memory.peak": "12886851584",
+        "memory.swap.peak": "8256380928"
+      }
+    },
+    {
+      "argv": [
+        "make",
+        "-C",
+        "/home/build/Downloads/rmx3997-kernel",
+        "O=/home/build/.cache/codex-work/rmx3997-feature-parity/performance-stage197/out",
+        "ARCH=arm64",
+        "LLVM=1",
+        "LLVM_IAS=1",
+        "CROSS_COMPILE=aarch64-linux-gnu-",
+        "CROSS_COMPILE_COMPAT=arm-linux-gnueabi-",
+        "HOSTCC=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang",
+        "HOSTCXX=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang++",
+        "PAHOLE=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/kernel-build-tools/linux-x86/bin/pahole",
+        "LD=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/ld.lld --threads=1",
+        "-j4",
+        "Image",
+        "modules"
+      ],
+      "cwd": "/home/build/Downloads/rmx3997-kernel",
+      "memory_floor_bytes": 8589934592,
+      "poll_seconds": 0.2,
+      "started_utc": "2026-11-04T15:54:18Z",
+      "test_only_injected_pressure": false,
+      "process_group": 3437356,
+      "exit_code": 137,
+      "reason": "memory_floor",
+      "elapsed_seconds": 402.91228318214417,
+      "minimum_actual_MemAvailable_bytes": 8577556480,
+      "events": [
+        {
+          "elapsed": 402.90861916542053,
+          "MemAvailable_actual": 8577556480,
+          "observed_for_test": 8577556480,
+          "action": "SIGSTOP then SIGKILL process group"
+        }
+      ],
+      "finished_utc": "2026-11-04T16:01:00Z",
+      "cgroup": {
+        "memory.high": "6442450944",
+        "memory.max": "8589934592",
+        "memory.swap.max": "25769803776",
+        "memory.events": "low 0\nhigh 29645\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0",
+        "memory.peak": "6444789760",
+        "memory.swap.peak": "9109434368"
+      }
+    }
+  ],
+  "host_top_process_names_rss_after_second_abort": [
+    "    PID COMMAND           RSS",
+    "2665945 thorium         429628",
+    "   2510 plasmashell     315936",
+    "2666438 Telegram        277816",
+    "2665384 thorium         221120",
+    "  22412 codex           198132",
+    "3465713 java            164392",
+    "   2496 kwin_wayland    141800"
+  ],
+  "memory_floor_preserved_bytes": 8589934592,
+  "source_compile_diagnostic": null,
+  "new_Image_produced": false,
+  "inherited_Image_in_failed_output_sha256": "e2e7bdd324419318b5da8571817da9c1ffcfa925b821c78c277b287c6209fefa",
+  "validated_core_Image_sha256": "e2e7bdd324419318b5da8571817da9c1ffcfa925b821c78c277b287c6209fefa",
+  "next_required_condition": "A build window without the competing high-memory host linkers; retain the8GiB guard and do not stop unrelated jobs or retry again automatically.",
+  "remaining_acceptance": [
+    "Feature-stage full build, upstream ABI, all463 modules and24 guest checks",
+    "Separate5.15.223 stage targeted compile/full build/ABI/F2FS/runtime",
+    "BBRv3 ABI-safe implementation and other explicit feature-status gaps"
+  ],
+  "full_feature_parity": false,
+  "phone_operations": false
+}

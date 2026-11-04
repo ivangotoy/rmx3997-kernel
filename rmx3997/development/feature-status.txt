@@ -52,17 +52,17 @@ OverlayFS/fanotify/tmpfs ACL/xattrs: G misc, O Tmpfs, F builds; implemented.
 Ptrace leak fix: G/O/F; PENDING exact baseline delta review.
 Unicode bypass fix: G/O/F; PENDING exact baseline delta review.
 RCU lazy support: F6.6; baseline implemented, LAZY_DEFAULT_OFF=y;
-  default enablement PENDING runtime/power validation.
+  LAZY_DEFAULT_OFF retained: fork README requests RCU_LAZY support, already present. No power-benefit claim.
 MGLRU: F6.6; baseline implemented, LRU_GEN_ENABLED=n;
-  default enablement PENDING runtime validation.
+  default enablement configured and targeted vmscan compile PASS; full build/runtime BLOCKED by repeated host-memory floor.
 ZRAM multi-compression: F6.6; PENDING 5.15/OEM provider compatibility.
 
 Performance patch family: G performance, O Optimisation, P common (each separate
-patch provenance and identity in recipe-inventory.json); PENDING individually:
+patch provenance and identity in recipe-inventory.json); PENDING individually (integrated component stages listed below):
 optimized_mem_operations; file_struct_8bytes_align; reduce_cache_pressure;
-mem_opt_prefetch; optimise_memcmp; minimise_wakeup_time; int_sqrt;
+optimise_memcmp; minimise_wakeup_time;
 force_tcp_nodelay; reduce_gc_thread_sleep_time; add_timeout_wakelocks_globally;
-f2fs_reduce_congestion; reduce_freeze_timeout; clear_page_16bytes_align;
+f2fs_reduce_congestion; reduce_freeze_timeout;
 add_limitation_scaling_min_freq; re_write_limitation_scaling_min_freq;
 adjust_cpu_scan_order; avoid_extra_s2idle_wake_attempts; disable_cache_hot_buddy;
 f2fs_enlarge_min_fsync_blocks; increase_ext4_default_commit_age;
@@ -110,7 +110,7 @@ encryption and crash recovery remain distinct from offline ABI/build acceptance.
 
 Demonstrated donor findings (not speculative exclusions):
 - P int_sqrt patch fails host 64-bit arithmetic comparisons at 2^62, 2^63,
-  UINT64_MAX. Exact observations: int-sqrt-donor-tests.json. Pending correction.
+  UINT64_MAX. Exact observations: int-sqrt-donor-tests.json. Corrected actual source passes500424 independent arithmetic comparisons and ARM64 compile; int_sqrt CRC0xb678366f unchanged.
 - P optimise_memcmp adds unguarded q0-q5/v0-v2 SIMD accesses. The baseline
   arch/arm64/kernel/fpsimd.c documents mandatory kernel_neon_begin ownership;
   unconditional kernel memcmp cannot assume that ownership. Do not import raw.
@@ -141,3 +141,38 @@ sk_psock ABI drift. Rejected evidence preserved separately. Corrected physical
 layouts, without CRC forcing or reference edits, passed full checks. Shared
 kcmp IPC consumer fixed in8e409222a. No BBRv3 code integrated: exact struct probe
 shows rate_sample64->88 while donor __GENKSYMS__ hides growth; proper port pending.
+
+Later197 feature stages (NOT in the validated core ZIP):
+7b6e04f46: corrected integer sqrt;500424 comparisons/actual ARM64 object/CRC PASS.
+06ba89b35: prefetch template; actual copy_from_user/copy_to_user consumers compile.
+  Newer standalone memcpy does not consume that template and was retained.
+f1269150a: clear_page16-byte alignment; actual ARM64 object/ELF alignment PASS.
+877f0350a: fork MGLRU default; only functional config delta LRU_GEN_ENABLED=y;
+  existing vmscan target compile PASS. No replacement MGLRU implementation.
+Full feature-stage LTO failed twice at the tested8GiB available-memory floor,
+including one corrected retry with smaller resident-memory limits. Neither
+attempt produced a new Image. No further automatic build retries are permitted.
+The copied Image in failed outputs is inherited core e2e7..., not a new artifact.
+24-check guest fixture compiled/prepared, NOT EXECUTED because build failed.
+Exact attempts/limits/commands: feature-stage-resource-blocker.json.
+
+Separate upstream stage:
+Pinned Android13-5.15-lts2316d138a3c3f2ec12cfb4b2f09ca9c95aa92ce5,5.15.223,
+source merged only in .worktrees/upstream-5.15.223. Original ABI XML retained;
+OEM Binder descriptor ownership and fixed-output late-free adaptations staged.
+5120 actual old/new Binder function differential host cases PASS with BST/lock/
+bitmap stubs; not kernel/module runtime. Full source compile/ABI/F2FS runtime
+NOT STARTED because preceding build resource failure repeated. No223 package.
+See upstream-stage-state.json and upstream-binder-descriptor-tests.json.
+
+Inventory closure/status:
+203 workflow/action/build-script/patch recipes now include nested GitHub action
+patches,186 source configuration/refresh records,31 fork engineering tools,
+and264 unique literal config symbols with every source commit/path attached.
+Config presence/recipe mentions do not certify functionality. Remaining unresolved
+entries are explicit; this project has NOT reached full parity.
+Fork's unchanged compiled inventory reader ran on actual core Image: embedded
+config equals build config and compiler matches Clang14; FULL profile correctly
+rejects absent BBR3/defaultBBR3. Fork-specific ZRAM multi-compression remains
+unimplemented with unresolved OEM provider compatibility. No generic ZRAM
+replacement, fake feature check, protected-export removal or CRC override used.
