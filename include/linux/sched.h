@@ -1073,10 +1073,6 @@ struct task_struct {
 
 	struct nameidata		*nameidata;
 
-#ifdef CONFIG_SYSVIPC
-	// struct sysv_sem			sysvsem;
-	// struct sysv_shm			sysvshm;
-#endif
 #ifdef CONFIG_DETECT_HUNG_TASK
 	unsigned long			last_switch_count;
 	unsigned long			last_switch_time;
@@ -1514,14 +1510,9 @@ struct task_struct {
 	ANDROID_KABI_RESERVE(4);
 	ANDROID_KABI_RESERVE(5);
 
-#ifdef CONFIG_SYSVIPC
-	ANDROID_KABI_USE(6, struct sysv_sem sysvsem);
-	_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(7); ANDROID_KABI_RESERVE(8), struct sysv_shm sysvshm);
-#else
 	ANDROID_KABI_RESERVE(6);
 	ANDROID_KABI_RESERVE(7);
 	ANDROID_KABI_RESERVE(8);
-#endif
 
 	/*
 	 * New fields for task_struct should be added above here, so that
@@ -1539,6 +1530,24 @@ struct task_struct {
 	 * Do not put anything below here!
 	 */
 };
+
+#ifdef CONFIG_SYSVIPC
+/* Use the reserved storage without changing the shipping task type. */
+static inline struct sysv_sem *task_sysvsem(struct task_struct *task)
+{
+	BUILD_BUG_ON(sizeof(struct sysv_sem) > sizeof(task->android_kabi_reserved6));
+	return (struct sysv_sem *)&task->android_kabi_reserved6;
+}
+
+static inline struct sysv_shm *task_sysvshm(struct task_struct *task)
+{
+	BUILD_BUG_ON(sizeof(struct sysv_shm) >
+		     sizeof(task->android_kabi_reserved7) + sizeof(task->android_kabi_reserved8));
+	BUILD_BUG_ON(offsetof(struct task_struct, android_kabi_reserved8) !=
+		     offsetof(struct task_struct, android_kabi_reserved7) + sizeof(u64));
+	return (struct sysv_shm *)&task->android_kabi_reserved7;
+}
+#endif
 
 static inline struct pid *task_pid(struct task_struct *task)
 {

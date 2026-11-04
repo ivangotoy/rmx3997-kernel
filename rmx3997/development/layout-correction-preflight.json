@@ -1,0 +1,18 @@
+{
+  "targeted_compile": "PASS",
+  "physical_layouts": "PASS",
+  "real_generated_CRC_comparisons": [
+    {
+      "path": "drivers/android/vendor_hooks.o.symversions",
+      "symbols": 1420,
+      "differences": {}
+    },
+    {
+      "path": "kernel/module.o.symversions",
+      "symbols": 16,
+      "differences": {}
+    }
+  ],
+  "full_binary_acceptance": "PENDING",
+  "no_CRC_forcing": true
+}

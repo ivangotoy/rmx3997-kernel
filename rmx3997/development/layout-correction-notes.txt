@@ -1,0 +1,26 @@
+Demonstrated rejection and correction
+Rejected Image SHA256 f91b4d593d416faee2027d135805bde35a0b424cf7da1726658ee4703ecae61f.
+The strict ABI report identified ucount enum/array growth (user_namespace 656->672,
+ucounts 144->160), task reserve representation and sk_psock 384->696.
+
+Fanotify accounting now preserves the shipping enum values and embedded arrays.
+Two private counters extend each kernel-owned ucounts allocation after the exact
+original prefix; the static init_ucounts has separate static counters. Existing
+kfree/refcount paths free the prefix at allocation offset zero. Namespace limits
+use the two existing reserved words, with the original sysctl ordering and all
+hierarchical increment/rollback/decrement paths routed to the correct counters.
+No genksyms masking or CRC override was added.
+
+SYSVIPC accesses reserved task words 6/7/8 through typed, size-checked accessors.
+The public task structure keeps its original fields and offsets. Sem undo and
+SHM list consumers use the accessors instead of changing the public task type.
+
+The raw BPF_STREAM_PARSER toggle is withheld: OnePlus's build action explicitly
+skips it for wild/mt* branches, and it changes the shipping sk_psock layout here.
+This does not mean MT6835 cannot execute BPF. BPF syscall/events/probes remain.
+An ABI-safe stream-parser extension remains unimplemented if separately needed;
+this interim core candidate does not claim every optional cross-profile feature.
+
+Actual target-compiler physical layout/offset comparisons and all 1436 generated
+vendor-hook/module-loader object CRCs match the approved baseline. Full linked
+ABI/module validation and new fanotify/IPC runtime cases remain mandatory.

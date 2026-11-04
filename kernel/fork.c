@@ -901,6 +901,10 @@ void __init fork_init(void)
 
 	for (i = 0; i < MAX_PER_NAMESPACE_UCOUNTS; i++)
 		init_user_ns.ucount_max[i] = max_threads/2;
+#ifdef CONFIG_FANOTIFY
+	*userns_ucount_max(&init_user_ns, UCOUNT_FANOTIFY_GROUPS) = max_threads/2;
+	*userns_ucount_max(&init_user_ns, UCOUNT_FANOTIFY_MARKS) = max_threads/2;
+#endif
 
 	set_rlimit_ucount_max(&init_user_ns, UCOUNT_RLIMIT_NPROC,      RLIM_INFINITY);
 	set_rlimit_ucount_max(&init_user_ns, UCOUNT_RLIMIT_MSGQUEUE,   RLIM_INFINITY);

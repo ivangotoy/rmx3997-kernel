@@ -134,6 +134,10 @@ int create_user_ns(struct cred *new)
 	for (i = 0; i < MAX_PER_NAMESPACE_UCOUNTS; i++) {
 		ns->ucount_max[i] = INT_MAX;
 	}
+#ifdef CONFIG_FANOTIFY
+	*userns_ucount_max(ns, UCOUNT_FANOTIFY_GROUPS) = INT_MAX;
+	*userns_ucount_max(ns, UCOUNT_FANOTIFY_MARKS) = INT_MAX;
+#endif
 	set_rlimit_ucount_max(ns, UCOUNT_RLIMIT_NPROC, enforced_nproc_rlimit());
 	set_rlimit_ucount_max(ns, UCOUNT_RLIMIT_MSGQUEUE, rlimit(RLIMIT_MSGQUEUE));
 	set_rlimit_ucount_max(ns, UCOUNT_RLIMIT_SIGPENDING, rlimit(RLIMIT_SIGPENDING));

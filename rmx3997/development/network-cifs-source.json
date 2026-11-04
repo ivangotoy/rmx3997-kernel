@@ -63,12 +63,13 @@
     "CONFIG_FANOTIFY_ACCESS_PERMISSIONS": "y",
     "CONFIG_NET_SCH_PIE": "y",
     "CONFIG_NET_SCH_FQ_PIE": "y",
-    "CONFIG_BPF_STREAM_PARSER": "y"
+    "CONFIG_BPF_STREAM_PARSER": "n"
   },
   "BBRv3": "NOT integrated; donor layout masking requires independent KMI compatibility resolution",
   "status": "PASS targeted ARM64 networking/CIFS compilation; full ABI and runtime pending",
   "compile_record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/networking-cifs-compile.json",
   "config_mismatches": {},
   "dependency_correction": "NETFS_SUPPORT has no prompt in 5.15: enable FSCACHE, its actual selector; all 73 requested feature config values then match",
-  "dependency_compile_record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/netfs-dependency-compile.json"
+  "dependency_compile_record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/netfs-dependency-compile.json",
+  "stream_parser_profile": "Withheld: source MTK exclusion plus actual sk_psock ABI size change; not a claim of hardware inability"
 }
