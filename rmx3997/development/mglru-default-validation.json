@@ -1,0 +1,58 @@
+{
+  "source": "51d8178a3cde8f529ef71c5592f05b9ae513f96a:README.md GKI6.6 MGLRU and config projection",
+  "adaptation": "Reuse the existing approved 5.15 MGLRU implementation; enable its supported default switch only. No memory subsystem replacement.",
+  "config_delta": [
+    "--- ",
+    "+++ ",
+    "@@ -961,7 +961,7 @@",
+    " CONFIG_ARCH_HAS_IOREMAP_PHYS_HOOKS=y",
+    " CONFIG_ANON_VMA_NAME=y",
+    " CONFIG_LRU_GEN=y",
+    "-# CONFIG_LRU_GEN_ENABLED is not set",
+    "+CONFIG_LRU_GEN_ENABLED=y",
+    " # CONFIG_LRU_GEN_STATS is not set",
+    " CONFIG_MEMFD_ASHMEM_SHIM=y",
+    " "
+  ],
+  "compile": {
+    "argv": [
+      "make",
+      "-C",
+      "/home/build/Downloads/rmx3997-kernel",
+      "O=/home/build/.cache/codex-work/rmx3997-feature-parity/performance-stage197/out",
+      "ARCH=arm64",
+      "LLVM=1",
+      "LLVM_IAS=1",
+      "CROSS_COMPILE=aarch64-linux-gnu-",
+      "CROSS_COMPILE_COMPAT=arm-linux-gnueabi-",
+      "HOSTCC=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang",
+      "HOSTCXX=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang++",
+      "PAHOLE=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/kernel-build-tools/linux-x86/bin/pahole",
+      "LD=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/ld.lld --threads=1",
+      "-j4",
+      "olddefconfig",
+      "mm/vmscan.o"
+    ],
+    "cwd": "/home/build/Downloads/rmx3997-kernel",
+    "memory_floor_bytes": 8589934592,
+    "poll_seconds": 0.2,
+    "started_utc": "2026-11-04T15:43:45Z",
+    "test_only_injected_pressure": false,
+    "process_group": 3318950,
+    "exit_code": 0,
+    "reason": "completed",
+    "elapsed_seconds": 4.004262924194336,
+    "minimum_actual_MemAvailable_bytes": 28959924224,
+    "events": [],
+    "finished_utc": "2026-11-04T15:43:50Z",
+    "cgroup": {
+      "memory.high": "max",
+      "memory.max": "max",
+      "memory.swap.max": "max",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0",
+      "memory.peak": "16435695616",
+      "memory.swap.peak": "1669890048"
+    }
+  },
+  "status": "CONFIG AND COMPILE PASS; default/runtime tests pending"
+}
