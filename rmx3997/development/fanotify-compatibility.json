@@ -1,0 +1,8 @@
+{
+  "recipe_commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+  "recipe": ".github/actions/susfs-patches/action.yml / susfs_fdinfo_fanotify_arity.py",
+  "defect": "SUSFS widened show_fdinfo callback to three arguments but fanotify retained two",
+  "correction": "Match callback signature under the exact SUSFS feature guards; retain fanotify and CFI",
+  "actual_target_compile": "PASS",
+  "record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/fanotify-signature-fix.json"
+}
