@@ -1,0 +1,10 @@
+{
+  "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+  "url": "https://github.com/WildKernels/kernel_patches",
+  "patches": [
+    "common/ntsync/ntsync_compat_android13-5.15.patch",
+    "common/ntsync/ntsync_base.patch"
+  ],
+  "validation": "PASS targeted ARM64 compilation; runtime ioctl tests pending",
+  "compile_record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/ntsync-compile.json"
+}
