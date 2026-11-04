@@ -1,0 +1,6 @@
+{
+  "targeted_full_kernel_and_ipc_compile": "PASS",
+  "record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/ipc-accessor-consumers.json",
+  "consumer_correction": "kernel/kcmp.c uses the same typed task_sysvsem accessor; full source reference search found no remaining direct accesses",
+  "remaining_direct_member_references": "documentation comment only"
+}
