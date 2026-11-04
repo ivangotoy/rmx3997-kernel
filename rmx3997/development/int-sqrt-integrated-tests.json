@@ -1,0 +1,27 @@
+{
+  "source_commit_before_change": "17de73b38690bc329a3f68bd830e1e56b446663f",
+  "source_sha256": "279b1aa2109f7ff5ef8c4231b3976e2f4874321346dd5a22b899b8a2b93ce5d0",
+  "donor": "ee68218dc83b3e488ae619eb82e868859e8eb17d:common/int_sqrt.patch",
+  "adaptation": "Do not unconditionally discard the 1UL<<62 candidate; retain public function signature and normal kernel style.",
+  "scope": "Actual integrated function extracted into a host arithmetic fixture, not kernel runtime or performance certification",
+  "argv": [
+    "/usr/bin/cc",
+    "-shared",
+    "-fPIC",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "/home/build/.cache/codex-work/rmx3997-feature-parity/performance-fixtures/sqrt-integrated-host.c",
+    "-o",
+    "/home/build/.cache/codex-work/rmx3997-feature-parity/performance-fixtures/sqrt-integrated-host.so"
+  ],
+  "seed": 14743,
+  "cases": 500424,
+  "errors": [],
+  "status": "PASS",
+  "arm64_compile_result": "/home/build/.cache/codex-work/rmx3997-feature-parity/performance-stage197/sqrt-integrated-target.json",
+  "target_compile_exit": 0,
+  "symbol_version": "__crc_int_sqrt = 0xb678366f;",
+  "full_kernel_acceptance": "PENDING feature-stage full build/ABI/runtime; validated core artifact unchanged"
+}
