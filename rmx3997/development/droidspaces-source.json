@@ -1,0 +1,10 @@
+{
+  "commit": "6659b5b5f96d7d8dcd86033b5a42a3fcc364bbf9",
+  "url": "https://github.com/ravindu644/Droidspaces-OSS",
+  "patch": "Documentation/resources/kernel-patches/GKI/below-kernel-6.12/001.GKI-below-6.12-fix_sysvipc_kabi_6_7_8.patch",
+  "config_recipe": "Wild GKI c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+  "KABI": "Use verified task_struct reserved words 6,7,8; actual binary layout and CRC tests mandatory",
+  "status": "PASS targeted IPC/PID/user namespace/devpts compilation; full KMI/module and container runtime pending",
+  "compile_record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/namespaces-compile.json",
+  "oplus_bsp_midas_guard": "Not applied: no oplus_bsp_midas module in 463-OEM-module inventory; caller-specific workaround is inactive on this firmware"
+}
