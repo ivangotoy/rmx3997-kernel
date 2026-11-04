@@ -68,10 +68,7 @@
   "BBRv3": "NOT integrated; donor layout masking requires independent KMI compatibility resolution",
   "status": "PASS targeted ARM64 networking/CIFS compilation; full ABI and runtime pending",
   "compile_record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/networking-cifs-compile.json",
-  "config_mismatches": {
-    "CONFIG_NETFS_SUPPORT": {
-      "expected": "y",
-      "actual": "n"
-    }
-  }
+  "config_mismatches": {},
+  "dependency_correction": "NETFS_SUPPORT has no prompt in 5.15: enable FSCACHE, its actual selector; all 73 requested feature config values then match",
+  "dependency_compile_record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/netfs-dependency-compile.json"
 }
