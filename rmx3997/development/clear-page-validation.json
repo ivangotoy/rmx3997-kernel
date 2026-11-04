@@ -1,0 +1,46 @@
+{
+  "donor": "ee68218dc83b3e488ae619eb82e868859e8eb17d:common/clear_page_16bytes_align.patch",
+  "source_sha256": "f5fe828406f3bbac9ab8bdafbfb6cbfe1576858ec7cf10fe7b839dae76e9381f",
+  "compile": {
+    "argv": [
+      "make",
+      "-C",
+      "/home/build/Downloads/rmx3997-kernel",
+      "O=/home/build/.cache/codex-work/rmx3997-feature-parity/performance-stage197/out",
+      "ARCH=arm64",
+      "LLVM=1",
+      "LLVM_IAS=1",
+      "CROSS_COMPILE=aarch64-linux-gnu-",
+      "CROSS_COMPILE_COMPAT=arm-linux-gnueabi-",
+      "HOSTCC=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang",
+      "HOSTCXX=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang++",
+      "PAHOLE=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/kernel-build-tools/linux-x86/bin/pahole",
+      "LD=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/ld.lld --threads=1",
+      "-j4",
+      "arch/arm64/lib/clear_page.o"
+    ],
+    "cwd": "/home/build/Downloads/rmx3997-kernel",
+    "memory_floor_bytes": 8589934592,
+    "poll_seconds": 0.2,
+    "started_utc": "2026-11-04T15:43:19Z",
+    "test_only_injected_pressure": false,
+    "process_group": 3314369,
+    "exit_code": 0,
+    "reason": "completed",
+    "elapsed_seconds": 1.201347827911377,
+    "minimum_actual_MemAvailable_bytes": 29103497216,
+    "events": [],
+    "finished_utc": "2026-11-04T15:43:20Z",
+    "cgroup": {
+      "memory.high": "max",
+      "memory.max": "max",
+      "memory.swap.max": "max",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0",
+      "memory.peak": "16435695616",
+      "memory.swap.peak": "1669890048"
+    }
+  },
+  "ELF_text_section": "  [ 1] .text             PROGBITS        0000000000000000 000040 00004c 00  AX  0   0 16",
+  "status": "ARM64 COMPILE AND16BYTE ALIGNMENT PASS; full-stage checks pending",
+  "performance_claim": false
+}
