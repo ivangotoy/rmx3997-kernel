@@ -1,0 +1,105 @@
+{
+  "commit": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+  "calls": [
+    {
+      "action": ".github/actions/apply-device-patches/action.yml",
+      "line": 101,
+      "command": "python3 - android/abi_gki_aarch64.stg <<'PYEOF'"
+    },
+    {
+      "action": ".github/actions/bbg/action.yml",
+      "line": 29,
+      "command": "python3 \"${GITHUB_WORKSPACE}/.github/scripts/bbg_618_compat.py\" \"$BBG_DIR\""
+    },
+    {
+      "action": ".github/actions/cifs/action.yml",
+      "line": 41,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/cifs_modules_fix.py\" \"$PWD\" $MODULES"
+    },
+    {
+      "action": ".github/actions/release-notes-preview/action.yml",
+      "line": 28,
+      "command": "python3 \"$script\" > \"${{ inputs.output }}\""
+    },
+    {
+      "action": ".github/actions/susfs/action.yml",
+      "line": 126,
+      "command": "REL_URL=\"$(printf '%s' \"$REL_JSON\" | python3 -c \\"
+    },
+    {
+      "action": ".github/actions/susfs/action.yml",
+      "line": 130,
+      "command": "CERT_INFO=\"$(python3 \"$GITHUB_WORKSPACE/.github/actions/susfs/finasu_compat/extract_manager_cert.py\" \"$REL_APK\" | head -n1)\""
+    },
+    {
+      "action": ".github/actions/susfs/action.yml",
+      "line": 142,
+      "command": "SIZE=\"$CERT_SIZE\" HASH=\"$CERT_HASH\" python3 - FinaSU/kernel/Kbuild <<'PY'"
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 37,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/susfs_guard_priority_helpers.py\" fs/susfs.c"
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 57,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/susfs_idmap_compat.py\" fs/susfs.c"
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 75,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/susfs_fake_fdinfo.py\" fs/notify/fdinfo.c"
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 86,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/susfs_fake_fdinfo.py\" fs/notify/fdinfo.c"
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 113,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/susfs_fake_fdinfo.py\" fs/notify/fdinfo.c"
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 142,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/susfs_fake_66_smaps.py\" fs/proc/task_mmu.c apply"
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 181,
+      "command": "#       python3 \"${{ github.workspace }}/.github/scripts/susfs_fake_612.py\" fs/proc/task_mmu.c apply"
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 193,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/susfs_restore_context.py\" \\"
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 210,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/apply_susfs_compat.py\" \\"
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 219,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/susfs_618_task_mmu.py\" \"$PWD\""
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 223,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/susfs_618_compile_fixes.py\" \"$PWD\""
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 226,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/susfs_618_prototypes.py\" \"$PWD\""
+    },
+    {
+      "action": ".github/actions/susfs-patches/action.yml",
+      "line": 235,
+      "command": "python3 \"${{ github.workspace }}/.github/scripts/susfs_fdinfo_fanotify_arity.py\" \"$PWD\""
+    }
+  ]
+}

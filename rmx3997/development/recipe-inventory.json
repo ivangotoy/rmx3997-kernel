@@ -1647,6 +1647,28 @@
     {
       "source": "aimax-fork",
       "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a",
+      "path": ".github/patches/susfs/4719dc0a051a7a3adaedeb59f95b841727be0b67.patch",
+      "stages": [],
+      "config_mentions": [
+        "CONFIG_KSU_SUSFS_SPOOF_UNAME"
+      ],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "aimax-fork",
+      "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a",
+      "path": ".github/patches/susfs/4f438ef502a64188a0c84cf1e86caa277583c4b9.patch",
+      "stages": [],
+      "config_mentions": [],
+      "patch_mentions": [],
+      "baseline_config_matches": [],
+      "review": "PENDING: recipe references are inventory, not integration or test evidence"
+    },
+    {
+      "source": "aimax-fork",
+      "commit": "51d8178a3cde8f529ef71c5592f05b9ae513f96a",
       "path": "build-gki-5.10.sh",
       "stages": [],
       "config_mentions": [

@@ -1,0 +1,48 @@
+{
+  "argv": [
+    "/usr/bin/qemu-system-aarch64",
+    "-machine",
+    "virt",
+    "-m",
+    "128M",
+    "-nodefaults",
+    "-display",
+    "none",
+    "-S",
+    "-qmp",
+    "stdio",
+    "-device",
+    "ufs,id=rmxufs,serial=RMX3997-CORE-UFS"
+  ],
+  "returncode": 0,
+  "controller": [
+    {
+      "irq_pin": 1,
+      "bus": 0,
+      "qdev_id": "rmxufs",
+      "irq": 0,
+      "slot": 1,
+      "class_info": {
+        "class": 265
+      },
+      "id": {
+        "device": 19,
+        "subsystem-vendor": 6900,
+        "vendor": 6966,
+        "subsystem": 4352
+      },
+      "function": 0,
+      "regions": [
+        {
+          "prefetch": false,
+          "mem_type_64": false,
+          "bar": 0,
+          "size": 8192,
+          "address": -1,
+          "type": "memory"
+        }
+      ]
+    }
+  ],
+  "stderr": ""
+}

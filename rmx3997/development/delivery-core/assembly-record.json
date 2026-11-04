@@ -1,0 +1,74 @@
+{
+  "policy": {
+    "algorithm": "NONE",
+    "hash_algorithm": "sha256",
+    "vbmeta_flags": 0,
+    "OEM_signature_trust_preserved": false,
+    "parent_vbmeta_modified": false,
+    "meaning": "Unsigned internally consistent unlocked-bootloader experiment; device acceptance unverified"
+  },
+  "inputs": {
+    "/home/build/Downloads/RMX3997_16.0.5.1300_boot_b_stock.img": {
+      "bytes": 67108864,
+      "sha256": "c7ab487bac1e2fb99932738aa423d5553b4ad8bcd2b8fc4677b8c491981fe086"
+    },
+    "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/out/arch/arm64/boot/Image": {
+      "bytes": 50399744,
+      "sha256": "e2e7bdd324419318b5da8571817da9c1ffcfa925b821c78c277b287c6209fefa"
+    },
+    "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104/kernel.legacy-lz4": {
+      "bytes": 26474109,
+      "sha256": "131962747896bdd4b8402455ebae855596cd3e3fd9d67d742503b2b346faac59"
+    }
+  },
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "/usr/bin/avbtool",
+        "add_hash_footer",
+        "--image",
+        "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104/boot_b_oem_f2fs_experimental.img",
+        "--partition_name",
+        "boot",
+        "--partition_size",
+        "67108864",
+        "--hash_algorithm",
+        "sha256",
+        "--algorithm",
+        "NONE",
+        "--salt",
+        "198a7a23717f0e5bd8c456683dbd3548",
+        "--rollback_index",
+        "0",
+        "--rollback_index_location",
+        "0",
+        "--flags",
+        "0",
+        "--internal_release_string",
+        "avbtool 1.2.0",
+        "--prop",
+        "com.android.build.boot.os_version:13",
+        "--prop",
+        "com.android.build.boot.fingerprint:alps/hal_mgvi_64_armv82/mgvi_64_armv82:13/TP1A.220905.001/1790676698462:user/release-keys",
+        "--prop",
+        "com.android.build.boot.security_patch:2026-10-01",
+        "--prop",
+        "com.android.build.boot.security_patch:2026-10-01"
+      ],
+      "cwd": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "outputs": {
+    "boot_b_oem_f2fs_experimental.img": {
+      "bytes": 67108864,
+      "sha256": "be567b3f6c0f2e343a808d9c2617f6aef75a6695670d44c65fc56f80014b8326",
+      "payload_bytes": 26480640,
+      "kernel_bytes": 26474109,
+      "salted_payload_sha256": "91adbbb163109fd1dd7e8530665297cf2c118da65333583fa416b871030be377"
+    }
+  }
+}

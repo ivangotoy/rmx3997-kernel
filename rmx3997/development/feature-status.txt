@@ -10,38 +10,52 @@ F = ivangotoy/GKI_KERNELSU 51d8178a3cde8f529ef71c5592f05b9ae513f96a
 P = WildKernels/kernel_patches ee68218dc83b3e488ae619eb82e868859e8eb17d
 Sources in each entry refer to these exact commits, not moving branch tips.
 
-Runtime features (all pending unless explicitly stated):
-Built-in BakaSU: G .github/actions/root-setup/action.yml; PENDING.
-Toolkit/dynamic manager/certified BakaSU manager: G root-setup/build.yml; PENDING.
-SUSFS path/mount/kstat/map/uname/cmdline/open redirect/log/symbol hiding:
-  G susfs-config/action.yml, F build scripts; PENDING.
-SUSFS priority UID filter / SELinux side-channel fixes: G susfs-patches; PENDING compatibility review.
-NoMount built-in VFS redirection v2.1: G nomount/action.yml, F build scripts; PENDING.
+Runtime features (source recipe pins G/O/F/P above):
+Built-in BakaSU 516d3e87fbc986ccefdde2c2765f1700612441a9, version35257:
+  G root-setup/build; implemented. Production binary build/ABI/all463 PASS.
+  Actual original patched init wrapper detected built-in driver and skipped LKM.
+  Signed Baka manager UID gained root; untrusted UID denied in ARM64 guest.
+  Toolkit enabled; multi-manager disabled (Baka-only trust requirement).
+SUSFS d5df1d937361530787fafa920dea3a9b6dc8ebef, v2.3.0:
+  G susfs-config, F builds; implemented path/mount/kstat/map/uname/cmdline/open
+  redirect/log/symbol hiding. Shared hooks compiled; ABI PASS. Individual hiding
+  feature runtime tests still PENDING; Android enforcing SELinux not certified.
+SUSFS priority UID filter / SELinux side-channel fixes: G susfs-patches;
+  PENDING Baka compatibility implementation.
+NoMount bf1847f98fed382369c43bfd652cd93774b9b8e3 v2.2.0:
+  G nomount, F builds; implemented. Native protocol22/redirection/revoke PASS.
 NoMount metamodule/optional Mountify: G nomount-metamodule; userspace artifacts,
-  distinct from kernel support; PENDING, cannot silently install on phone.
-Baseband Guard LSM: G bbg/action.yml, O Add BBG, F build scripts; PENDING.
-BBR v1/v3 / PLB / default BBR3: G bbrv3/networking-config, O BBR, F build scripts; PENDING.
-BIC/CUBIC/Westwood/HTCP: G networking-config, F build scripts; PENDING delta review.
-FQ/FQ-CoDel/CAKE/PIE/FQ-PIE: G networking-config, O qdisc, F build scripts; PENDING delta review.
-WireGuard: G networking-config, F build scripts; PENDING delta review.
-IPSet all types / IPv6 NAT / TTL / HL / connmark / recent / log / reject / BPF stream parser:
-  G networking-config, O IP SET, F build scripts; PENDING delta review.
-CIFS/POSIX/xattrs/keys/netfs: G cifs/action.yml, F build scripts; PENDING delta review.
-BTF/BPF events/kprobe/uprobe/kallsyms: G btf/misc, F build scripts;
-  baseline has BTF, full kallsyms and FUSE-BPF; remaining config delta PENDING.
-FUSE-BPF passthrough: G fuse-bpf, F build scripts; baseline implemented, retain newer 5.15 source.
-NTSync/lockdep prerequisites: G ntsync, O NTSync, F build scripts; PENDING.
-DroidSpaces namespaces/IPC/mqueue/binfmt/devtmpfs/macvlan: G droidspaces, O Droidspaces,
-  F build scripts; PENDING. Must independently verify KABI reserve consumption.
-DroidSpaces Oplus midas ghost-task guard: O Droidspaces / P common/droidspaces; PENDING.
-OverlayFS/fanotify/tmpfs ACL/xattrs: G misc, O Tmpfs, F build scripts; PENDING delta review.
-Ptrace leak fix: G ptrace, O Other Patches, F build scripts; PENDING.
-Unicode bypass fix: G unicode-fix, O Unicode, F build scripts; PENDING.
-RCU lazy support: F 6.6 projection; baseline implemented, LAZY_DEFAULT_OFF=y;
-  desired enablement default PENDING runtime/power validation.
-MGLRU: F 6.6 projection; baseline implemented, LRU_GEN_ENABLED=n;
-  enabled-by-default change PENDING runtime validation.
-ZRAM multi-compression: F 6.6 README/config; PENDING real 5.15 backport, not hardware-inapplicable.
+  distinct from kernel support; PENDING, no phone installation.
+BBG 028ff7fd509e2104596da7cc1ef8e6ce2a0c9082: G/O/F;
+  implemented with LSM registration, boot protection disabled per workflow;
+  dedicated guest UFS userdata allowed. Full policy denial tests PENDING.
+BBRv1/BIC/CUBIC/Westwood/HTCP: G networking-config, F builds; built in.
+BBRv3/PLB/default BBR3: G bbrv3, O BBR, F builds; PENDING ABI-safe implementation.
+FQ/FQ-CoDel/CAKE/PIE/FQ-PIE, WireGuard, IPSet all types/65534, IPv6 NAT,
+  TTL/HL/connmark/recent/log/reject: G/O/F; configured and full build PASS;
+  detailed networking runtime tests PENDING.
+BPF stream parser: O explicitly skips wild/mt targets. Withheld: donor enlarges
+  OEM sk_psock 384->696. Not hardware-inapplicable; ABI-safe port unresolved.
+CIFS/POSIX/xattrs/keys/netfs: G cifs, F builds; implemented, hidden NETFS selected
+  through FSCACHE. Build PASS; protocol/mount runtime tests PENDING.
+BTF/BPF events/kprobe/uprobe/kallsyms/FUSE-BPF: G/O/F; baseline capabilities
+  retained and configured additions built. BTF validation PASS.
+NTSync: G/O/F, P patch; implemented. Semaphore read/release/overflow guest PASS.
+DroidSpaces namespaces/IPC/mqueue/binfmt/devtmpfs/macvlan: G/O/F,
+  donor6659b5b5f96d7d8dcd86033b5a42a3fcc364bbf9. Implemented with KABI reserves,
+  task struct unchanged; IPC/mount/PID/user namespaces, SEM_UNDO and SHM PASS.
+DroidSpaces midas ghost-task workaround: no midas caller in all463 shipping
+  modules, caller-specific workaround has no active target in this firmware.
+OverlayFS/fanotify/tmpfs ACL/xattrs: G misc, O Tmpfs, F builds; implemented.
+  Fanotify physical ABI preserved with private counters and reserved limits;
+  static/dynamic/nested userns/mark accounting tests PASS, full module ABI PASS.
+Ptrace leak fix: G/O/F; PENDING exact baseline delta review.
+Unicode bypass fix: G/O/F; PENDING exact baseline delta review.
+RCU lazy support: F6.6; baseline implemented, LAZY_DEFAULT_OFF=y;
+  default enablement PENDING runtime/power validation.
+MGLRU: F6.6; baseline implemented, LRU_GEN_ENABLED=n;
+  default enablement PENDING runtime validation.
+ZRAM multi-compression: F6.6; PENDING 5.15/OEM provider compatibility.
 
 Performance patch family: G performance, O Optimisation, P common (each separate
 patch provenance and identity in recipe-inventory.json); PENDING individually:
@@ -85,7 +99,7 @@ Original KernelSU/KernelSU-Next/FinaSU/KowSU/SukiSU/KPM: G/O/F root choices;
   EXCLUDED: explicit BakaSU-only requirement, not hardware-inapplicability.
 AnyKernel3/metadata/managers/build-summary/release/cache/ccache: G/O/F;
   reuse proven RMX3997 transaction instead of replacing working installer;
-  experimental package PENDING validated new binary. No publication or APK installs.
+  core checkpoint package validated with new binary; full parity package PENDING. No publication or APK installs.
 Fork-specific reproducibility/freshness/pins/semantic source contracts/config inventory/
   guarded disk build/runtime root+pstore audits/manager artifact verification:
   F tools and build scripts; PENDING port of applicable checks, retain RMX3997 guard,
@@ -93,3 +107,37 @@ Fork-specific reproducibility/freshness/pins/semantic source contracts/config in
 
 No feature marked pending is certified integrated. Hardware runtime, power/performance,
 encryption and crash recovery remain distinct from offline ABI/build acceptance.
+
+Demonstrated donor findings (not speculative exclusions):
+- P int_sqrt patch fails host 64-bit arithmetic comparisons at 2^62, 2^63,
+  UINT64_MAX. Exact observations: int-sqrt-donor-tests.json. Pending correction.
+- P optimise_memcmp adds unguarded q0-q5/v0-v2 SIMD accesses. The baseline
+  arch/arm64/kernel/fpsimd.c documents mandatory kernel_neon_begin ownership;
+  unconditional kernel memcmp cannot assume that ownership. Do not import raw.
+- BakaSU/SUSFS syscall read declaration differed from BakaSU definition;
+  corrected with shared compiler-checked hook declarations; full build PASS.
+- Generic ZRAM remains a GKI module; retained shipping module inventory includes
+  oplus_bsp_hybridswap_zram and oplus_bsp_zram_opt. Generic multi-compression
+  does not establish support in those OEM implementations. Pending exact source
+  and provider validation; no working memory subsystem replacement authorized by guess.
+- All actual source configurations and fork refresh contracts are retained in
+  source-configuration-inventory.json (186 entries); fork engineering inventory
+  records 31 tools with source hashes and review status.
+
+Current validated core checkpoint:
+Source8e409222a6f807bce59bc39b217f3b13f6474a60; Imagee2e7bdd3...fefa.
+Clang14/fullLTO/CFI/KMI8/MODVERSIONS/protected exports retained.
+Upstream ABI PASS, all463 module compatibility PASS, persistent F2FS BTF PASS.
+All28 approved OEM F2FS/vendor-hook source files remain byte-identical.
+20 actual production-binary ARM64 UFS guest checks PASS; no test config delta.
+25 installer safety/transaction cases PASS. Native Android entry success and
+injected-write-failure verified rollback PASS for exact ZIP f6b95c10...49f0b.
+init_boot22f6, BakaSU userspace and other partitions remain untouched by installer.
+Record: delivery-core/validation.json and installer-validation.json.
+This is NOT full parity and NOT device-tested. Remaining PENDING entries apply.
+
+Demonstrated rejected core binary f91b4d59... had user_namespace/ucounts/task/
+sk_psock ABI drift. Rejected evidence preserved separately. Corrected physical
+layouts, without CRC forcing or reference edits, passed full checks. Shared
+kcmp IPC consumer fixed in8e409222a. No BBRv3 code integrated: exact struct probe
+shows rate_sample64->88 while donor __GENKSYMS__ hides growth; proper port pending.

@@ -1,5 +1,9 @@
 {
-  "requests": 73,
+  "requests": 75,
   "mismatch": {},
-  "passed": true
+  "passed": true,
+  "explicit_baseline_retention": [
+    "CONFIG_BPF_STREAM_PARSER=n"
+  ],
+  "full_optional_feature_parity": false
 }

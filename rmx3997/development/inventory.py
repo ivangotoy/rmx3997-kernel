@@ -15,7 +15,7 @@ for name in ('wild-gki', 'wild-oneplus', 'aimax-fork', 'kernel-patches'):
     commit = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
     result['sources'][name] = commit
     files = sorted(set(source.glob('.github/**/*.yml')) | set(source.glob('.github/**/*.yaml')) |
-                   set(source.glob('build-gki-*.sh')) | set(source.glob('.github/patches/*.patch')) |
+                   set(source.glob('build-gki-*.sh')) | set(source.glob('.github/patches/**/*.patch')) |
                    set(source.glob('common/**/*.patch')) | set(source.glob('oneplus/**/*.patch')))
     for path in files:
         text = path.read_text(errors='replace')

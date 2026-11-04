@@ -1,0 +1,28 @@
+{
+  "patch_commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+  "patch": "common/bbrv3/0001-net-tcp-backport-BBRv3-to-android13-5.15.patch",
+  "fixture": "Exact scalar struct declaration on 64-bit host; not an ARM64 kernel runtime test",
+  "sizes": [
+    {
+      "variant": "baseline",
+      "GENKSYMS": false,
+      "sizeof_rate_sample": 64
+    },
+    {
+      "variant": "baseline",
+      "GENKSYMS": true,
+      "sizeof_rate_sample": 64
+    },
+    {
+      "variant": "donor",
+      "GENKSYMS": false,
+      "sizeof_rate_sample": 88
+    },
+    {
+      "variant": "donor",
+      "GENKSYMS": true,
+      "sizeof_rate_sample": 64
+    }
+  ],
+  "decision": "CRC masking is not compatibility proof; actual KMI layout compatibility unresolved; patch not applied"
+}

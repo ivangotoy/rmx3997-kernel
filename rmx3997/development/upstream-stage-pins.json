@@ -1,0 +1,16 @@
+[
+  {
+    "branch": "android13-5.15",
+    "commit": "257f970022c5274f7fb59baea8c48212d4e64dad",
+    "version": "5.15.220",
+    "source": "https://android.googlesource.com/kernel/common/+/257f970022c5274f7fb59baea8c48212d4e64dad/Makefile?format=TEXT",
+    "stage": "SEPARATE; not applied to current kernel"
+  },
+  {
+    "branch": "android13-5.15-lts",
+    "commit": "2316d138a3c3f2ec12cfb4b2f09ca9c95aa92ce5",
+    "version": "5.15.223",
+    "source": "https://android.googlesource.com/kernel/common/+/2316d138a3c3f2ec12cfb4b2f09ca9c95aa92ce5/Makefile?format=TEXT",
+    "stage": "SEPARATE; not applied to current kernel"
+  }
+]

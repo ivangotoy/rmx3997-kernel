@@ -1,0 +1,20 @@
+{
+  "donor_commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+  "donor_patch": "common/int_sqrt.patch",
+  "correction": "Preserve initial 1UL << 62 instead of unconditionally shifting it; keep externally emitted signature",
+  "fixture": "Independent host 64-bit arithmetic against Python math.isqrt, not kernel runtime",
+  "seed": 14743,
+  "cases": 500278,
+  "errors": [],
+  "status": "PASS shadow fixture; patch NOT yet integrated",
+  "compile_argv": [
+    "/usr/bin/cc",
+    "-shared",
+    "-fPIC",
+    "-O2",
+    "/home/build/.cache/codex-work/rmx3997-feature-parity/performance-fixtures/sqrt-fixed-host.c",
+    "-o",
+    "/home/build/.cache/codex-work/rmx3997-feature-parity/performance-fixtures/sqrt-fixed-host.so"
+  ],
+  "pending_patch_sha256": "167e5a06033b2c878365ecc0e3d4b005d968f1adbd863de224d836cb99ab284f"
+}

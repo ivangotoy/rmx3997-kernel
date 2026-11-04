@@ -1,0 +1,21 @@
+{
+  "out/arch/arm64/boot/Image": {
+    "bytes": 50399744,
+    "sha256": "f91b4d593d416faee2027d135805bde35a0b424cf7da1726658ee4703ecae61f"
+  },
+  "out/vmlinux": {
+    "bytes": 524537696,
+    "sha256": "fde9c5a721313b0995e575a6dc07e6b0725f9a24b13a22b2a20cd1ca8542bb47"
+  },
+  "out/Module.symvers": {
+    "bytes": 525852,
+    "sha256": "3097c88338fc8f83e9285f88e893a9e99e9f76961faadb5cbb84d3475e262e1a"
+  },
+  "out/.config": {
+    "bytes": 191757,
+    "sha256": "fd12a370222b555f53d94d0021be63112aab31c39a0e71c0df53594ffea5df7f"
+  },
+  "release": "5.15.197-android13-8-gd89785f4d8c8-dirty",
+  "source_commit": "d89785f4d",
+  "source_deviations_from_approved_28": []
+}

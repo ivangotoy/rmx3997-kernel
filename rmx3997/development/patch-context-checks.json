@@ -1,0 +1,293 @@
+[
+  {
+    "patch": "IPv6_NAT_FIX.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "kernel/Makefile"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "add_limitation_scaling_min_freq.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "drivers/cpufreq/cpufreq.c"
+    ],
+    "forward_clean": false,
+    "reverse_clean": false,
+    "diagnostic": "error: patch failed: drivers/cpufreq/cpufreq.c:981\nerror: drivers/cpufreq/cpufreq.c: patch does not apply"
+  },
+  {
+    "patch": "add_timeout_wakelocks_globally.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "kernel/power/wakelock.c"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "adjust_cpu_scan_order.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "kernel/sched/fair.c"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "avoid_extra_s2idle_wake_attempts.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "drivers/base/power/wakeup.c"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "clear_page_16bytes_align.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "arch/arm64/lib/clear_page.S"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "disable_cache_hot_buddy.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "kernel/sched/features.h"
+    ],
+    "forward_clean": false,
+    "reverse_clean": false,
+    "diagnostic": "error: patch failed: kernel/sched/features.h:44\nerror: kernel/sched/features.h: patch does not apply"
+  },
+  {
+    "patch": "f2fs_enlarge_min_fsync_blocks.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "fs/f2fs/segment.h"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "f2fs_reduce_congestion.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "fs/f2fs/f2fs.h"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "fake_config.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "kernel/Makefile"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "file_struct_8bytes_align.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "include/linux/fs.h"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "force_tcp_nodelay.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "net/ipv4/tcp.c"
+    ],
+    "forward_clean": false,
+    "reverse_clean": false,
+    "diagnostic": "error: patch failed: net/ipv4/tcp.c:3549\nerror: net/ipv4/tcp.c: patch does not apply"
+  },
+  {
+    "patch": "increase_ext4_default_commit_age.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "include/linux/jbd2.h"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "increase_sk_mem_packets.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "include/net/sock.h"
+    ],
+    "forward_clean": false,
+    "reverse_clean": false,
+    "diagnostic": "error: patch failed: include/net/sock.h:3030\nerror: include/net/sock.h: patch does not apply"
+  },
+  {
+    "patch": "int_sqrt.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "lib/math/int_sqrt.c"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "mem_opt_prefetch.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "arch/arm64/lib/copy_template.S"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "minimise_wakeup_time.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "kernel/time/alarmtimer.c"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "optimise_memcmp.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "arch/arm64/lib/memcmp.S"
+    ],
+    "forward_clean": false,
+    "reverse_clean": false,
+    "diagnostic": "error: patch failed: arch/arm64/lib/memcmp.S:16\nerror: arch/arm64/lib/memcmp.S: patch does not apply"
+  },
+  {
+    "patch": "optimized_mem_operations.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "lib/string.c"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "re_write_limitation_scaling_min_freq.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "drivers/cpufreq/cpufreq.c"
+    ],
+    "forward_clean": false,
+    "reverse_clean": false,
+    "diagnostic": "error: patch failed: drivers/cpufreq/cpufreq.c:36\nerror: drivers/cpufreq/cpufreq.c: patch does not apply"
+  },
+  {
+    "patch": "reduce_cache_pressure.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "fs/dcache.c"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "reduce_freeze_timeout.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "kernel/power/main.c",
+      "kernel/power/process.c"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "reduce_gc_thread_sleep_time.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "fs/f2fs/gc.h"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "reduce_pci_pme_wakeups.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "drivers/pci/pci.c"
+    ],
+    "forward_clean": false,
+    "reverse_clean": false,
+    "diagnostic": "error: patch failed: drivers/pci/pci.c:60\nerror: drivers/pci/pci.c: patch does not apply"
+  },
+  {
+    "patch": "silence_irq_cpu_logspam.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "kernel/irq/cpuhotplug.c"
+    ],
+    "forward_clean": false,
+    "reverse_clean": false,
+    "diagnostic": "error: patch failed: kernel/irq/cpuhotplug.c:147\nerror: kernel/irq/cpuhotplug.c: patch does not apply"
+  },
+  {
+    "patch": "silence_system_logspam.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "kernel/printk/printk.c"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "unicode_bypass_fix_6.1+.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "fs/unicode/utf8-norm.c"
+    ],
+    "forward_clean": false,
+    "reverse_clean": false,
+    "diagnostic": "error: patch failed: fs/unicode/utf8-norm.c:513\nerror: fs/unicode/utf8-norm.c: patch does not apply"
+  },
+  {
+    "patch": "unicode_bypass_fix_6.1-.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "fs/unicode/utf8-norm.c"
+    ],
+    "forward_clean": true,
+    "reverse_clean": false,
+    "diagnostic": ""
+  },
+  {
+    "patch": "use_unlikely_wrap_cpufreq.patch",
+    "commit": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "files": [
+      "drivers/cpufreq/cpufreq.c"
+    ],
+    "forward_clean": false,
+    "reverse_clean": false,
+    "diagnostic": "error: patch failed: drivers/cpufreq/cpufreq.c:48\nerror: drivers/cpufreq/cpufreq.c: patch does not apply"
+  }
+]

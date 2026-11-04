@@ -1,0 +1,74 @@
+{
+  "donor": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+  "patch": "common/int_sqrt.patch",
+  "test": "host 64-bit arithmetic against math.isqrt; extracted donor candidate, NOT kernel runtime",
+  "results": [
+    {
+      "input": 0,
+      "actual": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "input": 1,
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "input": 2,
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "input": 3,
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "input": 4,
+      "actual": 2,
+      "expected": 2,
+      "pass": true
+    },
+    {
+      "input": 9,
+      "actual": 3,
+      "expected": 3,
+      "pass": true
+    },
+    {
+      "input": 4294967296,
+      "actual": 65536,
+      "expected": 65536,
+      "pass": true
+    },
+    {
+      "input": 4611686018427387903,
+      "actual": 2147483647,
+      "expected": 2147483647,
+      "pass": true
+    },
+    {
+      "input": 4611686018427387904,
+      "actual": 2147483647,
+      "expected": 2147483648,
+      "pass": false
+    },
+    {
+      "input": 9223372036854775808,
+      "actual": 2147483647,
+      "expected": 3037000499,
+      "pass": false
+    },
+    {
+      "input": 18446744073709551615,
+      "actual": 2147483647,
+      "expected": 4294967295,
+      "pass": false
+    }
+  ],
+  "passed": false
+}

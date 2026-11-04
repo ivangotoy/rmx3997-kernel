@@ -1,0 +1,127 @@
+{
+  "results": {
+    "boot_b_oem_f2fs_experimental.img": {
+      "kernel_bytes": 26474109,
+      "partition_bytes": 67108864,
+      "header_bytes": 1584,
+      "header_version": 4,
+      "ramdisk_bytes": 0,
+      "boot_v4_signature_bytes": 0,
+      "encoded_os_version": 436208042,
+      "os_version": "13.0.0",
+      "security_patch": "2026-10",
+      "footer_original_image_size": 26480640,
+      "vbmeta_offset": 26480640,
+      "vbmeta_bytes": 896,
+      "algorithm_type": 0,
+      "authentication_bytes": 0,
+      "hash_bytes": 0,
+      "signature_bytes": 0,
+      "public_key_bytes": 0,
+      "rollback_index": 0,
+      "rollback_index_location": 0,
+      "flags": 0,
+      "props": [
+        [
+          "com.android.build.boot.os_version",
+          "13"
+        ],
+        [
+          "com.android.build.boot.fingerprint",
+          "alps/hal_mgvi_64_armv82/mgvi_64_armv82:13/TP1A.220905.001/1790676698462:user/release-keys"
+        ],
+        [
+          "com.android.build.boot.security_patch",
+          "2026-10-01"
+        ],
+        [
+          "com.android.build.boot.security_patch",
+          "2026-10-01"
+        ]
+      ],
+      "hash_descriptors": [
+        {
+          "image_size": 26480640,
+          "partition_name": "boot",
+          "salt": "198a7a23717f0e5bd8c456683dbd3548",
+          "digest": "91adbbb163109fd1dd7e8530665297cf2c118da65333583fa416b871030be377",
+          "flags": 0
+        }
+      ],
+      "sha256": "be567b3f6c0f2e343a808d9c2617f6aef75a6695670d44c65fc56f80014b8326",
+      "compressed_kernel_sha256": "131962747896bdd4b8402455ebae855596cd3e3fd9d67d742503b2b346faac59",
+      "decoded_kernel_sha256": "e2e7bdd324419318b5da8571817da9c1ffcfa925b821c78c277b287c6209fefa",
+      "decoded_kernel_bytes": 50399744,
+      "native_avb_verification_pass": true,
+      "independent_unpack_pass": true,
+      "original_header_page_preserved_except_kernel_size": true,
+      "OEM_signature_trust": false,
+      "device_tested": false
+    }
+  },
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "/usr/bin/avbtool",
+        "info_image",
+        "--image",
+        "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104/validation/custom/boot.img"
+      ],
+      "cwd": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104",
+      "exit": 0,
+      "stdout": "Footer version:           1.0\nImage size:               67108864 bytes\nOriginal image size:      26480640 bytes\nVBMeta offset:            26480640\nVBMeta size:              896 bytes\n--\nMinimum libavb version:   1.0\nHeader Block:             256 bytes\nAuthentication Block:     0 bytes\nAuxiliary Block:          640 bytes\nAlgorithm:                NONE\nRollback Index:           0\nFlags:                    0\nRollback Index Location:  0\nRelease String:           'avbtool 1.2.0'\nDescriptors:\n    Hash descriptor:\n      Image Size:            26480640 bytes\n      Hash Algorithm:        sha256\n      Partition Name:        boot\n      Salt:                  198a7a23717f0e5bd8c456683dbd3548\n      Digest:                91adbbb163109fd1dd7e8530665297cf2c118da65333583fa416b871030be377\n      Flags:                 0\n    Prop: com.android.build.boot.os_version -> '13'\n    Prop: com.android.build.boot.fingerprint -> 'alps/hal_mgvi_64_armv82/mgvi_64_armv82:13/TP1A.220905.001/1790676698462:user/release-keys'\n    Prop: com.android.build.boot.security_patch -> '2026-10-01'\n    Prop: com.android.build.boot.security_patch -> '2026-10-01'\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "/usr/bin/avbtool",
+        "verify_image",
+        "--image",
+        "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104/validation/custom/boot.img"
+      ],
+      "cwd": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104",
+      "exit": 0,
+      "stdout": "Verifying image /home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104/validation/custom/boot.img using embedded public key\nvbmeta: Successfully verified footer and NONE vbmeta struct in /home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104/validation/custom/boot.img\nboot: Successfully verified sha256 hash of /home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104/validation/custom/boot.img for image of 26480640 bytes\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "/usr/bin/unpack_bootimg",
+        "--boot_img",
+        "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104/validation/custom/boot.img",
+        "--out",
+        "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104/validation/custom/unpacked"
+      ],
+      "cwd": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104",
+      "exit": 0,
+      "stdout": "boot magic: ANDROID!\nkernel_size: 26474109\nramdisk size: 0\nos version: 13.0.0\nos patch level: 2026-10\nboot image header version: 4\ncommand line args: \nboot.img signature size: 0\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/home/linuxbrew/.linuxbrew/bin/lz4",
+        "-d",
+        "-c",
+        "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104/validation/custom/unpacked/kernel"
+      ],
+      "cwd": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/experimental-anykernel3-20261104",
+      "exit": 0,
+      "stdout": {
+        "bytes": 50399744,
+        "sha256": "e2e7bdd324419318b5da8571817da9c1ffcfa925b821c78c277b287c6209fefa"
+      },
+      "stderr": ""
+    }
+  ],
+  "tool_sha256": {
+    "/usr/bin/avbtool": "1aa6f2b462aa67aa3fdf488bee83ab517de8ad9d8228c7b45c35267ab2cf6781",
+    "/usr/bin/unpack_bootimg": "06b54dd9a07c5281778e29e234e76f6e3faee8bf0c904a5ef88fdee30eeed12e",
+    "/home/linuxbrew/.linuxbrew/bin/lz4": "7503934b12e94ebe395734f792cdeda5f26b8c783315fb1a5989bbaa86f0d448"
+  },
+  "input_preservation": true,
+  "device_operations": [],
+  "kernel_builds": 0
+}

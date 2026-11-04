@@ -1,0 +1,52 @@
+{
+  "package_sha256": "f6b95c104f8e5f0ccb03feba06b85664fe9e9aec2bd86b54426b8f109c349f0b",
+  "core_transaction_tests": 25,
+  "native_tests": [
+    {
+      "path": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/flashable-ak3-core/tests/android-integration/run-20261104T152039.002106Z/results.json",
+      "status": "PASS",
+      "checks": {
+        "qemu_exit_zero": true,
+        "no_abort": true,
+        "entry_exit_zero": true,
+        "guest_pass": true,
+        "kernel_log": true,
+        "full_boot_hash": true,
+        "readonly_init_unchanged": true,
+        "one_retained_backup": true,
+        "retained_backup_stock": true,
+        "original_stock_preserved": true,
+        "original_init_preserved": true
+      },
+      "scope": "actual packaged entry and Android adapter in ARM64 virtual guest; synthetic properties; not phone boot or production-kernel validation",
+      "package_sha256": "f6b95c104f8e5f0ccb03feba06b85664fe9e9aec2bd86b54426b8f109c349f0b",
+      "kernel_sha256": "40d80c6b4046abe82703fb6c29a47e403980a9ea7b08e6ad1828fcae41011763"
+    },
+    {
+      "path": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/flashable-ak3-core/tests/android-integration/run-20261104T152309.210356Z/results.json",
+      "status": "PASS",
+      "checks": {
+        "qemu_exit_zero": true,
+        "no_abort": true,
+        "kernel_log": true,
+        "readonly_init_unchanged": true,
+        "one_retained_backup": true,
+        "retained_backup_stock": true,
+        "original_stock_preserved": true,
+        "original_init_preserved": true,
+        "expected_failed_install_exit70": true,
+        "rollback_verified_log": true,
+        "target_restored_stock": true
+      },
+      "scope": "actual packaged entry and Android adapter in ARM64 virtual guest; synthetic properties; not phone boot or production-kernel validation",
+      "package_sha256": "f6b95c104f8e5f0ccb03feba06b85664fe9e9aec2bd86b54426b8f109c349f0b",
+      "kernel_sha256": "40d80c6b4046abe82703fb6c29a47e403980a9ea7b08e6ad1828fcae41011763",
+      "case": "native rollback after one injected boot write EIO",
+      "expected_installer_exit_code": 70,
+      "installation_result": "FAIL by injected fault; rollback acceptance is evaluated separately"
+    }
+  ],
+  "manifest_status_note": "Immutable package manifest records build-time PENDING; these external records establish subsequent acceptance of this exact ZIP.",
+  "phone_tested": false,
+  "full_feature_parity": false
+}
