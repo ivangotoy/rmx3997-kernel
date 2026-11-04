@@ -1,0 +1,86 @@
+{
+  "baseline_sha256": "67f136c8edf04b57f976efb8f808d2210b9ec413194fe7d92cce6772bf7b38da",
+  "candidate_config_sha256": "872b3d067d17ddcbbe1b82bd7e884c4ecd3e247d9853fbbebc8473e715d659a5",
+  "changes": {
+    "CONFIG_KSU": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_DEBUG": {
+      "before": "absent",
+      "after": "n"
+    },
+    "CONFIG_KSU_DISABLE_MANAGER": {
+      "before": "absent",
+      "after": "n"
+    },
+    "CONFIG_KSU_DISABLE_POLICY": {
+      "before": "absent",
+      "after": "n"
+    },
+    "CONFIG_KSU_FULL_NAME_FORMAT": {
+      "before": "absent",
+      "after": "\"%TAG_NAME%-%COMMIT_SHA%\""
+    },
+    "CONFIG_KSU_MANUAL_HOOK": {
+      "before": "absent",
+      "after": "n"
+    },
+    "CONFIG_KSU_MULTI_MANAGER_SUPPORT": {
+      "before": "absent",
+      "after": "n"
+    },
+    "CONFIG_KSU_SUSFS": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_SUSFS_ENABLE_LOG": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_SUSFS_OPEN_REDIRECT": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_SUSFS_SPOOF_UNAME": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_SUSFS_SUS_KSTAT": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_SUSFS_SUS_MAP": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_SUSFS_SUS_MOUNT": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_SUSFS_SUS_PATH": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_TOOLKIT_SUPPORT": {
+      "before": "absent",
+      "after": "y"
+    },
+    "CONFIG_KSU_TRACEPOINT_HOOK": {
+      "before": "absent",
+      "after": "n"
+    },
+    "CONFIG_UNUSED_KSYMS_WHITELIST": {
+      "before": "\"/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/oem-f2fs-implementation-20261103/out/abi_symbollist.raw\"",
+      "after": "\"/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/out/abi_symbollist.raw\""
+    }
+  }
+}

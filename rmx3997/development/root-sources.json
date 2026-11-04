@@ -1,0 +1,23 @@
+{
+  "BakaSU": {
+    "commit": "516d3e87fbc986ccefdde2c2765f1700612441a9",
+    "url": "https://github.com/Baka-SU/BakaSU",
+    "upstream_history_count": 4557,
+    "version": 35257,
+    "adaptation": "Kbuild immutable vendored identity, no build-time network"
+  },
+  "SUSFS": {
+    "commit": "d5df1d937361530787fafa920dea3a9b6dc8ebef",
+    "url": "https://gitlab.com/simonpunk/susfs4ksu",
+    "branch": "gki-android13-5.15",
+    "patch": "50_add_susfs_in_gki-android13-5.15.patch",
+    "compatibility_recipes": "Wild GKI c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e susfs_guard_priority_helpers.py, susfs_idmap_compat.py"
+  },
+  "status": "UNVALIDATED until compile/ABI/runtime checks",
+  "adaptations": [
+    "Vendored clean upstream Git blobs plus the exact root uapi/ directory (upstream kernel/include/uapi symlink materialized).",
+    "Pinned Kbuild identity and mandatory UPSTREAM_COMMIT replace nested-submodule discovery and build-time fetch.",
+    "Wild GKI recipe guards unused priority-filter helpers and adapts i_uid_into_mnt to the actual 5.15 API.",
+    "Proven read-hook signature mismatch corrected to BakaSU int(fd, buf**, count*); shared declarations compile-check all 12 caller/definition units."
+  ]
+}

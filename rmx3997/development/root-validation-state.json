@@ -1,0 +1,9 @@
+{
+  "source_stage": "built-in BakaSU 516d3e87 + SUSFS d5df1d93",
+  "targeted_compile": "PASS including shared hooks in all callers/definitions",
+  "full_build": "NOT PASSED: memory guard stopped LTO",
+  "build_record": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/build-execution.json",
+  "blocker": "Concurrent unrelated Forgejo 5.10 LTO consumed ~19GiB; host MemAvailable crossed retained 8GiB floor",
+  "production_baseline_28_source_hashes_preserved": true,
+  "ABI_module_runtime_package": "NOT YET PASSED; no flashable release"
+}
