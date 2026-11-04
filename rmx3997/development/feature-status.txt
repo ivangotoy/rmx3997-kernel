@@ -1,0 +1,95 @@
+RMX3997 feature parity development ledger
+Baseline: d7086885fca360b611a0e09686117dd344460cdc (approved, unchanged branch)
+All recipe paths/config mentions/patches and source revisions: recipe-inventory.json.
+This ledger does NOT certify parity. PENDING means unimplemented or unvalidated.
+
+Pinned recipe sources:
+G = WildKernels/GKI_KernelSU_SUSFS c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e
+O = WildKernels/OnePlus_KernelSU_SUSFS 11821d9e122629d0888382f588954ef79ee88af6
+F = ivangotoy/GKI_KERNELSU 51d8178a3cde8f529ef71c5592f05b9ae513f96a
+P = WildKernels/kernel_patches ee68218dc83b3e488ae619eb82e868859e8eb17d
+Sources in each entry refer to these exact commits, not moving branch tips.
+
+Runtime features (all pending unless explicitly stated):
+Built-in BakaSU: G .github/actions/root-setup/action.yml; PENDING.
+Toolkit/dynamic manager/certified BakaSU manager: G root-setup/build.yml; PENDING.
+SUSFS path/mount/kstat/map/uname/cmdline/open redirect/log/symbol hiding:
+  G susfs-config/action.yml, F build scripts; PENDING.
+SUSFS priority UID filter / SELinux side-channel fixes: G susfs-patches; PENDING compatibility review.
+NoMount built-in VFS redirection v2.1: G nomount/action.yml, F build scripts; PENDING.
+NoMount metamodule/optional Mountify: G nomount-metamodule; userspace artifacts,
+  distinct from kernel support; PENDING, cannot silently install on phone.
+Baseband Guard LSM: G bbg/action.yml, O Add BBG, F build scripts; PENDING.
+BBR v1/v3 / PLB / default BBR3: G bbrv3/networking-config, O BBR, F build scripts; PENDING.
+BIC/CUBIC/Westwood/HTCP: G networking-config, F build scripts; PENDING delta review.
+FQ/FQ-CoDel/CAKE/PIE/FQ-PIE: G networking-config, O qdisc, F build scripts; PENDING delta review.
+WireGuard: G networking-config, F build scripts; PENDING delta review.
+IPSet all types / IPv6 NAT / TTL / HL / connmark / recent / log / reject / BPF stream parser:
+  G networking-config, O IP SET, F build scripts; PENDING delta review.
+CIFS/POSIX/xattrs/keys/netfs: G cifs/action.yml, F build scripts; PENDING delta review.
+BTF/BPF events/kprobe/uprobe/kallsyms: G btf/misc, F build scripts;
+  baseline has BTF, full kallsyms and FUSE-BPF; remaining config delta PENDING.
+FUSE-BPF passthrough: G fuse-bpf, F build scripts; baseline implemented, retain newer 5.15 source.
+NTSync/lockdep prerequisites: G ntsync, O NTSync, F build scripts; PENDING.
+DroidSpaces namespaces/IPC/mqueue/binfmt/devtmpfs/macvlan: G droidspaces, O Droidspaces,
+  F build scripts; PENDING. Must independently verify KABI reserve consumption.
+DroidSpaces Oplus midas ghost-task guard: O Droidspaces / P common/droidspaces; PENDING.
+OverlayFS/fanotify/tmpfs ACL/xattrs: G misc, O Tmpfs, F build scripts; PENDING delta review.
+Ptrace leak fix: G ptrace, O Other Patches, F build scripts; PENDING.
+Unicode bypass fix: G unicode-fix, O Unicode, F build scripts; PENDING.
+RCU lazy support: F 6.6 projection; baseline implemented, LAZY_DEFAULT_OFF=y;
+  desired enablement default PENDING runtime/power validation.
+MGLRU: F 6.6 projection; baseline implemented, LRU_GEN_ENABLED=n;
+  enabled-by-default change PENDING runtime validation.
+ZRAM multi-compression: F 6.6 README/config; PENDING real 5.15 backport, not hardware-inapplicable.
+
+Performance patch family: G performance, O Optimisation, P common (each separate
+patch provenance and identity in recipe-inventory.json); PENDING individually:
+optimized_mem_operations; file_struct_8bytes_align; reduce_cache_pressure;
+mem_opt_prefetch; optimise_memcmp; minimise_wakeup_time; int_sqrt;
+force_tcp_nodelay; reduce_gc_thread_sleep_time; add_timeout_wakelocks_globally;
+f2fs_reduce_congestion; reduce_freeze_timeout; clear_page_16bytes_align;
+add_limitation_scaling_min_freq; re_write_limitation_scaling_min_freq;
+adjust_cpu_scan_order; avoid_extra_s2idle_wake_attempts; disable_cache_hot_buddy;
+f2fs_enlarge_min_fsync_blocks; increase_ext4_default_commit_age;
+increase_sk_mem_packets; reduce_pci_pme_wakeups; silence_irq_cpu_logspam;
+silence_system_logspam; use_unlikely_wrap_cpufreq.
+F2FS patches require preserving OEM semantics and newer fixes, not file replacement.
+
+OnePlus-specific mechanisms, not silently omitted:
+HMBird/Fengchi / device-tree overwriter / per-model configs: O Other Patches,
+  P oneplus/hmbird. PENDING exact applicability. No RMX3997 model recipe;
+  different MTK OnePlus platforms alone do NOT establish MT6835 applicability.
+Module interception/overlay: O Other Patches, P oneplus/module_overlay; PENDING.
+  No replacement OEM .ko may be selected without exact RMX3997 compatibility evidence.
+Vendor-module blacklist/debloat: O Disable Vendor / Kernel Modules, P vendor_modules;
+  PENDING safety analysis; current requirement preserves all verified module interfaces.
+Fake config.gz: O Apply Fake config.gz, P common/fake_config.patch; PENDING.
+GPUEB removal: O Disable GPUEB requires 5.10 vendor tree; inapplicable to this 5.15
+  GKI tree (no drivers/gpu/mediatek subtree). Not a missing generic kernel feature.
+efisp/abl whitelist: O BBG Qualcomm partition policy; MT6835 mapping PENDING;
+  no Qualcomm partition names will be copied as MTK policy.
+Samsung min_kdp exported symbols: G apply-device-patches, Samsung-only driver ABI;
+  inapplicable to retained Realme module inventory.
+
+Source/build/deployment additions:
+Android13/Linux5.15 upstream updates: G download-kernel/matrix, F pinned source
+  contracts; PENDING SEPARATE stage after root/features validation; preserve KMI8.
+Full LTO/CFI: approved baseline implemented. Keep existing Clang14 and enforcement.
+Alternative Clang17/18/Rust/Rust Binder/16KiB builds: G/O/F toolchain options;
+  PENDING applicability; cannot replace MT6835 page size/vendor ABI to mimic 6.6 builds.
+O2/O3/inlining/branding/reproducible version: G/O workflows; PENDING delta review.
+Protected-export removal/CRC bypass/ABI-check disabling: G/O workflow operations;
+  EXCLUDED: conflict with explicit module/ABI preservation, not runtime features.
+Original KernelSU/KernelSU-Next/FinaSU/KowSU/SukiSU/KPM: G/O/F root choices;
+  EXCLUDED: explicit BakaSU-only requirement, not hardware-inapplicability.
+AnyKernel3/metadata/managers/build-summary/release/cache/ccache: G/O/F;
+  reuse proven RMX3997 transaction instead of replacing working installer;
+  experimental package PENDING validated new binary. No publication or APK installs.
+Fork-specific reproducibility/freshness/pins/semantic source contracts/config inventory/
+  guarded disk build/runtime root+pstore audits/manager artifact verification:
+  F tools and build scripts; PENDING port of applicable checks, retain RMX3997 guard,
+  ABI/BTF/module/persistent-layout and native installer tests; no auto-publication.
+
+No feature marked pending is certified integrated. Hardware runtime, power/performance,
+encryption and crash recovery remain distinct from offline ABI/build acceptance.
