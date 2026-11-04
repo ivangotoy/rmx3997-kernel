@@ -1,0 +1,15 @@
+[
+  "/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang",
+  "--target=aarch64-linux-android31",
+  "--sysroot=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/ndk-r23/toolchains/llvm/prebuilt/linux-x86_64/sysroot",
+  "-static",
+  "-fuse-ld=lld",
+  "--rtlib=compiler-rt",
+  "-O2",
+  "-Wall",
+  "-Wextra",
+  "-Werror",
+  "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/flashable-ak3-core/tests/android-integration-ufs/init.c",
+  "-o",
+  "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/flashable-ak3-core/tests/android-integration-ufs/init"
+]

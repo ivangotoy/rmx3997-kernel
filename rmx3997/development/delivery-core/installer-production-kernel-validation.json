@@ -1,0 +1,20 @@
+{
+  "evidence": "/home/build/.cache/codex-work/rmx3997-feature-parity/bakasu-susfs-stage1/flashable-ak3-core/tests/android-integration-ufs/run-20261104T153611.456242Z",
+  "status": "PASS",
+  "checks": {
+    "qemu_exit_zero": true,
+    "no_abort": true,
+    "entry_exit_zero": true,
+    "guest_pass": true,
+    "kernel_log": true,
+    "full_boot_hash": true,
+    "readonly_init_unchanged": true,
+    "one_retained_backup": true,
+    "retained_backup_stock": true,
+    "original_stock_preserved": true,
+    "original_init_preserved": true
+  },
+  "scope": "actual packaged entry and Android adapter in ARM64 virtual guest; synthetic properties; actual unchanged production binary; not phone boot validation",
+  "package_sha256": "f6b95c104f8e5f0ccb03feba06b85664fe9e9aec2bd86b54426b8f109c349f0b",
+  "kernel_sha256": "e2e7bdd324419318b5da8571817da9c1ffcfa925b821c78c277b287c6209fefa"
+}
