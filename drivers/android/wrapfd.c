@@ -1377,11 +1377,10 @@ static int wrap_file_release_ownership(struct wrap_ctx *ctx)
 	int ret = 0;
 
 	spin_lock(&ctx->lock);
-
-	ret = can_modify(ctx, current, NULL, false);
-	if (ret)
+	if (!is_owner_task(ctx, current)) {
+		ret = -EBUSY;
 		goto unlock;
-
+	}
 	reset_owner(ctx);
 	ctx->allow_guests = false;
 unlock:
