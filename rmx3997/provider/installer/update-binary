@@ -1,0 +1,60 @@
+#!/system/bin/sh
+# Disk-backed rooted-Android AK3 entry. Standard arguments: API OUTFD ZIPFILE.
+OUTFD=$2
+ZIPFILE=$3
+ui_print() {
+    printf 'ui_print %s\nui_print\n' "$*" >> /proc/self/fd/$OUTFD
+}
+stop() { ui_print "$*"; exit 10; }
+case $1 in 2|3) ;; *) exit 10;; esac
+case $OUTFD in ''|*[!0-9]*) exit 10;; esac
+[ "$(id -u)" = 0 ] || stop 'Root is required.'
+[ "$(/system/bin/getprop ro.build.version.sdk)" = 36 ] || stop 'Android16 required.'
+[ "$(/system/bin/getprop sys.boot_completed)" = 1 ] || stop 'Normal boot must be complete; recovery/early boot unsupported.'
+[ -f "$ZIPFILE" ] || stop 'ZIP must be a regular file.'
+TOYBOX=/system/bin/toybox
+[ -x "$TOYBOX" ] || stop 'Stock Android toybox unavailable.'
+BASE=/data/adb/rmx3997-ak3
+[ ! -L /data/adb ] && [ ! -L "$BASE" ] || stop 'Symlink workspace refused.'
+mkdir -p "$BASE" || stop 'Cannot create persistent workspace.'
+chmod 700 "$BASE" || stop 'Cannot protect workspace.'
+[ "$("$TOYBOX" realpath "$BASE")" = "$BASE" ] || stop 'Workspace path mismatch.'
+case $("$TOYBOX" stat -f -c %T "$BASE") in
+    f2fs|ext2|ext3|ext2/ext3|ext3/4|ext4) ;;
+    *) stop 'Workspace is not on a supported disk filesystem.';;
+esac
+export TMPDIR=$BASE
+BOOTSTRAP=$BASE/busybox.$$
+[ ! -e "$BOOTSTRAP" ] && [ ! -L "$BOOTSTRAP" ] || stop 'Bootstrap path exists.'
+[ -x /system/bin/unzip ] || stop 'Stock Android unzip unavailable.'
+/system/bin/unzip -p "$ZIPFILE" tools/busybox > "$BOOTSTRAP" || stop 'Cannot extract bootstrap.'
+[ "$("$TOYBOX" sha256sum "$BOOTSTRAP" | "$TOYBOX" cut -d ' ' -f 1)" = c629fce4b0dd3ba9775f851d0941e74582115f423258d3a79800f2bd11d30f5c ] || stop 'Bootstrap hash mismatch.'
+chmod 700 "$BOOTSTRAP" || stop 'Bootstrap chmod failed.'
+AKHOME=$BASE/work.$("$BOOTSTRAP" date +%Y%m%dT%H%M%S).$$
+[ ! -e "$AKHOME" ] && [ ! -L "$AKHOME" ] || stop 'Session path exists.'
+"$BOOTSTRAP" mkdir -m 700 "$AKHOME" || stop 'Cannot create private session.'
+# Extract an explicit member allowlist; archive paths/symlinks cannot select
+# output paths. A duplicate member concatenates and fails the package checksum.
+"$BOOTSTRAP" mkdir -p "$AKHOME/META-INF/com/google/android" "$AKHOME/provider" || stop 'Cannot create metadata directory.'
+for member in anykernel.sh installer-core.sh android-platform.sh boot.img manifest.json SHA256SUMS LICENSE README.txt install-on-device.sh META-INF/com/google/android/update-binary META-INF/com/google/android/updater-script provider/provider-loader provider/provider.ko provider/original-provider.ko provider/preinit.conf provider/provider-release.sh provider/provider-install-entry.sh provider/provider-transaction.sh provider/provider-android.sh provider/manifest.json provider/provider-dependencies.sha256 provider/oplus_bsp_mm_osvelte.ko provider/mtk_disp_notify.ko provider/oplus_bsp_kshrink_slabd.ko provider/oplus_bsp_eas_opt.ko provider/oplus_bsp_sched_assist.ko provider/oplus_schedinfo.ko provider/oplus_bsp_zsmalloc.ko; do
+    "$BOOTSTRAP" unzip -p "$ZIPFILE" "$member" > "$AKHOME/$member" || stop "Cannot extract $member"
+done
+"$BOOTSTRAP" mkdir "$AKHOME/bin" "$AKHOME/tools" || stop 'Cannot create tool directories.'
+"$BOOTSTRAP" cp "$BOOTSTRAP" "$AKHOME/tools/busybox" || stop 'Cannot preserve bootstrap.'
+"$AKHOME/tools/busybox" --install -s "$AKHOME/bin" || stop 'Cannot prepare applets.'
+export AKHOME OUTFD ZIPFILE
+export TMPDIR=$AKHOME
+export PATH=$AKHOME/bin:/system/bin:/system/xbin:/vendor/bin
+ui_print 'RMX3997 experimental boot/provider installation; preserving init_boot and original OEM provider.'
+"$BOOTSTRAP" ash "$AKHOME/anykernel.sh" > "$AKHOME/install.log" 2>&1
+code=$?
+while IFS= read -r line; do ui_print "$line"; done < "$AKHOME/install.log"
+ui_print "Logs and rollback remain at $AKHOME"
+case $code in
+    0) ui_print 'Full boot_b write/readback verified. Reboot is your separate action.';;
+    70) ui_print 'Installation failed; original boot was restored and verified. Do not treat this as an install success.';;
+    71) ui_print 'FATAL: rollback verification failed. DO NOT REBOOT; retain the running rooted session.';;
+    *) ui_print 'Installer rejected or stopped; see retained log.';;
+esac
+"$BOOTSTRAP" rm -f "$BOOTSTRAP"
+exit "$code"

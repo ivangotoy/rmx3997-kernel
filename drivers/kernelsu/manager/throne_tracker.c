@@ -11,6 +11,10 @@
 #include <linux/stat.h>
 #include <linux/namei.h>
 #include <linux/kernel.h> // for container_of in UL
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+#include <linux/susfs.h>
+#include <linux/task_work.h>
+#endif
 
 #include "policy/allowlist.h"
 #include "manager/apk_sign.h"
@@ -380,6 +384,30 @@ void track_throne(unsigned int flags)
 // for 6.8- kernel, we can use LSM hook in manual hook
 // 6.8+, we use pkg_observer
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0) && !defined(CONFIG_KSU_TRACEPOINT_HOOK)
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+static void ksu_priority_uid_refresh(struct callback_head *cb)
+{
+    kfree(cb);
+    if (!(current->flags & PF_EXITING))
+        susfs_parse_priority_app_strings();
+}
+
+static void ksu_defer_priority_uid_refresh(void)
+{
+    struct callback_head *cb;
+
+    /* The LSM rename hook runs before publication with directory locks held.
+     * Invalidate now; resolve after rename in the writer's namespace.
+     */
+    susfs_notify_priority_uid_update();
+    cb = kzalloc(sizeof(*cb), GFP_KERNEL);
+    if (!cb) return;
+    cb->func = ksu_priority_uid_refresh;
+    if (task_work_add(current, cb, TWA_RESUME))
+        kfree(cb);
+}
+#endif
+
 void ksu_handle_rename(struct dentry *old_dentry, struct dentry *new_dentry)
 {
     // skip kernel threads
@@ -411,6 +439,10 @@ void ksu_handle_rename(struct dentry *old_dentry, struct dentry *new_dentry)
     if (!strstr(buf, "/system/packages.list")) {
         return;
     }
+
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+    ksu_defer_priority_uid_refresh();
+#endif
 
     pr_info("renameat: %s -> %s, new path: %s\n", old_dentry->d_iname, new_dentry->d_iname, buf);
 

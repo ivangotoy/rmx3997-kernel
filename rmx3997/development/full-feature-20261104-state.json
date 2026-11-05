@@ -1,0 +1,1317 @@
+{
+  "schema_version": 3,
+  "utc": "2026-11-04T23:14:51.857262+00:00",
+  "status": "VERIFIED_SCOPED_EXPERIMENTAL_PHONE_TEST_CANDIDATE",
+  "requested_scope": "All applicable WildKernels and Forgejo extras on existing ACK5.15.197 with built-in BakaSU only, SUSFS, physical OEM ABI and persistent-format preservation. Scope is not narrowed to core/resource work.",
+  "baseline": {
+    "checkout": "/home/build/Downloads/rmx3997-kernel",
+    "head": "45d11286dfb03dccc58624bbb1b560f4a2f1df67",
+    "branch": "rmx3997-bakasu-parity",
+    "initial_status": "clean"
+  },
+  "reviewed_input": {
+    "HEAD": "45d11286dfb03dccc58624bbb1b560f4a2f1df67",
+    "branch": "rmx3997-bakasu-parity",
+    "paths": 47,
+    "diff_sha256": "542ffe56757cdc33538c05ca103f25050c6524e4f8975f1445db4c75cb833db8",
+    "review": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-final.txt",
+    "patch": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/reviewed-candidate-v2.patch"
+  },
+  "current_source": {
+    "HEAD_unchanged": true,
+    "source_freeze": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-trim-source-freeze.json",
+    "source_selection_sha256": "6eb7f8f80604d01fa4e4106e46d8a63dee8d2ba4a1f69fd1c4cd0af6a1218946",
+    "state_manifest_excluded_from_source_freeze_to_avoid_self_hash": true,
+    "modified_paths": [
+      "arch/arm64/lib/memcmp.S",
+      "crypto/Kconfig",
+      "crypto/Makefile",
+      "crypto/zram_multi.c",
+      "drivers/base/power/wakeup.c",
+      "drivers/cpufreq/cpufreq.c",
+      "drivers/kernelsu/Kconfig",
+      "drivers/kernelsu/manager/pkg_observer.c",
+      "drivers/kernelsu/manager/throne_tracker.c",
+      "drivers/kernelsu/supercall/dispatch.c",
+      "drivers/pci/pci.c",
+      "fs/dcache.c",
+      "fs/f2fs/f2fs.h",
+      "fs/f2fs/gc.h",
+      "fs/f2fs/segment.h",
+      "fs/nomount/nomount.c",
+      "fs/nomount/nomount.h",
+      "fs/susfs.c",
+      "include/linux/fs.h",
+      "include/linux/jbd2.h",
+      "include/linux/ptrace.h",
+      "include/linux/skmsg.h",
+      "include/linux/susfs.h",
+      "include/linux/tracehook.h",
+      "include/net/sock.h",
+      "include/uapi/linux/rtnetlink.h",
+      "kernel/cgroup/cgroup.c",
+      "kernel/irq/cpuhotplug.c",
+      "kernel/power/process.c",
+      "kernel/printk/printk.c",
+      "kernel/sched/fair.c",
+      "kernel/sched/features.h",
+      "kernel/signal.c",
+      "kernel/time/alarmtimer.c",
+      "net/core/skbuff.c",
+      "net/core/skmsg.c",
+      "net/ipv4/Kconfig",
+      "net/ipv4/Makefile",
+      "net/ipv4/sysctl_net_ipv4.c",
+      "net/ipv4/tcp.c",
+      "net/ipv4/tcp_bbr3.c",
+      "net/ipv4/tcp_bbr3_compat.h",
+      "net/ipv4/tcp_input.c",
+      "net/ipv4/tcp_minisocks.c",
+      "net/ipv4/tcp_output.c",
+      "net/ipv4/tcp_plb.c",
+      "net/ipv4/tcp_rate.c",
+      "rmx3997/config/abi-symbol-list.txt",
+      "rmx3997/development/build-provider.py",
+      "rmx3997/development/feature-status.txt",
+      "rmx3997/development/features.config",
+      "rmx3997/development/full-feature-20261104-state.json",
+      "rmx3997/development/full-feature-binary-inventory.py",
+      "rmx3997/development/full-feature-contracts.py",
+      "rmx3997/development/nomount-full-feature-source.json",
+      "rmx3997/development/package-provider-candidate.py",
+      "rmx3997/development/prepare-kmi-whitelist.py",
+      "rmx3997/development/prepare-provider-assets.py",
+      "rmx3997/development/prepare-stage.py",
+      "rmx3997/development/probe-oem-zram.py",
+      "rmx3997/development/provider-prerequisites.py",
+      "rmx3997/development/resource-guard.py",
+      "rmx3997/development/test-donor-contracts.py",
+      "rmx3997/development/test-full-feature-components.py",
+      "rmx3997/development/test-full-feature-contracts.py",
+      "rmx3997/development/test-kmi-whitelist.py",
+      "rmx3997/development/test-memcmp-object.py",
+      "rmx3997/development/test-nomount-primary-fixes.py",
+      "rmx3997/development/test-oem-multi-codec.py",
+      "rmx3997/development/test-parity-adaptations.py",
+      "rmx3997/development/test-provider-delivery.py",
+      "rmx3997/development/test-provider-kcompress.py",
+      "rmx3997/development/test-provider-review-fixes.py",
+      "rmx3997/development/test-provider.py",
+      "rmx3997/development/test-resource-guard.py",
+      "rmx3997/development/test-review-fixes.py",
+      "rmx3997/development/validate-provider-module.py",
+      "rmx3997/provider/hybridswap_zram/Kbuild",
+      "rmx3997/provider/hybridswap_zram/Kconfig",
+      "rmx3997/provider/hybridswap_zram/Makefile",
+      "rmx3997/provider/hybridswap_zram/VERSION",
+      "rmx3997/provider/hybridswap_zram/hybridswap/display.c",
+      "rmx3997/provider/hybridswap_zram/hybridswap/ezr_empty.c",
+      "rmx3997/provider/hybridswap_zram/hybridswap/hybridmain.c",
+      "rmx3997/provider/hybridswap_zram/hybridswap/hybridswap.c",
+      "rmx3997/provider/hybridswap_zram/hybridswap/hybridswap.h",
+      "rmx3997/provider/hybridswap_zram/hybridswap/hybridswapd.c",
+      "rmx3997/provider/hybridswap_zram/hybridswap/internal.h",
+      "rmx3997/provider/hybridswap_zram/kcompressd.c",
+      "rmx3997/provider/hybridswap_zram/kcompressd.h",
+      "rmx3997/provider/hybridswap_zram/zcomp.c",
+      "rmx3997/provider/hybridswap_zram/zcomp.h",
+      "rmx3997/provider/hybridswap_zram/zram_drv.c",
+      "rmx3997/provider/hybridswap_zram/zram_drv.h",
+      "rmx3997/provider/hybridswap_zram/zram_drv_internal.h",
+      "rmx3997/provider/hybridswap_zram/zram_recompress.c",
+      "rmx3997/provider/include/linux/mtk_disp_notify.h",
+      "rmx3997/provider/installer/anykernel.sh",
+      "rmx3997/provider/installer/install-on-device.sh",
+      "rmx3997/provider/installer/update-binary",
+      "rmx3997/provider/mm_osvelte/mm-config.h",
+      "rmx3997/provider/preinit-loader.c",
+      "rmx3997/provider/preinit.conf",
+      "rmx3997/provider/provenance.json",
+      "rmx3997/provider/provider-android.sh",
+      "rmx3997/provider/provider-install-entry.sh",
+      "rmx3997/provider/provider-transaction.sh",
+      "rmx3997/provider/tests/host-cases.c",
+      "rmx3997/provider/tests/host-shim.h",
+      "rmx3997/provider/tests/kcompress-host.c",
+      "rmx3997/provider/tests/provider-guest.c",
+      "rmx3997/provider/tests/review-init.h",
+      "rmx3997/provider/tests/review-nomount.h"
+    ],
+    "complete_diff_and_corrected_delta_identity": "provider-trim-candidate-identity.json; review ONLY preparation delta against accepted79bc4ba3. Kernel/provider source unchanged.",
+    "provider_continuation_identity": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-trim-candidate-identity.json",
+    "previous_corrected_source_freeze": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/corrected-source-freeze.json",
+    "compiled_source_freeze": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-trim-source-freeze.json",
+    "validation_only_delta": "final-acceptance-validation-delta.patch: guest test/controller changes only plus state; actual Image/kernel/provider unchanged. Old freeze preserved as build provenance; changed standalone guest test separately bound to real guest binary.",
+    "validation_source_identity": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/manifest.json"
+  },
+  "donor_pins": {
+    "wild-gki": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+    "wild-oneplus": "11821d9e122629d0888382f588954ef79ee88af6",
+    "aimax-fork": "51d8178a3cde8f529ef71c5592f05b9ae513f96a",
+    "kernel-patches": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+    "primary-ivangotoy/GKI_KernelSU_SUSFS": "bcc9c39fa0d58027739dae3cb07baa6e01c98db9",
+    "oem-realme-mt6835": "a8acde2222f7654250fc23a29ee41cdf3660769d",
+    "NoMount-base-retained": "bf1847f98fed382369c43bfd652cd93774b9b8e3",
+    "primary-NoMount-current": "ab8c05775122e1363e6cd7809f9ac8375da5092c",
+    "BakaSU": "516d3e87fbc986ccefdde2c2765f1700612441a9",
+    "SUSFS5.15": "d5df1d937361530787fafa920dea3a9b6dc8ebef",
+    "BBG": "028ff7fd509e2104596da7cc1ef8e6ce2a0c9082"
+  },
+  "donor_freshness": {
+    "Wild_live_heads": {
+      "WildKernels/GKI_KernelSU_SUSFS": {
+        "endpoint": "https://api.github.com/repos/WildKernels/GKI_KernelSU_SUSFS/commits?per_page=1",
+        "sha": "c6d44eb9110888ad0cbc8e172d0d64eaa7df3e1e",
+        "tree": "6352fc2c68fcd9e028f06218947d27015854846a",
+        "method": "GitHub connector GET commits?per_page=1, default branch",
+        "live": true
+      },
+      "WildKernels/OnePlus_KernelSU_SUSFS": {
+        "endpoint": "https://api.github.com/repos/WildKernels/OnePlus_KernelSU_SUSFS/commits?per_page=1",
+        "sha": "11821d9e122629d0888382f588954ef79ee88af6",
+        "tree": "8de008df1b425af3d75a92a4ff076f985417e06f",
+        "method": "GitHub connector GET commits?per_page=1, default branch",
+        "live": true
+      },
+      "WildKernels/kernel_patches": {
+        "endpoint": "https://api.github.com/repos/WildKernels/kernel_patches/commits?per_page=1",
+        "sha": "ee68218dc83b3e488ae619eb82e868859e8eb17d",
+        "tree": "124f49bd071fa38460a6833f4c48696b0b55c446",
+        "method": "GitHub connector GET commits?per_page=1, default branch",
+        "live": true
+      }
+    },
+    "primary": {
+      "repository": "https://git.digtvbg.com/ivangotoy/GKI_KernelSU_SUSFS",
+      "pin": "bcc9c39fa0d58027739dae3cb07baa6e01c98db9",
+      "verification": "Parent trusted-host supplied main and clean checkout; worker reads in place, no fetch/edit. Original selected root source and metadata validators executed."
+    },
+    "legacy": "https://git.digtvbg.com/ivangotoy/GKI_KERNELSU @51d8178a3cde8f529ef71c5592f05b9ae513f96a parent verified; not substituted for primary",
+    "primary_reconciliation": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/primary-fork-reconciliation.json",
+    "primary_tool_contracts": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/primary-tool-contract-closure.json",
+    "network_gap": "Sandbox DNS limitation is not host DNS failure. No speculative pin substitution; no new network request required for retained trusted pins."
+  },
+  "inventory": {
+    "retained_counts": {
+      "recipes": 203,
+      "source_configuration_records": 186,
+      "fork_tools": 31,
+      "literal_config_symbols": 264
+    },
+    "retained_identity": {
+      "recipe-inventory.json": "d30c405aa58d70cb354771198c0cffb14d9af0b997b357c20256dcf4760e4d9b",
+      "config-parity-inventory.json": "099d810a22f8c3135b7091131cb7994be06800749a0f2a00910f3681b16ad632",
+      "source-configuration-inventory.json": "ca91117a4f9687ec63b7d97d81c5bf11683756d879e212edc5c7612cf3657480",
+      "fork-engineering-inventory.json": "e541b7319b501ee1122561b712918b90e2ac1cce020f58e7c5f08f8ee52e3db6",
+      "feature-stage-resource-blocker.json": "e913c79fce277b7244e9ae436da80657f0ed580acd1a6af85c800a3d415117aa",
+      "feature-status.txt_before_continuation": "4a6ce4192950d781fe3fc5437af4c5524defc4425f85470209876b8a18a9604a",
+      "feature-status.txt_current": "f7d67f9bce5f99f331f691c2afef74b81fe0328945bf7c3ba2977ce7253a33de"
+    },
+    "primary_counts": {
+      "paths": 121,
+      "tools": 43,
+      "json_configs": 12,
+      "literal_config_mentions": 181
+    },
+    "interpretation": "203 recipes/186 configuration records/31 legacy tools/264 literal tokens reused. Tokens in shell variables/test fixtures/patch context/deletions are not simultaneous kernel requirements. For example BSD/TASK_DELAY in HMBird context and fictitious XT_TARGET_REJECT do not mandate new target options; actual IPv4/IPv6 REJECT configured. Old SUSFS/alternative-root options follow selected Baka2.3 source APIs, not obsolete symbols."
+  },
+  "feature_checklist": [
+    {
+      "feature": "Built-in BakaSU only / NoMount / BBG / NTSync / DroidSpaces / fanotify ABI adaptation",
+      "status": "validated_inherited_core_only",
+      "detail": "Existing core production binary tests retained. Baka-only trust, no alternate root frameworks. Three primary NoMount UID-deny/readdir fixes are newly backported/tested; whole primary NoMount update is not integrated and inherited core runtime does not validate these changes.",
+      "evidence": [
+        "delivery-core/validation.json",
+        "delivery-core/installer-validation.json",
+        "feature-status.txt"
+      ]
+    },
+    {
+      "feature": "SUSFS 2.3.0 base hooks",
+      "status": "implemented_inherited",
+      "detail": "Core build/ABI passed; individual hiding behaviors and Android enforcing SELinux remain unvalidated.",
+      "evidence": [
+        "feature-status.txt"
+      ]
+    },
+    {
+      "feature": "SUSFS priority UID filtering and SELinux side-channel fixes",
+      "status": "implemented; component/host lifecycle validated",
+      "detail": "Generation-tagged bitmap; immediate invalidation and active5.15 LSM rename -> writer task_work producer plus optional fsnotify producer. Config/package snapshot races discarded. Credentials remain temporary. Actual active Baka/SUSFS object compile and reassignment/removal/reuse, failure/exiting and before-publication tests passed. Enforcing Android SELinux/runtime still a gate.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-susfs-active/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/susfs-before-rename/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-active-route.json"
+      ]
+    },
+    {
+      "feature": "NoMount metamodule / optional Mountify",
+      "status": "source/asset contract validated; packaging gate",
+      "detail": "Original primary NoMount640 archive identity/structure verified. Full primary kernel update adapted below. Mountify is an optional alternative userspace mount implementation in donor recipes, not an additional simultaneous kernel or root requirement. No userspace module installation or delivery change performed.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/contracts-preflight.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/primary-tool-contract-closure.json"
+      ]
+    },
+    {
+      "feature": "BBG full denial policy / MT6835 partition whitelist",
+      "status": "implemented existing policy; host matcher validated",
+      "detail": "Actual allowlist matcher tested against ALL84 retained MT6835 scatter partitions. Deny-by-default protects modem/NV/bootloader/GPT names without Qualcomm-specific copying. Existing boot/recovery switches and current-slot policy preserved; actual LSM denial under Android remains a gate.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/parity-bbg/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-closure-evidence.json"
+      ]
+    },
+    {
+      "feature": "BBRv1/BIC/CUBIC/Westwood/HTCP; FQ/FQ-CoDel/CAKE/PIE/FQ-PIE; WireGuard/IPSet/IPv6 NAT/netfilter additions",
+      "status": "implemented_inherited",
+      "detail": "Core build passed; detailed networking runtime tests pending.",
+      "evidence": [
+        "network-cifs-source.json",
+        "feature-status.txt"
+      ]
+    },
+    {
+      "feature": "BBRv3 / PLB / default BBR3",
+      "status": "implemented_component_validated",
+      "detail": "Built-in BBRv3/default BBR3 plus per-net PLB. Public rate_sample64/TCP skb cb48 and64-bit timestamps unchanged. Private88-byte stack wrapper passes only its64-byte base to public CC callbacks; full32-bit snapshots use skb reserve2 and reserve1 padding3. No per-packet allocation. Missing pre-CC-switch snapshots invalidate model samples; ENOMEM selects real Reno fallback. PLB init-order, callback-init and ECN release adaptations implemented. Public BBR diagnostic payload retained, extra donor diagnostics not added. Reviewed PLB extra2 bound corrected to unsigned int; actual handler/converter accepts0/31 and rejects32/255/256.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/layout-and-oem.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/bbr-lifecycle-objects.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/bbr-lifecycle-host-execution.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-fixes/sysctl.log",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-delta-library.json"
+      ]
+    },
+    {
+      "feature": "BPF stream parser",
+      "status": "implemented; object/layout/host validated",
+      "detail": "Enabled with private allocation wrapper. Public sk_psock remains384 and19 checked member offsets match HEAD parser-disabled definition using actual Clang14 ARM64 flags. Actual skmsg/strparser objects compiled. Allocation failure, callback binding and conditional teardown host shims passed; actual stream parser socket/BPF runtime and final KMI remain gates.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/bpf-layout-corrected/execution.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/parity-adaptations/bpf.log",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-delta-library.json"
+      ]
+    },
+    {
+      "feature": "CIFS/POSIX/xattrs/keys/netfs; OverlayFS/fanotify/tmpfs ACL/xattrs; BTF/BPF events/FUSE-BPF",
+      "status": "implemented_inherited",
+      "detail": "Existing compiled/ABI evidence retained; protocol/mount/individual feature runtime acceptance pending.",
+      "evidence": [
+        "feature-status.txt"
+      ]
+    },
+    {
+      "feature": "RCU lazy",
+      "status": "implemented_inherited",
+      "detail": "Existing support retained with LAZY_DEFAULT_OFF=y; no power claim.",
+      "evidence": [
+        "feature-status.txt"
+      ]
+    },
+    {
+      "feature": "MGLRU default; corrected int_sqrt; prefetch template consumers; clear_page alignment",
+      "status": "validated_components_only",
+      "detail": "Retained component evidence applies to these source stages. No new full feature Image exists.",
+      "evidence": [
+        "mglru-default-validation.json",
+        "int-sqrt-integrated-tests.json",
+        "prefetch-validation.json",
+        "clear-page-validation.json"
+      ]
+    },
+    {
+      "feature": "OEM ZRAM multi-compression",
+      "status": "Provider per-object codec/recompression implemented; ARM64 component ELF/host validated; production runtime gated",
+      "detail": "Real OEM provider port at pinned source. Up to3 secondary codecs, immutable device-owned contexts, per-slot codec bits40..41; actual decoder selects stored codec after hybrid UFS transport. recompress supports priority/type/threshold/max_pages and replaces only improving local slots under slot lock; skips writeback/batching, updates hybrid byte accounting. Reset serializes codec lifetime and object cleanup. Normal module init cleanup adapted; successful provider deliberately non-unloadable. Original provider retained; Baka preinit static loader uses finite module loading flags0 and exact kernel-notes/module hashes, with original OEM fallback; installer metadata activation wraps existing boot transaction. No live swap changes or phone operations. Actual ARM64 .ko linked with13 identical exported CRCs and all original versioned imports retained; BTF skipped until full vmlinux. Host tests use real codecs plus explicit kernel/UFS/sysfs/installer shims, not production runtime. Independent review corrections now remove panic-on-cache-failure, reject every nonzero disk-registration result with unregistered cleanup, and coordinate real signal rollback/unlock across provider and core. Narrow regression/ARM64 producer evidence is in provider_review_corrections.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/provider-module-ABI.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/layout-correspondence.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/host-transport-tests/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/delivery-tests/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/kcompress-tests/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/storage-tests/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/candidate-module-final-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/candidate-module-final-execution.json"
+      ]
+    },
+    {
+      "feature": "optimized_mem_operations",
+      "status": "not_applicable_to_active_ARM64_routines",
+      "detail": "arch/arm64/include/asm/string.h defines __HAVE_ARCH_MEMCPY/MEMMOVE/MEMSET; donor generic lib/string.c functions are compiled out for this target. Existing architecture routines remain; prefetch/clear_page/int_sqrt components separately retained.",
+      "evidence": [
+        "arch/arm64/include/asm/string.h",
+        "lib/string.c",
+        "recipe-inventory.json"
+      ]
+    },
+    {
+      "feature": "file_struct_8bytes_align",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "reduce_cache_pressure",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "optimise_memcmp",
+      "status": "implemented safe scalar adaptation; object/host instruction model validated",
+      "detail": "Pinned donor scalar small/medium and32-byte GPR loop used for every size; no SIMD/FPSIMD registers, unchanged weak PI/export entry. Actual object assembled;8925 cases/131958 bounds-checked simulated instruction loads passed. No claim of actual ARM64 runtime or SIMD speedup.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/memcmp-object-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "minimise_wakeup_time",
+      "status": "implemented_component_validated",
+      "detail": "Donor expiration-based alarm hold, bounded to at least1ms for already-expired timers; avoids negative-to-unsigned timeout conversion.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "force_tcp_nodelay",
+      "status": "implemented_component_validated",
+      "detail": "Default TCP_NAGLE_OFF in tcp_init_sock; explicit TCP_NODELAY/CORK/other sockopts retain their original dispatch. Raw donor optname rewriting was not copied.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "reduce_gc_thread_sleep_time",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "add_timeout_wakelocks_globally",
+      "status": "excluded by explicit preservation constraint",
+      "detail": "Raw500ms global expiry conflicts with untimed wake-lock ownership; retained actual-function contract test demonstrates changed semantics. No opt-in expiry request or permission to break the constraint is pending.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/donor-contract-corrected/pm-and-log.log"
+      ]
+    },
+    {
+      "feature": "f2fs_reduce_congestion",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "reduce_freeze_timeout",
+      "status": "implemented_component_validated",
+      "detail": "1-second default only; retain working sysfs timeout override instead of falsely accepting writes.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "add_limitation_scaling_min_freq",
+      "status": "implemented_component_validated",
+      "detail": "Private policy-keyed userspace cap with related_cpus key, real initialization, serialized stores, strict parsing, failure propagation and desired-value restoration. Other kernel QoS constraints are preserved; no public policy growth or unallocated cpumask pointers. Review correction checks empty/invalid related masks and entry ownership during failed init/destruction; accessor/remove regression x1000 passed and actual ARM64 object rebuilt.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-fixes/cpufreq.log",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-delta-library.json"
+      ]
+    },
+    {
+      "feature": "re_write_limitation_scaling_min_freq",
+      "status": "implemented_component_validated",
+      "detail": "Private policy-keyed userspace cap with related_cpus key, real initialization, serialized stores, strict parsing, failure propagation and desired-value restoration. Other kernel QoS constraints are preserved; no public policy growth or unallocated cpumask pointers. Review correction checks empty/invalid related masks and entry ownership during failed init/destruction; accessor/remove regression x1000 passed and actual ARM64 object rebuilt.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-fixes/cpufreq.log",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-delta-library.json"
+      ]
+    },
+    {
+      "feature": "adjust_cpu_scan_order",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "avoid_extra_s2idle_wake_attempts",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "disable_cache_hot_buddy",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "f2fs_enlarge_min_fsync_blocks",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "increase_ext4_default_commit_age",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "increase_sk_mem_packets",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "reduce_pci_pme_wakeups",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "silence_irq_cpu_logspam",
+      "status": "implemented_component_validated",
+      "detail": "Exact donor scalar change or documented compatible adaptation; real targeted object acceptance, with actual-function host tests where behavior changed. No full binary/runtime/performance claim.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "silence_system_logspam",
+      "status": "implemented_component_validated",
+      "detail": "Throttle repeated informational exact service prefixes; preserve warnings/errors and unrelated messages. Raw arbitrary-substring deletion was not copied.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json"
+      ]
+    },
+    {
+      "feature": "use_unlikely_wrap_cpufreq",
+      "status": "implemented_component_validated",
+      "detail": "Private policy-keyed userspace cap with related_cpus key, real initialization, serialized stores, strict parsing, failure propagation and desired-value restoration. Other kernel QoS constraints are preserved; no public policy growth or unallocated cpumask pointers. Review correction checks empty/invalid related masks and entry ownership during failed init/destruction; accessor/remove regression x1000 passed and actual ARM64 object rebuilt.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/independent-objects-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/wakeup-printk-command.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-fixes/cpufreq.log",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-delta-library.json"
+      ]
+    },
+    {
+      "feature": "Ptrace leak patch",
+      "status": "implemented_component_validated",
+      "detail": "Event message is passed into ptrace_stop under siglock and cleared only after stop resumes. Retain legacy ptrace_notify wrapper. Do not copy donor clear in ptrace_check_attach, which can erase an unread event. Host tests execute actual full ptrace_stop/notify functions with kernel-service shims.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/host-components-corrected/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/out/kernel/signal.o"
+      ]
+    },
+    {
+      "feature": "Unicode bypass patch",
+      "status": "excluded by explicit persistent-name preservation",
+      "detail": "Actual normalizer/tables demonstrate raw donor changes existing default-ignorable casefold equivalence. Existing filesystem Unicode semantics are preserved. No permission to change persistent equivalence requested.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/unicode-contract/results.json"
+      ]
+    },
+    {
+      "feature": "HMBird/Fengchi / device-tree overwriter / per-model configs",
+      "status": "not applicable to exact retained hardware contract",
+      "detail": "Parsed complete retained MT6835 base DTB and19 slot-b DTBO entries: no HMBird/xxbird/fengchi node. Donor patch rewrites /soc/oplus,xxbird and downstream6.6 scheduler structures for named profiles including MT6991/SM8750. Those prerequisites/profile semantics are absent here; general OnePlus kernel features are separately handled.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-closure-evidence.json"
+      ]
+    },
+    {
+      "feature": "Module interception/overlay",
+      "status": "not applicable to retained replacement contract",
+      "detail": "Only retained replacement payload is qcom-scm_sm8750_A16_android15-6.6.89.ko. It matches neither MT6835 nor ACK5.15.197. No matching replacement is requested; all463 original modules must remain. The generic interception mechanism has no selected payload/runtime contract on this target.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-closure-evidence.json"
+      ]
+    },
+    {
+      "feature": "Vendor module blacklist/debloat",
+      "status": "excluded nonempty optional policy by all463 preservation",
+      "detail": "Selectable caller-supplied module blacklist removes modules. User requires preserving all463; empty blacklist does not require interception/denial code and is not a missing runtime feature.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-closure-evidence.json"
+      ]
+    },
+    {
+      "feature": "Fake config.gz",
+      "status": "excluded by truthful configuration constraint",
+      "detail": "Raw donor strips real options from IKCONFIG. Keep actual embedded config equal to build config; future binary inventory uses original primary extractor and rejects inherited core Image. No policy override pending.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/primary-tool-contract-closure.json"
+      ]
+    },
+    {
+      "feature": "Alternative Clang/Rust/Rust Binder/16KiB/O2/O3/inlining/branding",
+      "status": "excluded conflicting alternate profiles; current settings preserved",
+      "detail": "Retain exact Clang14/fullLTO/CFI/KMI/4KiB/current optimization settings. Rust Binder/alternate compilers/16KiB and thin/no-LTO are selectable conflicting workflows, not simultaneous runtime requirements. OnePlus OPTIMIZE_INLINING has no Kconfig/consumer in this target; no ineffective config flag added. Branding is metadata rather than missing kernel functionality.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/primary-tool-contract-closure.json"
+      ]
+    },
+    {
+      "feature": "Fork semantic freshness/source contracts/pin and manager verification/runtime root+pstore audits",
+      "status": "source contracts reconciled/validated; new-binary/runtime consumers gated",
+      "detail": "Primary pinned121-path/43-tool source/API closure read and mapped. Original primary selected Baka source bytes/transforms and NoMount metadata/archive/config validators passed. Historical9097b1a1 default is explicitly distinct from selected516d3e87. Target source/config/donor freeze and protected-profile negative tests implemented. New primary binary reader added without modifying core reader. Actual Android manager/root/SUSFS/pstore consumers require new accepted Image; no fake calibration or runtime success.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/primary-tool-contract-closure.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/contracts-preflight.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/contract-negative-corrected/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/new-script-collection.json"
+      ]
+    },
+    {
+      "feature": "AnyKernel/metadata/managers/build-summary/reproducibility/delivery",
+      "status": "retained producer contracts; new candidate delivery gated",
+      "detail": "Existing RMX3997 installer and core files preserved. New NoMount source identity and original asset verified, build argv/env frozen. Package/manager extraction/metadata/installer/rollback acceptance must bind the newly compiled Image and corrected candidate. No publication, package generation or phone operation.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/contracts-preflight.json"
+      ]
+    },
+    {
+      "feature": "DroidSpaces midas ghost-task workaround",
+      "status": "not_applicable_retained_evidence",
+      "detail": "No midas caller in retained all463 shipping module set; caller-specific workaround has no active target.",
+      "evidence": [
+        "droidspaces-source.json"
+      ]
+    },
+    {
+      "feature": "Samsung min_kdp exports / OnePlus 5.10 vendor-tree GPUEB removal",
+      "status": "not_applicable_retained_evidence",
+      "detail": "Retained Realme module inventory has no Samsung min_kdp ABI; this GKI source has no drivers/gpu/mediatek vendor subtree. Does NOT mean the RMX3997 has no GPUEB module.",
+      "evidence": [
+        "feature-status.txt"
+      ]
+    },
+    {
+      "feature": "Alternate root frameworks/KPM; CRC/protected-export/ABI-check bypass",
+      "status": "excluded_by_explicit_user_scope",
+      "detail": "BakaSU only and real physical ABI preservation override donor choices.",
+      "evidence": [
+        "feature-status.txt"
+      ]
+    },
+    {
+      "feature": "Kernel base upgrade / separate 5.15.223 stage",
+      "status": "deferred_by_explicit_user_scope",
+      "detail": "No base upgrade. .worktrees/upstream-5.15.223 untouched.",
+      "evidence": [
+        "upstream-stage-state.json"
+      ]
+    },
+    {
+      "feature": "Primary NoMount ab8c057 full update",
+      "status": "Implemented with corrected built-in terminal shutdown/pin lifecycle; focused host ordering and ARM64 object validated",
+      "detail": "Full primary kernel C/header update integrated, preserving target Makefile/stack protector. Replace PID1 sync_fs permanent shutdown with explicit reboot/halt/power-off notifier; registration failure unwinds and exit unregisters. Snapshot/rebind/copy refs x1000 and init/unwind/exit/RCU-barrier host shims passed; actual ARM64 object compiled. Real VFS RCU/dentry/superblock concurrency remains runtime gate. Review correction restores hooks and releases s_active at built-in shutdown; retained immutable dispatch protects cached callbacks and late virtual eviction. Concurrent host materializer/shutdown tests supersede earlier shutdown-only shim evidence. Real VFS concurrency remains production guest gate.",
+      "evidence": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/parity-nomount-corrected/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/nomount-init/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-delta-library.json"
+      ]
+    }
+  ],
+  "review_fixes": {
+    "P1_cpufreq": "Bound and owner guarded; actual regression x1000 and object CC complete.",
+    "P2_PLB": "unsigned int extra2, byte parameter retained; real handler regression complete.",
+    "P2_SUSFS": "Active5.15 LSM producer plus optional observer; generation-safe package lifecycle tested, including publication order; active Baka aggregate build PASS."
+  },
+  "validation": {
+    "new_exact_commands_results": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-exact-executions.json",
+    "kernel_environment": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/build-environment.json",
+    "kernel_command_environment_records": [
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-prepare-command.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-delta-objects-command.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-delta-library-command.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-active-route-command.json"
+    ],
+    "host_environment": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-resource-snapshot.json",
+    "actual_object_hashes": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-object-inventory.json",
+    "component_limits": "Host fixtures explicitly shim RCU/VFS/BPF/credentials/services. memcmp tests simulate actual disassembled instructions, not hardware/QEMU. Actual objects compiled under Clang14/fullLTO/CFI flags, not a full linked kernel.",
+    "retained_passing_evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/pre-review-correction-state.json",
+    "new_binary_reader": "rmx3997/development/full-feature-binary-inventory.py parsed/CLI checked only; positive new-Image execution gated. Core reader unchanged.",
+    "collection": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/new-script-collection.json",
+    "no_full_build": true,
+    "provider_prerequisites": {
+      "status": "Resolved; phase1 evidence retained historically",
+      "provenance": "rmx3997/provider/provenance.json"
+    },
+    "new_exact_commands_results_provider": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/command-index.json",
+    "provider_implementation": {
+      "exact_command_index": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/command-index.json",
+      "component_module": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-review-fixes/source/hybridswap_zram/oplus_bsp_hybridswap_zram.ko",
+      "component_module_sha256": "9d1595fb1d6315f932e7323b8aa6be1fe53a4e61c0f179013c2cea9cfc853e9f",
+      "ELF_ABI": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/provider-module-ABI.json",
+      "layout_probe": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/layout-correspondence.json",
+      "tests": [
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/host-transport-tests/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/delivery-tests/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/kcompress-tests/results.json",
+        "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/storage-complete-closure-tests/results.json"
+      ],
+      "scope": "No full Image/new provider runtime; component ELF uses real provisional kernel exports. Final relink against completed Image Module.symvers is mandatory. BTF absent in component .ko until full vmlinux.",
+      "deferred_producers": [
+        "rmx3997/development/build-provider.py",
+        "rmx3997/development/prepare-provider-assets.py",
+        "rmx3997/development/package-provider-candidate.py"
+      ],
+      "deferred_producers_execution": "AST/CLI collection only; final-Image prerequisites intentionally not fabricated.",
+      "ARM64_guest_consumer": {
+        "source": "rmx3997/provider/tests/provider-guest.c",
+        "binary": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/provider-guest-arm64",
+        "build_command": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/provider-guest-build-command.json",
+        "execution": "COMPILE ONLY; explicit disposable guest cmdline required; mixed read/write/recompress/error/busy/reset/reinitialize consumer. Hybrid UFS lifecycle still separate runtime gate."
+      },
+      "previous_reviewed_component_module": {
+        "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-phase2/candidate-source/hybridswap_zram/oplus_bsp_hybridswap_zram.ko",
+        "sha256": "290bb1cfca962fdd2738e3267056d06523bad7b00ede4ef09ec2fd0c16ef37bc"
+      },
+      "review_correction_tests": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-review-fixes/command-index.json",
+      "ARM64_NoMount_object": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/out/fs/nomount/nomount.o"
+    },
+    "provider_phase1_commands": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-baseline/command-index.json"
+  },
+  "failures_and_reassessment": [
+    "Initial review fixture extraction stopped before SUSFS section because an earlier identical #endif was matched: corrected anchored range; separate missing host O_NOATIME fixed using _GNU_SOURCE. cpufreq/sysctl passes retained without rerunning.",
+    "Two aggregate object invocations returned2: unsupported direct library target, then pkg_observer excluded by actual5.15 Kbuild. No third blind retry. Reassessed real producer, fixed active LSM lifecycle, and built actual previously successful drivers/kernelsu/ producer (PASS). Other changed objects completed in aggregate with nonzero exit; retained as object evidence only.",
+    "NoMount host d_seq shim signedness, memcmp model bracket tokenization, layout fixture overbroad type rename and contract fixture old core config each received one focused correction; production source was not weakened.",
+    "Contract preflight initially incorrectly expected CONFIG_ZRAM=n: corrected to preserved production m; generic .ko is not loaded/replaced. Original primary historical root default9097 differs from selected516d; corrected use of actual selected-source validator, not fabricated root substitution.",
+    "One Python assembly-adaptation script failed before writing due whitespace context mismatch; corrected normalized patch context. One binary-reader generation script syntax error produced no file; corrected quoting. DT container parser first assumed raw FDT; corrected actual Android DT-table wrapper, then parsed all20 entries.",
+    "Initial cpufreq/sysctl host fixture command used shell python3 resolving ASDF3.15; subsequent new commands explicitly /usr/bin/python3. All host compiler invocations were guarded. Earlier four unguarded layout probes remain recorded in archived state and are not relabeled guarded.",
+    "Provider baseline actual ARM64 build exit2: hook header visibility/include ordering and missing OSvelte header. No warning suppression or dummy header. Source fetch failed DNS once; web fallback cache miss. No repeated unchanged network requests.",
+    "Shipping ELF imports showed baseline display branch was unselected; corrected MTK feature macro for one focused interface probe (exit2 missing linux/mtk_panel_ext.h). Its earlier unselected display.o is NOT shipping-interface evidence. Stop compilation pending source inputs; no third attempt.",
+    "REA inspect_binary_layout denied by client approval policy never; bounded local pyelftools inspection used instead, without changing client configuration.",
+    "NEW INPUTS resolved prior source-closure blocker: verified OSvelte+MTK headers and official mm Makefile/Kconfig. Removed genuinely unused panel_ext include in MTK notifier branches; actual selected provider compiles all8 objects.",
+    "Initial codec fixture exited0 but UBSan reported fixture NULL disk ownership; not accepted as a clean pass. Corrected fixture disk and enabled -fno-sanitize-recover=all; corrected run passed. Broadened host transport test executes actual OEM move/restore bodies with IO shims; passed.",
+    "Concrete safe-unwind port required cgroup_rm_cftypes, unexported in5.15. First modpost rejected it. Added real GPL export plus project symbol whitelist and compiled actual cgroup.o; genksyms0x197d0494. One corrected module link passed with derived real export metadata, no CRC edits or non-exported binding.",
+    "Provider ABI validator initially expected463 records rather than489 paths/463 unique bytes. Corrected to actual retained validator inventory ownership and included version-only requirements; one corrected run passed.",
+    "ARM64 layout probes both compiled successfully; offline fixture initially assumed64-byte crypto names. Actual target uses128, so private tail grows408 rather than216. Corrected offline expectation against retained IR with no repeat compilation; all existing offsets/table/stream sizes unchanged.",
+    "Delivery prerequisite closed before freeze: package exact original7 dependency bytes beside preinit loader instead of assuming first-stage /lib/modules survives switch_root. Expanded explicit extraction to17 provider members; actual full-closure storage staging/rollback fixture passed. No unchanged module/codec suites rerun.",
+    "Provider-review fixture initially redeclared strlcpy already supplied by host libc; compiler exit1 retained at provider-review-fixes/tests-v1. Removed only duplicate fixture declaration and ran one corrected focused batch; actual init/disk, NoMount concurrency and21 real-signal cases passed. No unchanged old suites repeated."
+  ],
+  "resources": {
+    "snapshot": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-resource-snapshot.json",
+    "scratch_filesystem": "ext4 /dev/nvme0n1p2",
+    "swap": "/swapfile regular disk file on ext4; no zram, live swap reconfiguration or RAM-backed scratch used",
+    "guard": "rmx3997/development/resource-guard.py",
+    "floor_bytes": 8589934592,
+    "poll_seconds": 0.2,
+    "log_cap_bytes": 67108864,
+    "selftests": [
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-guard-selftest/resource-guard-selftest.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/review-guard-cleanup/results.json"
+    ],
+    "scope": "Own process-group SIGSTOP/SIGKILL only; normal/failed leader descendant cleanup tested; no other jobs/services stopped. Snapshot visibility is namespace limited.",
+    "provider_phase2": "All compiler/link invocations guarded at8GiB floor with retained tested guard; actual minimums/cleanup in command-index records. No memory guard abort, old cgroup caps, live swap change, competing worker or RAM-backed scratch.",
+    "latest_proven_full_build_scope": {
+      "MemoryHigh": "12G",
+      "MemoryMax": "16G",
+      "MemorySwapMax": "24G",
+      "hard_guard_floor_GiB": 8,
+      "prior_result": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/trim-whitelist-correction/prior-build/build-execution.json"
+    }
+  },
+  "proposed_full_build": {
+    "executed": true,
+    "authorization": "Completed by parent; no new rebuild proposed. See actual components197/build-execution.json and final-acceptance/manifest.json.",
+    "cwd": "/home/build/Downloads/rmx3997-kernel",
+    "environment_file": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/build-environment.json",
+    "argv": [
+      "/usr/bin/python3",
+      "/home/build/Downloads/rmx3997-kernel/rmx3997/development/resource-guard.py",
+      "--log",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/full-build-trim-whitelist-correction.log",
+      "--result",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/build-execution.json",
+      "--",
+      "make",
+      "-C",
+      "/home/build/Downloads/rmx3997-kernel",
+      "O=/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/out",
+      "ARCH=arm64",
+      "LLVM=1",
+      "LLVM_IAS=1",
+      "CROSS_COMPILE=aarch64-linux-gnu-",
+      "CROSS_COMPILE_COMPAT=arm-linux-gnueabi-",
+      "HOSTCC=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang",
+      "HOSTCXX=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang++",
+      "PAHOLE=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/kernel-build-tools/linux-x86/bin/pahole",
+      "LD=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/ld.lld --threads=1",
+      "-j4",
+      "Image",
+      "modules"
+    ],
+    "config_and_source_freeze": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-trim-source-freeze.json",
+    "preconditions": [
+      "Parent no-peer actual headroom admission and same proven scope; do not relax guard",
+      "Verify new source/config/whitelist freeze; previous Image was built with old whitelist config and does not validate this preparation",
+      "Preserved prior Image/vmlinux/config/record already copied; normal recursive autoksyms must touch changed symbol dependencies/recompile/link, no manual CRC/export insertion"
+    ],
+    "scope_argv": [
+      "/usr/bin/systemd-run",
+      "--user",
+      "--scope",
+      "--unit=rmx3997-trim-whitelist-20261105",
+      "-p",
+      "MemoryHigh=12G",
+      "-p",
+      "MemoryMax=16G",
+      "-p",
+      "MemorySwapMax=24G",
+      "--",
+      "/usr/bin/python3",
+      "/home/build/Downloads/rmx3997-kernel/rmx3997/development/resource-guard.py",
+      "--log",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/full-build-trim-whitelist-correction.log",
+      "--result",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/build-execution.json",
+      "--",
+      "make",
+      "-C",
+      "/home/build/Downloads/rmx3997-kernel",
+      "O=/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/out",
+      "ARCH=arm64",
+      "LLVM=1",
+      "LLVM_IAS=1",
+      "CROSS_COMPILE=aarch64-linux-gnu-",
+      "CROSS_COMPILE_COMPAT=arm-linux-gnueabi-",
+      "HOSTCC=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang",
+      "HOSTCXX=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang++",
+      "PAHOLE=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/kernel-build-tools/linux-x86/bin/pahole",
+      "LD=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/ld.lld --threads=1",
+      "-j4",
+      "Image",
+      "modules"
+    ]
+  },
+  "OEM_provider_boundary": {
+    "source_pin": "a8acde2222f7654250fc23a29ee41cdf3660769d",
+    "exact_source_correspondence": "Official provider/header pins, all13 shipping exported CRCs, all existing versioned imports and existing device/table/stream prefix layouts correspond. Entire firmware build/binary identity remains unproven; implemented adaptation changes its private device tail and features intentionally.",
+    "dependency_load_order": [
+      "oplus_bsp_mm_osvelte",
+      "mtk_disp_notify",
+      "oplus_bsp_kshrink_slabd",
+      "oplus_bsp_eas_opt",
+      "oplus_bsp_sched_assist",
+      "oplus_schedinfo",
+      "oplus_bsp_zsmalloc",
+      "oplus_bsp_hybridswap_zram"
+    ],
+    "located_vendor_dlkm_modules": {
+      "oplus_bsp_sched_assist": {
+        "path": "/home/build/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/filesystems/vendor_dlkm_b/lib/modules/oplus_bsp_sched_assist.ko",
+        "sha256": "04d75665fd986a025711f48aec5704687d6601fbf1a12d1936443ff95825f45e"
+      },
+      "oplus_bsp_hybridswap_zram": {
+        "path": "/home/build/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/filesystems/vendor_dlkm_b/lib/modules/oplus_bsp_hybridswap_zram.ko",
+        "sha256": "66c8904aca7e43f54cd4c7ed7c7a8df358031acd6885f569fefb2a656e17d302"
+      },
+      "oplus_schedinfo": {
+        "path": "/home/build/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/filesystems/vendor_dlkm_b/lib/modules/oplus_schedinfo.ko",
+        "sha256": "ee9377a70d6285a42aee9d7c049f860fd40edb967347d4b04615af73a53642f8"
+      },
+      "oplus_bsp_kshrink_slabd": {
+        "path": "/home/build/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/filesystems/vendor_dlkm_b/lib/modules/oplus_bsp_kshrink_slabd.ko",
+        "sha256": "208b7a134ceff56a0a50eb238dcd5eec49ab34d65de230e89bbd2fbbe07b5fd4"
+      },
+      "oplus_bsp_zsmalloc": {
+        "path": "/home/build/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/filesystems/vendor_dlkm_b/lib/modules/oplus_bsp_zsmalloc.ko",
+        "sha256": "d40e033ed714be7bbb9740e4ddf81b3715f05c880b06db8a13836ca61c5672dc"
+      },
+      "oplus_bsp_eas_opt": {
+        "path": "/home/build/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/filesystems/vendor_dlkm_b/lib/modules/oplus_bsp_eas_opt.ko",
+        "sha256": "3fcc8291e7c80b037c1d62e226ac5b30456949a9b78f0623bfeda7db3e633357"
+      },
+      "mtk_disp_notify": {
+        "path": "/home/build/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/vendor_boot_b/files/lib/modules/mtk_disp_notify.ko",
+        "sha256": "3ea9b8381b3431f7a25412678e9eb71049705944734adaec47bf5663da3a871c"
+      },
+      "oplus_bsp_mm_osvelte": {
+        "path": "/home/build/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/vendor_boot_b/files/lib/modules/oplus_bsp_mm_osvelte.ko",
+        "sha256": "18add5c21f41ccc7211dba4c980d9e11ad8861d640db8c31fff84a0a96abadd8"
+      }
+    },
+    "all463_retained": true,
+    "feasibility": "Provider and static preinit loader now compile/link with normal exports and flags; parent must build reviewed Image containing additive cgroup_rm_cftypes export before real provider guest loading. Old core Image lacks that new export and cannot validate the new module.",
+    "required_guest_inputs": [
+      "New reviewed production Image; full ABI/BTF/all463 validation",
+      "Unchanged shipping dependency closure; verify hashes/CRCs/vermagic before loading",
+      "Existing disposable UFS guest transport with regular ext4 backing under verified scratch",
+      "Guest-only fresh zram device using zram-multi before disksize; compressible/incompressible patterns, random offsets/readback, reset/reinitialize",
+      "Guest-only disposable backing block file for OEM hybrid writeback/readback and teardown, plus mapped_protect/exit_mm_optimize dependency checks"
+    ],
+    "execution": "Guarded full ARM64 provider component link PASS using real core export metadata + new actual cgroup object CRC + unchanged shipping dependency exports. Nine loader cases,14 transaction cases,1000 actual-function codec/read/write/reset/transport-shim cycles,9 hook failure positions and6 kcompress init/unwind cases passed on host. ARM64 loader compile PASS. No actual module loading/new Image/preinit/UFS execution.",
+    "upstream_recompress_permission_boundary": "RESOLVED and implemented at source/component level. Provider replacement and necessary delivery adaptation authorized conditional on boot compatibility. Final runtime/boot acceptance remains pending; no permission question.",
+    "module_path_note": "The map retains original key name for continuity; six modules are vendor_dlkm and two are original vendor_boot modules.",
+    "source_prerequisites": "RESOLVED by verified parent inputs and newly verified official recipes; see rmx3997/provider/provenance.json. Phase1 source-closure checker is historical only.",
+    "current_blocker": null,
+    "new_kernel_export": {
+      "name": "cgroup_rm_cftypes",
+      "genksyms_crc": "0x197d0494",
+      "reason": "Safe removal of registered cgroup callbacks on failed provider init; real GPL export and whitelist addition, no binding/override"
+    },
+    "delivery": {
+      "method": "Existing Baka preinit exec static ELF before OEM early-init modprobe, ordinary finit_module flags0, exact new kernel .notes and all module bytes pinned before first load",
+      "original_provider_retained": true,
+      "original_provider_sha256": "66c8904aca7e43f54cd4c7ed7c7a8df358031acd6885f569fefb2a656e17d302",
+      "module_runtime_unload": false,
+      "rollback": "Atomic deactivation of metadata preinit directory + existing verified boot_b restoration; original provider loads on reboot. No init_boot/vendor_boot/vendor_dlkm file replacement.",
+      "entry": "rmx3997/provider/provider-install-entry.sh",
+      "pending": "Actual Android preinit/load/fallback/enforcing policy, exact final package/native rollback and phone boot remain gates.",
+      "package_entry": "rmx3997/provider/installer/{update-binary,anykernel.sh,install-on-device.sh}; explicit17-member provider allowlist and wrapper pins new entry hash; original installer files unchanged.",
+      "dependency_files": "All7 original dependency modules copied and hash-pinned beside loader; no dependency on first-stage ramdisk path survival after switch_root."
+    }
+  },
+  "required_downstream_acceptance": [
+    "Actual new full Image/modules build with source/config/toolchain hashes; no inherited-artifact substitution",
+    "Upstream modules-order/strict symbol-list/dump/filter/delegated ABI comparison against unchanged baseline",
+    "All463 OEM module CRC/export/layout/import/protection-table compatibility; no CRC overrides or hidden physical layout growth",
+    "BTF type checks and exact persisted OEM F2FS dedup/fixed-output compatibility",
+    "Actual new binary ARM64 UFS guest feature tests, including Baka allow/deny, init wrapper, SUSFS and safe failure paths",
+    "OEM ZRAM multi-compression validation on the actual provider, including decoder selection and hybrid-swap read/write correctness",
+    "Installer25 transaction cases plus native Android entry/rollback rerun against exact new payload and ZIP",
+    "Package extraction/hash/boot metadata/invariant checks before delivery; no publishing/device writes",
+    "Phone boot/encryption/crash-recovery acceptance remains future Ivan testing; no boot claim"
+  ],
+  "additional_downstream_acceptance": [
+    "Final linked physical ABI/export/CRC/BTF match and ALL463 unchanged shipping modules, without overrides; BPF public psock and TCP snapshots/layout verified in final binary.",
+    "Actual BBRv3/PLB sysctls including round bounds, socket algorithm switch/allocation fallback/clone/fragment/SACK/retransmit paths.",
+    "Active Android package rename -> task_work priority filter reassignment/removal/reused UID plus real subjective credential restoration; ptrace real tracer message lifecycle.",
+    "NoMount real VFS replacement/rename/dentry rebinding, reference/RCU/superblock teardown, normal PID1 sync retains operation, explicit shutdown cleanup.",
+    "Actual ARM64 memcmp behavior across alignment/page boundaries/IRQ-safe ownership; performance measured before any speedup claim.",
+    "Actual new-Image provider module load/recompression/reset/error/unwind/concurrent hybrid-swap/codec lifetime plus Baka preinit normal finit_module flags0, notes/hash rejection and original-provider fallback. Host shims and component link are insufficient.",
+    "Existing F2FS dedup/fixed-output and /data format, durability/recovery, all20 guest and25 installer/native rollback acceptance re-bound to NEW Image, updated manager/metamodule package/native production paths; do not reuse core success as new proof."
+  ],
+  "inherited_core_limits": {
+    "Image_sha256": "e2e7bdd324419318b5da8571817da9c1ffcfa925b821c78c277b287c6209fefa",
+    "guest_checks": 20,
+    "installer_native_rollback_passes": 25,
+    "scope": "ONLY inherited core Image. Later component tests and current object/host tests do not establish a full build, new Image, phone boot or delivery acceptance."
+  },
+  "preserved": [
+    "All core checkpoint artifacts and prior evidence",
+    "Existing ACK5.15.197/compiler/fullLTO/CFI/KMI settings",
+    "All shipping .ko bytes and existing /data format",
+    "OEM F2FS data/dedup/fixed-output code; three scalar tuning constants changed explicitly",
+    "Untouched .worktrees/upstream-5.15.223 and shared GKI checkout",
+    "Credentials and host services"
+  ],
+  "phone_operations": false,
+  "commits_pushes_tags_worktrees_remote_records": false,
+  "full_feature_parity": false,
+  "previous_state_archives": [
+    "/home/build/.cache/codex-work/rmx3997-full-features-20261104/first-invocation-state.json",
+    "/home/build/.cache/codex-work/rmx3997-full-features-20261104/pre-review-correction-state.json",
+    "/home/build/.cache/codex-work/rmx3997-full-features-20261104/pre-provider-authorization-state.json",
+    "/home/build/.cache/codex-work/rmx3997-full-features-20261104/pre-provider-implemented-state.json",
+    "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-review-fixes/reviewed-manifest.json"
+  ],
+  "remaining_ordinary_kernel_implementation": "Scoped experimental candidate packaged and actual native install/rollback verified. Phone/hardware and explicit feature ledger exclusions remain untested; no exhaustive parity claim.",
+  "provider_authorization": {
+    "resolved": true,
+    "statement": "yes I authorize it as long as you keep the kernel bootable",
+    "scope": "Necessary OEM provider replacement/adaptation and module/init/installer delivery changes conditional on preserving boot compatibility",
+    "evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/task-provider-context.md",
+    "phone_writes_authorized": false,
+    "full_Image_build": "Actual corrected Image/modules completed; no authorization/review blocker. Remaining technical acceptance blocker is F2FS runtime fixture producer."
+  },
+  "latest_independent_review": {
+    "report": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-delta-review-final.txt",
+    "reviewed_complete_sha256": "a130f543d85aec143eb77aa11d5a35853ae197dc643cbfad1b6c13515076a14c",
+    "result": "Allocation/unwind, disk registration, NoMount corrections accepted; signal completion window rejected. Explicit shared logical commit design now implemented and narrowly tested; only new signal delta awaits parent review.",
+    "correction_review": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-corrections-review-final.txt",
+    "reviewed_corrected_complete_sha256": "3d2aa3945c140675b1f35dcf70f5e1c0d53af03f0c0acfab53d3de938e6d3115",
+    "signal_delta_accepted_by_parent": true
+  },
+  "provider_review_corrections": {
+    "findings": {
+      "P1_slab_panic": "SLAB_PANIC removed. Actual init body host faults exercise cache/cgroup/ops/hooks failures through complete provider init cleanup and modeled OEM fallback.",
+      "P2_disk_registration": "Both device_add_disk calls capture any nonzero status, normalize positive status to-EIO, clean unregistered disk without del_gendisk, remove IDR and free provider allocation before publication.",
+      "P2_signal_coordination": "Shared PROVIDER_COMMITTED ownership published with signals masked after verified readback and durable activated metadata. Both core/provider handlers roll back before commit or preserve both after commit, including core logs/unlock/return and provider finish/return. Cleanup errors report71. Entire normalized core template hash plus exact replacements fail closed.",
+      "P2_nomount_shutdown": "Stop publication under nm_mutex, SRCU-drain in-flight materializers; serialize repeated shutdown; restore native inode/dentry/xattr hooks; drop each s_active pin exactly once outside nm_mutex. Retain immutable terminal dispatch tables for cached callbacks/open files. Virtual-inode counter keeps only necessary cleanup dispatch until last virtual eviction then restores original s_op. NoMount built-in safe-lifetime evidence is host ordering plus actual ARM64 object, not kernel concurrency proof."
+    },
+    "reviewed_sha256": "a130f543d85aec143eb77aa11d5a35853ae197dc643cbfad1b6c13515076a14c",
+    "actual_tests": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-review-fixes/tests-v2/execution-index.json",
+    "actual_signal_cases": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-commit-boundary/results-combined.json",
+    "build_records": [
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-review-fixes/provider-build-command.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-review-fixes/provider-build-result.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-review-fixes/nomount-final-build-command.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-review-fixes/nomount-final-build-result.json"
+    ],
+    "ABI_delta": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-review-fixes/module-ABI-delta.json",
+    "failed_attempts": [
+      {
+        "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-review-fixes/tests-v1/init-build.log",
+        "failure": "Host fixture redeclared libc strlcpy",
+        "correction": "Removed the mock, used real libc declaration; one corrected run passed. No production logic changed to satisfy fixture."
+      }
+    ],
+    "limits": "Host VFS/SRCU/allocator/platform models; actual POSIX INT/TERM/HUP delivered to actual shell handlers. FourKiB disk-file signal fixtures are not64MiB native Android proof. Full Image/BTF/provider-UFS/real mount teardown/package/native rollback/phone gates remain.",
+    "signal_design_correction": {
+      "review": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-corrections-review-final.txt",
+      "parent_stopped_automatic_retry": true,
+      "reassessment": "Replace split commit/trap-only patch with a shared explicit commit boundary; no production changes after design test started",
+      "production_paths": [
+        "rmx3997/provider/provider-transaction.sh",
+        "rmx3997/development/package-provider-candidate.py"
+      ],
+      "results": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-commit-boundary/results-combined.json",
+      "command_index": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-commit-boundary/command-index.json",
+      "distinct_cases": 82,
+      "terminal_windows": 24,
+      "primary_signals": [
+        "SIGINT",
+        "SIGTERM",
+        "SIGHUP"
+      ],
+      "repeated_signals_per_armed_case": 3,
+      "retained_passing_cases": 75,
+      "focused_remaining_cases": 7,
+      "fixture_failures": [
+        {
+          "run": "tests-design",
+          "cause": "Repeated-signal fixture barrier blocked inside earlier provider unlock before requested later phase",
+          "correction": "Gate only after primary signal is armed; release both barriers after repeated signals",
+          "retry": "tests-barrier-corrected; passed all72 window cases and3 baseline/failure cases"
+        },
+        {
+          "run": "tests-barrier-corrected",
+          "cause": "Pause-only instrumentation between core return and $? capture overwrote failed readback status70 with0",
+          "correction": "pause_at captures/returns incoming status",
+          "retry": "tests-status-corrected, ONLY remaining cases75..81; all7 pass. Production unchanged for either fixture correction."
+        }
+      ],
+      "same_production_coherence_defect_recurred": false,
+      "accepted_other_findings_rerun": false,
+      "full_Image_build_executed": false
+    }
+  },
+  "trim_whitelist_correction": {
+    "root_cause": "components197 inherited performance-stage whitelist path; source cgroup_rm_cftypes addition never regenerated/bound to actual trim input. GPL export source exists, no licensing or CRC defect.",
+    "prior_source_candidate": "79bc4ba3be633d333e4de695f977ec7e689b5456312a5dd5d26bc95c3b707f8b",
+    "prior_actual_build": {
+      "record": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/trim-whitelist-correction/prior-build/build-execution.json",
+      "exit_code": 0,
+      "reason": "completed",
+      "elapsed_seconds": 685.9355676174164,
+      "scope": {
+        "memory.high": "12884901888",
+        "memory.max": "17179869184",
+        "memory.swap.max": "25769803776",
+        "memory.events": "low 0\nhigh 84318\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0",
+        "memory.peak": "12887252992",
+        "memory.swap.peak": "17099767808"
+      },
+      "identity": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/trim-whitelist-correction/prior-build-identity.json",
+      "scope_of_proof": "Actual Image/modules built with prior frozen config; not final module/ABI/full-feature/runtime acceptance."
+    },
+    "failed_provider": {
+      "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-final",
+      "log": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-final/build.log",
+      "failure": "normal modpost cgroup_rm_cftypes undefined because omitted by trimming",
+      "preserved_untouched": true
+    },
+    "correction": "Generate current structured/raw lists with authentic official flattener; reject lost inherited symbols; bind current stage via real scripts/config; reusable prepare-stage helper and freeze provenance check reject stale paths/content.",
+    "config_delta": "ONLY CONFIG_UNUSED_KSYMS_WHITELIST absolute path; TRIM_UNUSED_KSYMS/MODVERSIONS/MODULE_SIG_PROTECT and every other config unchanged.",
+    "symbols_preserved": 8656,
+    "symbols_added": [
+      "cgroup_rm_cftypes"
+    ],
+    "symbols_removed": [],
+    "actual_tests": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/trim-whitelist-correction/command-index.json",
+    "freeze_binding_regression": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/trim-whitelist-correction/contract-regression.json",
+    "binding": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/trim-whitelist-correction/binding/binding.json",
+    "effective_autoksyms": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/trim-whitelist-correction/effective-autoksyms.h",
+    "effective_autoksyms_delta": [
+      "cgroup_rm_cftypes"
+    ],
+    "actual_linked_export_pending": true,
+    "current_generated_header": "Existing built include/generated/autoksyms.h retained. Real gen_autoksyms --modorder preview confirms corrected effective list; normal subsequent Image autoksyms_recursive updates header/ksym dependency stamps and recompiles affected export.",
+    "failures_in_this_controlled_correction": [],
+    "corrected_full_build_executed": false,
+    "remaining_immediate_gate": "Parent review only this preparation/config delta, then normal guarded Image rebuild in proven12G/16G/24G scope",
+    "validator_rebinding_plan": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/trim-whitelist-correction/validator-rebinding-plan.json"
+  },
+  "final_acceptance": {
+    "status": "BLOCKED; no full-feature/delivery acceptance",
+    "inputs": {
+      "Image": {
+        "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/out/arch/arm64/boot/Image",
+        "sha256": "f7cc10d206133aba2b6153c7809801f0b5b6eaeaeb23745b377c95153a975149"
+      },
+      "vmlinux": {
+        "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/out/vmlinux",
+        "sha256": "5f88e0ba3119a60e4dc8683a5c3cbd02a926114bb168b329e35639cca983f521"
+      },
+      "module": {
+        "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-final-trim-corrected/oplus_bsp_hybridswap_zram.ko",
+        "sha256": "31ac23312aa4ef566de7c43dda54086f19c9e8554c8c4de2feccb77dcfc3dabf"
+      },
+      "build_record": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/build-execution.json",
+      "compiled_source_freeze": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-trim-source-freeze.json"
+    },
+    "prior_parent_binary_acceptance": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/trim-whitelist-correction/validation-stage/abi/binary-check-acceptance.json",
+    "actual_feature_guest": {
+      "checks": 24,
+      "status": "PASS",
+      "evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/production-feature-guest/results.json"
+    },
+    "actual_provider_codec_hybrid": {
+      "status": "PASS tested paths only",
+      "evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/production-provider-hybrid-counter-corrected/results.json",
+      "scope": "Actual Baka preinit, original dependency bytes, new provider normal flags0 loader, mixed codecs/cold IO/recompression/invalid selections/busy reset/reinit, real memcg+UFS offload/fault readback/concurrent reclaim+recompress+read, module unload EBUSY, final reset. Allocation-failure/OOM and all async transport-error injection not claimed."
+    },
+    "actual_fallback": {
+      "status": "PASS tested guest path",
+      "evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/production-provider-fallback-guest/results.json",
+      "scope": "Real Baka rejection of corrupted candidate before provider loaded; normal flags0 original-module/dependency loader then original cold IO/busy reset/final reset. Not the full untouched physical Android vendor-init path."
+    },
+    "ABI": {
+      "complete_dump": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/abi-complete/candidate-full.xml",
+      "report": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/abi-complete/baseline.report.short",
+      "delegated_exit_code": 8,
+      "existing_interface_removals": 0,
+      "existing_interface_changes": 0,
+      "authorized_addition": "cgroup_rm_cftypes",
+      "baseline_unchanged": true,
+      "raw_baseline_exit0_claimed": false
+    },
+    "F2FS": {
+      "compiled_layout": "PASS parent actual BTF checks",
+      "runtime_behavior": "BLOCKED",
+      "producer_failure": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/f2fs-runtime-producer/results.json",
+      "reason": "No verified OEM dedup-capable disposable format; generic available tool rejects dedup. UFS transport itself works. No block on a phone and no mutated shipping /data."
+    },
+    "native_installer_package": "NOT EXECUTED against a new package because required F2FS runtime acceptance is blocked; inherited25 core/native results not relabeled",
+    "accepted_package": null,
+    "accepted_package_sha256": null,
+    "full_feature_parity": false,
+    "failure_classes": [
+      {
+        "class": "ABI dump input completeness",
+        "old_report": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/trim-whitelist-correction/validation-stage/abi/baseline.report.short",
+        "failure": "Symlink linux-tree omitted actual zsmalloc corpus, ten false removals",
+        "one_correction": "Resolve physical output root; complete dump includes vmlinux and zsmalloc, zero removals/changes, only authorized cgroup addition; raw delegated diff still8",
+        "evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/abi-diagnosis.json"
+      },
+      {
+        "class": "Fixture busybox artifact path",
+        "failure": "Pre-QEMU setup FileNotFoundError",
+        "one_correction": "Reuse pinned actual boot archive bootstrap",
+        "evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/fixture-setup-failure.json"
+      },
+      {
+        "class": "Guest marker token boundary",
+        "failure": "Last /proc/cmdline token ended in newline; exact safety guard aborted consumer134",
+        "one_correction": "Append explicit trailing fixture token; safety check unchanged",
+        "evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/production-provider-guest-corrected/console.log"
+      },
+      {
+        "class": "Guest shutdown Android property dependency",
+        "failure": "BusyBox poweroff invoked absent setprop, bounded QEMU run timed out124",
+        "one_correction": "Guest-only static native reboot helper with exact marker/root guard; subsequent guests normal exit0",
+        "evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/production-provider-guest-marker-shutdown-corrected/guard-result.json"
+      },
+      {
+        "class": "Buffered block I/O fixture ownership",
+        "failure": "Buffered pwrite/pread stayed in block page cache, mm_stat original0",
+        "one_correction": "fsync and POSIX_FADV_DONTNEED before every readback; actual codec/recompression/reset tests pass",
+        "evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/production-provider-guest-storage-corrected/console.log"
+      },
+      {
+        "class": "Hybrid counter selection",
+        "failure": "Actual offload/readback succeeded but assertion used batch-swapin counter for fault reads",
+        "one_correction": "Assert real pageInTotal counter and reduced offloaded size for SCENE_FAULT_OUT; concurrent transport/lifetime/reset pass",
+        "evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/production-provider-hybrid-counter-corrected/console.log"
+      },
+      {
+        "class": "Verified F2FS runtime fixture producer unavailable",
+        "failure": "Available mkfs.f2fs1.17.0 rejects requested OEM dedup feature with exit1; no approved OEM-aware producer/fixture in retained workflow",
+        "correction": null,
+        "action": "Stop F2FS behavior/package acceptance. Do not synthesize feature bits, use generic filesystem/core as surrogate or change production config",
+        "evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/f2fs-runtime-producer/results.json"
+      }
+    ],
+    "validation_sources": {
+      "rmx3997/provider/tests/provider-guest.c": "33fb3592b876bea9595c7839a3e67aca333f422e2d19a9c2a0452c8a3bbdaebe",
+      "rmx3997/development/provider-runtime-init.sh": "1f3e9eeb5f1611815c5b215207622427561f328989136924ec1d57de51a623e2",
+      "rmx3997/development/run-provider-runtime.py": "a639bd603ca28301201b5e42763999311bcbd7ee16d4069b38f03bd310c6a440",
+      "rmx3997/development/provider-runtime-poweroff.c": "96f1a274050e528d60369a26e3a1e80166adecfc9b1e5618d20e2dd740e3bc02",
+      "rmx3997/development/provider-hybrid-guest.c": "64726eaba30b3189d6fdcaa9e8a8207226ac6dff4fab60aaf49ee74ec6ff1699",
+      "rmx3997/development/provider-fallback-guest.c": "ac4af28c8580cbeb2aa5293f043b263e505cbc19f0a4a226088f45ad50ef0679",
+      "rmx3997/development/run-provider-fallback.py": "f6733b46aa86aa46d93d356558355311026a4adb25cd532d3fc8275a803e0716"
+    },
+    "original_compiled_source_freeze_preserved": true,
+    "only_changed_frozen_path_is_guest_test_not_kernel": [
+      "rmx3997/provider/tests/provider-guest.c"
+    ],
+    "no_kernel_or_provider_code_change_or_rebuild": true,
+    "phone_writes": false,
+    "host_swap_changed": false
+  },
+  "oem_formatter_continuation": {
+    "status": "VERIFIED_SCOPED_EXPERIMENTAL_PHONE_TEST_CANDIDATE",
+    "first_operational_timestamp": "2026-11-04T18:27:21+02:00",
+    "completed_utc": "2026-11-05T05:17:07.453185+00:00",
+    "artifact": {
+      "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/RMX3997-FULL-FEATURE-5.15.197-EXPERIMENTAL.zip",
+      "sha256": "63eaa4e05df1190fce533361245075afb7bb27c964191e8e29fd6396437e90e1",
+      "bytes": 27539635
+    },
+    "boot_sha256": "1b1386171b8c1a499fb3772873bd070532bf0243e50fc8960b86dc5dff986ab0",
+    "Image": {
+      "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/out/arch/arm64/boot/Image",
+      "sha256": "f7cc10d206133aba2b6153c7809801f0b5b6eaeaeb23745b377c95153a975149"
+    },
+    "provider": {
+      "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/provider-final-trim-corrected/oplus_bsp_hybridswap_zram.ko",
+      "sha256": "31ac23312aa4ef566de7c43dda54086f19c9e8554c8c4de2feccb77dcfc3dabf"
+    },
+    "original_provider_sha256": "66c8904aca7e43f54cd4c7ed7c7a8df358031acd6885f569fefb2a656e17d302",
+    "ABI": {
+      "complete_dump": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/abi-complete/candidate-full.xml",
+      "report": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/abi-complete/baseline.report.short",
+      "delegated_exit_code": 8,
+      "existing_interface_removals": 0,
+      "existing_interface_changes": 0,
+      "authorized_addition": "cgroup_rm_cftypes",
+      "baseline_unchanged": true,
+      "raw_baseline_exit0_claimed": false
+    },
+    "inherited_production_evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/final-acceptance/manifest.json",
+    "baseline_comparison": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/baseline-comparison.json",
+    "retained_OEM_baseline": "/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/oem-f2fs-implementation-20261103/oem-f2fs-runtime-20261103/runtime-results.json",
+    "actual_new_Image_F2FS": {
+      "format": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/format-serial-corrected-resumed-result.json",
+      "geometry": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/fresh-fixture-geometry.json",
+      "mount_inode_extra48": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/mount-result.json",
+      "dedup_and_fixed_output": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/tests-result.json",
+      "crypto_crash_scenarios": "Not executed; inherited exclusions, not new absolute experimental-delivery gates"
+    },
+    "installer25": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/installer25/run-20261105T050759.081044Z/results.json",
+    "native_install": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/run-20261105T050851.465098Z/results.json",
+    "native_rollback": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/run-20261105T051615.150475Z/results.json",
+    "package_integrity": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/package-integrity.json",
+    "payload_independent_validation": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/independent-validation.json",
+    "feature_exclusion_ledger": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/feature-exclusion-ledger.json",
+    "OEM_authentication": [
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/provenance.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/ramdisk-authentication.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/ELF-inventory.json"
+    ],
+    "emulator": {
+      "upstream": {
+        "tag": "v11.1.3",
+        "commit": "005c61c0ef6f6ae615283440b4bb7be51b2c6ddd",
+        "commit_api": "https://api.github.com/repos/qemu/qemu/commits/v11.1.3",
+        "url": "https://codeload.github.com/qemu/qemu/tar.gz/005c61c0ef6f6ae615283440b4bb7be51b2c6ddd",
+        "archive_sha256": "59a76cf1f21ccb66564e3562ec702c3d1827dc028465e47bafb4b3573e8473a4",
+        "purpose": "Implement actual configured UFS serial descriptor, retaining guest serial verification; no kernel changes"
+      },
+      "binary_sha256": "2fd9692e9b75733d75cec9e884cd6a685d87d926e0280df98cc44385aa00e8d3",
+      "patch": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/qemu-serial.patch",
+      "scope": "Real configured UFS serial descriptor; test emulator only"
+    },
+    "failed_native_attempts": [
+      {
+        "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/run-20261105T051151.305195Z/results.json",
+        "status": "FAIL",
+        "case": "native rollback after one non-retryable injected boot write ENOSPC"
+      },
+      {
+        "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/run-20261105T050933.314981Z/results.json",
+        "status": "FAIL",
+        "case": "native rollback after one injected boot write EIO"
+      },
+      {
+        "path": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/run-20261105T050759.078835Z/results.json",
+        "status": "FAIL",
+        "case": null
+      }
+    ],
+    "failure_evidence": [
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/format-result.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/diagnostic-compile-result.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/diagnostic-command.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/format-serial-corrected-command.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/fault-injection-diagnosis.json",
+      "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/enospc-policy-diagnosis.json"
+    ],
+    "packager_delta": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/packager-legacy-lz4-delta.patch",
+    "material_delta_review": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/oem-formatter-continuation/material-delta-review.json",
+    "no_kernel_rebuild": true,
+    "original_artifacts_preserved": true,
+    "phone_boot": "UNTESTED",
+    "phone_hardware": "UNTESTED",
+    "full_feature_parity": false,
+    "publication_device_writes_messages": false,
+    "acceptance_scope": "Experimental candidate only, scoped to changed paths and retained baseline exclusions; exact new package/native rollback genuinely executed"
+  }
+}

@@ -661,6 +661,20 @@ int devkmsg_emit(int facility, int level, const char *fmt, ...)
 	return r;
 }
 
+static bool devkmsg_suppress_service_noise(int level, const char *line)
+{
+	static DEFINE_RATELIMIT_STATE(service_noise, 5 * HZ, 1);
+
+	/* Keep warnings/errors and unrelated messages mentioning these services.
+	 * Only repeated informational service-prefixed messages are throttled.
+	 */
+	if (level < 6 || (strncmp(line, "healthd:", 8) &&
+			  strncmp(line, "logd:", 5) &&
+			  strncmp(line, "dashd:", 6)))
+		return false;
+	return !__ratelimit(&service_noise);
+}
+
 static ssize_t devkmsg_write(struct kiocb *iocb, struct iov_iter *from)
 {
 	char *buf, *line;
@@ -718,7 +732,8 @@ static ssize_t devkmsg_write(struct kiocb *iocb, struct iov_iter *from)
 		}
 	}
 
-	devkmsg_emit(facility, level, "%s", line);
+	if (!devkmsg_suppress_service_noise(level, line))
+		devkmsg_emit(facility, level, "%s", line);
 	kfree(buf);
 	return ret;
 }

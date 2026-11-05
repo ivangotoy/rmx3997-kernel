@@ -1,0 +1,3 @@
+ccflags-y := -I$(srctree)/mm -I$(src)/../include -DCONFIG_HYBRIDSWAP_ZRAM_MODULE=1 -DCONFIG_KCOMPRESSD=1 -DCONFIG_HYBRIDSWAP=1 -DCONFIG_HYBRIDSWAP_CORE=1 -DCONFIG_HYBRIDSWAP_SWAPD=1 -DCONFIG_OPLUS_FEATURE_MM_EZRECLAIMD=1 -DCONFIG_OPLUS_FEATURE_MM_OSVELTE=1 -DCONFIG_OPLUS_MTK_DRM_GKI_NOTIFY=1 -DCONFIG_KSHRINK_SLABD=1
+obj-m := oplus_bsp_hybridswap_zram.o
+oplus_bsp_hybridswap_zram-y := zcomp.o zram_drv.o kcompressd.o hybridswap/hybridmain.o hybridswap/hybridswapd.o hybridswap/display.o hybridswap/ezr_empty.o hybridswap/hybridswap.o

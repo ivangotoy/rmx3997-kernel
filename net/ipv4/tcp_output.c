@@ -38,6 +38,7 @@
 #define pr_fmt(fmt) "TCP: " fmt
 
 #include <net/tcp.h>
+#include "tcp_bbr3_compat.h"
 #include <net/mptcp.h>
 
 #include <linux/compiler.h>
@@ -322,10 +323,9 @@ static void tcp_ecn_send_syn(struct sock *sk, struct sk_buff *skb)
 	bool bpf_needs_ecn = tcp_bpf_ca_needs_ecn(sk);
 	bool use_ecn = READ_ONCE(sock_net(sk)->ipv4.sysctl_tcp_ecn) == 1 ||
 		tcp_ca_needs_ecn(sk) || bpf_needs_ecn;
+	const struct dst_entry *dst = __sk_dst_get(sk);
 
 	if (!use_ecn) {
-		const struct dst_entry *dst = __sk_dst_get(sk);
-
 		if (dst && dst_feature(dst, RTAX_FEATURE_ECN))
 			use_ecn = true;
 	}
@@ -337,6 +337,9 @@ static void tcp_ecn_send_syn(struct sock *sk, struct sk_buff *skb)
 		tp->ecn_flags = TCP_ECN_OK;
 		if (tcp_ca_needs_ecn(sk) || bpf_needs_ecn)
 			INET_ECN_xmit(sk);
+
+		if (dst)
+			tcp_set_ecn_low_from_dst(sk, dst);
 	}
 }
 
@@ -374,7 +377,8 @@ static void tcp_ecn_send(struct sock *sk, struct sk_buff *skb,
 				th->cwr = 1;
 				skb_shinfo(skb)->gso_type |= SKB_GSO_TCP_ECN;
 			}
-		} else if (!tcp_ca_needs_ecn(sk)) {
+		} else if (!(tp->ecn_flags & TCP_ECN_ECT_PERMANENT) &&
+			!tcp_ca_needs_ecn(sk)) {
 			/* ACK or retransmitted segment: clear ECT|CE */
 			INET_ECN_dontxmit(sk);
 		}
@@ -1535,7 +1539,7 @@ int tcp_fragment(struct sock *sk, enum tcp_queue tcp_queue,
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct sk_buff *buff;
-	int nsize, old_factor;
+	int nsize, old_factor, inflight_prev;
 	long limit;
 	int nlen;
 	u8 flags;
@@ -1604,6 +1608,7 @@ int tcp_fragment(struct sock *sk, enum tcp_queue tcp_queue,
 
 	/* Update delivered info for the new segment */
 	TCP_SKB_CB(buff)->tx = TCP_SKB_CB(skb)->tx;
+	tcp_bbr3_skb_copy(buff, skb);
 
 	/* If this packet has been sent out already, we must
 	 * adjust the various packet counters.
@@ -1614,6 +1619,15 @@ int tcp_fragment(struct sock *sk, enum tcp_queue tcp_queue,
 
 		if (diff)
 			tcp_adjust_pcount(sk, skb, diff);
+
+		if (tcp_bbr3_skb_valid(skb)) {
+			inflight_prev = max_t(int,
+				tcp_bbr3_skb_inflight(skb) - old_factor, 0);
+			tcp_bbr3_skb_set_inflight(skb, inflight_prev +
+						 tcp_skb_pcount(skb));
+			tcp_bbr3_skb_set_inflight(buff, inflight_prev +
+				tcp_skb_pcount(skb) + tcp_skb_pcount(buff));
+		}
 	}
 
 	/* Link BUFF into the send queue. */
@@ -2870,6 +2884,9 @@ void tcp_send_loss_probe(struct sock *sk)
 	if (WARN_ON(!skb || !tcp_skb_pcount(skb)))
 		goto rearm_timer;
 
+	if (tcp_bbr3_priv(sk))
+		tcp_bbr3_priv(sk)->tlp_orig_data_app_limited =
+			TCP_SKB_CB(skb)->tx.is_app_limited;
 	if (__tcp_retransmit_skb(sk, skb, 1))
 		goto rearm_timer;
 

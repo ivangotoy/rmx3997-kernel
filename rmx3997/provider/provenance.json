@@ -1,0 +1,144 @@
+{
+  "vendor_repository": "https://github.com/realme-kernel-opensource/android_kernel_modules_and_devicetree_realme_mt6835",
+  "vendor_pin": "a8acde2222f7654250fc23a29ee41cdf3660769d",
+  "kernel_header_repository": "https://github.com/realme-kernel-opensource/android_kernel_realme_mt6835",
+  "kernel_header_pin": "a5175484bbbb08af4573a08aec6f11d37a961658",
+  "scope": "Provider source/dependency headers only; target remains ACK5.15.197. No sibling kernel code/base upgrade.",
+  "selected_sources": [
+    {
+      "path": "rmx3997/provider/hybridswap_zram/Makefile",
+      "official_blob": "03c8512128996ce9cd0b2cb3cab574a9ed0b4f3c",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/Makefile",
+      "adapted": false
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/zcomp.c",
+      "official_blob": "a2b470a2646bc9dd7c7904fb856beedaf86f942c",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/zcomp.c",
+      "adapted": true
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/VERSION",
+      "official_blob": "8c40dfce6ef240d564fefea8ae7b2fdbf8615eb0",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/VERSION",
+      "adapted": false
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/Kconfig",
+      "official_blob": "25a579382a3581effbebc261e06759df8e640d96",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/Kconfig",
+      "adapted": false
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/zram_drv.h",
+      "official_blob": "794909eb12a3a7401e30098f537dbfabf20e2a06",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/zram_drv.h",
+      "adapted": true
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/zram_drv.c",
+      "official_blob": "52a8d8a739ea43916e806a7b1b3d463acdd986a5",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/zram_drv.c",
+      "adapted": true
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/zram_drv_internal.h",
+      "official_blob": "7db0d7971a4b5436beb0e763857fa3acf36dc258",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/zram_drv_internal.h",
+      "adapted": false
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/zcomp.h",
+      "official_blob": "a7d49859f7b3f60a064b504ece95e1fad00e601b",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/zcomp.h",
+      "adapted": false
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/kcompressd.c",
+      "official_blob": "f80cb1d52e34c0eb3bb87ed4039c0e4ca790ac24",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/kcompressd.c",
+      "adapted": true
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/kcompressd.h",
+      "official_blob": "5ded6db5ba9a22a1a30ca3bc8e82649ddbf82d13",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/kcompressd.h",
+      "adapted": false
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/hybridswap/hybridswap.c",
+      "official_blob": "5a1f5fb29c0ccc18555c77dde81bfd4feda485f9",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/hybridswap/hybridswap.c",
+      "adapted": true
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/hybridswap/hybridswap.h",
+      "official_blob": "c7110f9ed04c15df7fed2a4a92473a9d62b953bb",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/hybridswap/hybridswap.h",
+      "adapted": true
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/hybridswap/internal.h",
+      "official_blob": "112cf1d51e36c8699eadeed28a307472dff5bb54",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/hybridswap/internal.h",
+      "adapted": false
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/hybridswap/hybridswapd.c",
+      "official_blob": "36afbf9dcf011b4023f9d54678b9b6a3d256a114",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/hybridswap/hybridswapd.c",
+      "adapted": true
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/hybridswap/ezr_empty.c",
+      "official_blob": "96ec2596d493a1f6cbf627ea5ca326c308cb43b2",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/hybridswap/ezr_empty.c",
+      "adapted": false
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/hybridswap/hybridmain.c",
+      "official_blob": "87c0dd4489db333d6fbed0af45a1254c2df467df",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/hybridswap/hybridmain.c",
+      "adapted": true
+    },
+    {
+      "path": "rmx3997/provider/hybridswap_zram/hybridswap/display.c",
+      "official_blob": "15a744932e9fd3e6ec7e185074cfb5fd195e109b",
+      "official_path": "vendor/oplus/kernel/mm/hybridswap_zram/hybridswap/display.c",
+      "adapted": true
+    }
+  ],
+  "dependency_headers": [
+    {
+      "path": "rmx3997/provider/mm_osvelte/mm-config.h",
+      "blob": "0c2bbe8d832cb3ce9c75b97262365cc1cc98c83a"
+    },
+    {
+      "path": "rmx3997/provider/include/linux/mtk_disp_notify.h",
+      "blob": "f6c7fe1a2c07f8fe30faee5fee692fe5e4294249"
+    }
+  ],
+  "panel_header": "Verified official panel_ext blob2e57c6cc65603909725dcbb75b49b9074f4b5fd7 retained in scratch. Its include was unused in both selected MTK notifier branches and removed; no notifier constants/prototypes invented.",
+  "original_build_recipes": [
+    "provider-trusted-inputs/vendor/oplus/kernel/mm/Makefile",
+    "provider-trusted-inputs/vendor/oplus/kernel/mm/Kconfig",
+    "oem-source/vendor/oplus/kernel/mm/hybridswap_zram/Makefile",
+    "oem-source/vendor/oplus/kernel/mm/hybridswap_zram/Kconfig"
+  ],
+  "active_flags": [
+    "HYBRIDSWAP_ZRAM_MODULE",
+    "KCOMPRESSD",
+    "HYBRIDSWAP",
+    "HYBRIDSWAP_CORE",
+    "HYBRIDSWAP_SWAPD",
+    "OPLUS_FEATURE_MM_EZRECLAIMD",
+    "OPLUS_FEATURE_MM_OSVELTE",
+    "OPLUS_MTK_DRM_GKI_NOTIFY",
+    "KSHRINK_SLABD"
+  ],
+  "correspondence": "Original provider13 exported CRCs match; all original versioned imports retained and matched real export metadata; existing prefix layouts match under real ARM64 flags. Entire firmware source/binary identity is not claimed.",
+  "original_provider_sha256": "66c8904aca7e43f54cd4c7ed7c7a8df358031acd6885f569fefb2a656e17d302",
+  "new_kernel_export": "cgroup_rm_cftypes: real GPL export plus symbol-list addition, actual object genksyms0x197d0494; required for failed-init cleanup. No symbol binding, CRC rewriting or policy bypass.",
+  "lifetime": "Provider intentionally non-unloadable after successful init; reset holds init_lock through freeing all objects and destroying codecs. Boot rollback disables preinit selection; original provider bytes remain on vendor_dlkm.",
+  "delivery_dependency_paths": "Exact original7 dependency modules copied beside loader on metadata, all hash-pinned before any loading. Already-loaded modules skipped. No assumption that first-stage /lib/modules survives switch_root; original disk modules untouched."
+}

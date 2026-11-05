@@ -36,6 +36,48 @@
 
 static LIST_HEAD(cpufreq_policy_list);
 
+/* Keep the donor's userspace boost limit outside the vendor-visible policy.
+ * related_cpus remains stable when the policy's online CPU changes. Sysfs
+ * stores already hold policy->rwsem, so this state shares that serialization.
+ */
+struct cpufreq_min_limit {
+	struct cpufreq_policy *owner;
+	unsigned int requested;
+	unsigned int limit;
+};
+static struct cpufreq_min_limit min_limits[NR_CPUS];
+
+static struct cpufreq_min_limit *cpufreq_min_limit_entry(struct cpufreq_policy *policy)
+{
+	unsigned int key = cpumask_first(policy->related_cpus);
+
+	/* Driver initialization may fail before related_cpus is populated. */
+	return key < NR_CPUS ? &min_limits[key] : NULL;
+}
+
+static struct cpufreq_min_limit *cpufreq_min_limit(struct cpufreq_policy *policy)
+{
+	struct cpufreq_min_limit *entry = cpufreq_min_limit_entry(policy);
+
+	if (!entry || !policy->min_freq_req ||
+	    (entry->owner && entry->owner != policy))
+		return NULL;
+	if (unlikely(!entry->owner)) {
+		entry->owner = policy;
+		entry->limit = INT_MAX;
+		entry->requested = policy->min_freq_req->pnode.prio;
+	}
+	return entry;
+}
+
+static void cpufreq_min_limit_remove(struct cpufreq_policy *policy)
+{
+	struct cpufreq_min_limit *entry = cpufreq_min_limit_entry(policy);
+
+	if (entry && entry->owner == policy)
+		entry->owner = NULL;
+}
+
 /* Macros to iterate over CPU policies */
 #define for_each_suitable_policy(__policy, __active)			 \
 	list_for_each_entry(__policy, &cpufreq_policy_list, policy_list) \
@@ -749,7 +791,55 @@ static ssize_t store_##file_name					\
 	return ret >= 0 ? count : ret;					\
 }
 
-store_one(scaling_min_freq, min);
+static ssize_t store_scaling_min_freq(struct cpufreq_policy *policy,
+				      const char *buf, size_t count)
+{
+	struct cpufreq_min_limit *entry = cpufreq_min_limit(policy);
+	unsigned int value;
+	int ret;
+
+	if (!entry)
+		return -ENODEV;
+	if (kstrtouint(buf, 10, &value) || value > INT_MAX)
+		return -EINVAL;
+	ret = freq_qos_update_request(policy->min_freq_req,
+				      min(value, entry->limit));
+	if (ret < 0)
+		return ret;
+	entry->requested = value;
+	return count;
+}
+
+static ssize_t show_scaling_min_freq_limit(struct cpufreq_policy *policy, char *buf)
+{
+	struct cpufreq_min_limit *entry = cpufreq_min_limit_entry(policy);
+
+	if (!entry)
+		return -ENODEV;
+	return sprintf(buf, "%u\n", entry->owner == policy ? entry->limit : INT_MAX);
+}
+
+static ssize_t store_scaling_min_freq_limit(struct cpufreq_policy *policy,
+					    const char *buf, size_t count)
+{
+	struct cpufreq_min_limit *entry = cpufreq_min_limit(policy);
+	unsigned int value;
+	int ret;
+
+	if (!entry)
+		return -ENODEV;
+	if (kstrtouint(buf, 10, &value) || value > INT_MAX ||
+	    value < policy->cpuinfo.min_freq)
+		return -EINVAL;
+	/* Limit the userspace request, preserving other kernel QoS constraints. */
+	ret = freq_qos_update_request(policy->min_freq_req,
+				      min(entry->requested, value));
+	if (ret < 0)
+		return ret;
+	entry->limit = value;
+	return count;
+}
+
 store_one(scaling_max_freq, max);
 
 /*
@@ -937,6 +1027,7 @@ cpufreq_freq_attr_ro(bios_limit);
 cpufreq_freq_attr_ro(related_cpus);
 cpufreq_freq_attr_ro(affected_cpus);
 cpufreq_freq_attr_rw(scaling_min_freq);
+cpufreq_freq_attr_rw(scaling_min_freq_limit);
 cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
@@ -946,6 +1037,7 @@ static struct attribute *default_attrs[] = {
 	&cpuinfo_max_freq.attr,
 	&cpuinfo_transition_latency.attr,
 	&scaling_min_freq.attr,
+	&scaling_min_freq_limit.attr,
 	&scaling_max_freq.attr,
 	&affected_cpus.attr,
 	&related_cpus.attr,
@@ -1323,6 +1415,7 @@ static void cpufreq_policy_free(struct cpufreq_policy *policy)
 
 	freq_qos_remove_request(policy->min_freq_req);
 	kfree(policy->min_freq_req);
+	cpufreq_min_limit_remove(policy);
 
 	cpufreq_policy_put_kobj(policy);
 	free_cpumask_var(policy->real_cpus);

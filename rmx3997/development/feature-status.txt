@@ -176,3 +176,89 @@ config equals build config and compiler matches Clang14; FULL profile correctly
 rejects absent BBR3/defaultBBR3. Fork-specific ZRAM multi-compression remains
 unimplemented with unresolved OEM provider compatibility. No generic ZRAM
 replacement, fake feature check, protected-export removal or CRC override used.
+
+2026-11-04 continuation candidate (uncommitted, no full Image):
+The original entries above retain the core checkpoint's evidence and limits.
+Current per-feature overrides and exact commands are in full-feature-20261104-state.json.
+Implemented/targeted components: BBRv3/default BBR3/PLB with unchanged public
+rate_sample64, TCP skb cb48 and full timestamps; metadata uses pre-existing skb
+reserved value slots, no allocation. Public inet_diag/CC/socket layouts unchanged.
+Baka/SUSFS priority UID command/config enabled; temporary subjective credentials
+use override/revert rather than commit_creds. Ptrace message lifetime fixed while
+preserving legacy ptrace_notify signature. Independent performance adaptations
+include cache pressure, file alignment, alarm hold bounds, configurable freeze
+default, three scalar F2FS tunables, policy-local userspace frequency cap, CPU scan,
+cache-hot buddy, default TCP_NODELAY without sockopt rewriting, journal commit age,
+socket queue budgets, PME interval, wake coalescing and conservative log throttling.
+Primary Forgejo source bcc9c39fa0d58027739dae3cb07baa6e01c98db9 read in place;
+legacy fork51d8178a remains a separate donor. Primary NoMount ab8c0577 source
+fetched/verified: backported lower-bound UID-deny and readdir accounting fixes only.
+The full NoMount update adds path rebinding/superblock references/PID1 sync-triggered
+state release; not silently substituted for the validated core implementation.
+OEM realme source a8acde2222f7654250fc23a29ee41cdf3660769d:136 blobs verified.
+Selected ZRAM/stream layouts match shipping code; complete source correspondence
+is not proven. Built-in opt-in Crypto API zram-multi frontend selects LZO-RLE/Zstd
+per page with self-tagged frames, without replacing the shipping provider or using
+generic ZRAM. This does not implement upstream recompress sysfs or activate on
+existing swap. No CONFIG_ZRAM_MULTI_COMP capability is fabricated.
+Targeted ARM64 object/config and host component checks recorded; no full kernel
+build, ABI/all463/BTF revalidation, new Image, new ZIP, or phone test.
+Raw Unicode donor demonstrably changes casefold filename equivalence; not applied.
+Raw global500ms wakelock expiry conflicts with the documented untimed-lock ABI;
+raw SIMD memcmp still lacks safe kernel FPSIMD ownership. These remain concrete
+compatibility decisions, not inapplicability/parity success. Device-specific and
+remaining fork contract work is explicitly pending. Full feature parity NOT met.
+
+2026-11-04 corrected continuation after independent 47-path review
+- Reviewed input remains scratch/reviewed-candidate-v2.patch, SHA256
+  542ffe56757cdc33538c05ca103f25050c6524e4f8975f1445db4c75cb833db8.
+  New corrected candidate requires corrected-delta review; no full kernel build.
+- Fixed cpufreq empty/out-of-range related-mask index AND policy ownership at
+  initialization/destruction. Actual accessor/remove regression passed x1000.
+- Fixed PLB sysctl extra2 unsigned-int storage; real proc_dou8vec_minmax and
+  converter regression accepted 0/31, rejected 32/255/256.
+- SUSFS package generations invalidate stale filters immediately. BOTH Baka
+  producer configurations wired: active5.15 LSM rename -> writer task_work,
+  and optional fsnotify observer. Refresh snapshots reject newer package/config
+  generations. Reassignment/removal/reused UID, allocation/exiting and stale
+  refresh host tests passed; actual active Baka directory and SUSFS object built.
+- BPF stream parser enabled using private allocation suffix, public psock384
+  unchanged vs HEAD including checked offsets. Actual ARM64 objects compiled;
+  allocation/callback/conditional teardown host shims passed. No KMI certification.
+- memcmp uses pinned donor scalar paths/32-byte GPR loop for every length;
+  preserves weak PI/export entry and touches no FPSIMD registers. Actual object
+  assembled. Instruction model checked8925 cases/131958 bounded loads; this
+  is host simulation, not actual ARM64 runtime or performance proof.
+- Full primary NoMount ab8c057 kernel update ported with explicit reboot notifier
+  replacing raw PID1 sync_fs shutdown. Snapshot/rebind/reference host shims and
+  init/unwind/exit tests passed; actual ARM64 object compiled. Real VFS races,
+  superblock/RCU teardown and Android userspace integration remain runtime gates.
+- BBG existing allowlist/deny-by-default mapped against ALL84 retained MT6835
+  scatter partitions with actual matcher tests; no Qualcomm partition copying.
+  Actual retained MT6835 base DTB +19 slot-b overlays contain no HMBird/xxbird
+  node. Model-specific6.6 scheduler/DT overrides and sole SM8750 qcom-scm overlay
+  are inapplicable to this device. Nonempty module blacklist violates all463
+  retention. General OnePlus features remain separately integrated/classified.
+- Raw global500ms expiry, Unicode equivalence change, deceptive IKCONFIG,
+  alternate compiler/LTO/page-size/root/base selections are EXCLUDED by explicit
+  compatibility constraints, not pending requests to break safety.
+- Primary pinned original Baka source-selection/transformation and NoMount
+  metadata/archive/config validators passed. Historical default9097b1a1 is NOT
+  selected516d3e87; no fabricated source-pin substitution. Full43-tool semantic
+  mapping retained separately; unexecuted binary/runtime consumers stay gates.
+- Canonical resource guard now kills owned descendants after normal/failed
+  leader exit and caps logs64MiB; injected floor/descendant/log tests passed.
+- OEM source permits an opt-in codec, NOT upstream recompress ABI. All8 shipping
+  provider/dependency modules located and pinned for later disposable production
+  guest experiment. Actual provider/hybrid transport untested. Exact recompress
+  requires provider-side work. Ivan has authorized necessary provider replacement
+  and delivery adaptation conditional on boot compatibility. Verified OSvelte/MTK
+  inputs now resolve the source blocker. Actual OEM provider per-object codec,
+  secondary contexts, recompress sysfs and hybrid accounting implemented, plus
+  preinit normal-loader and metadata/boot transaction adaptation. Component
+  ARM64 link/13-export CRCs/prefix layouts and narrow host tests pass. Actual
+  new-Image provider/UFS/preinit/native rollback remain gates; opt-in crypto
+  codec alone was never recompression parity. See provider-implementation-report.md.
+- Authoritative corrected checklist/commands/results/gates:
+  full-feature-20261104-state.json. Retained core20 guest/25 installer checks
+  apply ONLY to inherited e2e7bdd... Image; no new boot/ABI/all463/full parity claim.

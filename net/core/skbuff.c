@@ -1071,6 +1071,11 @@ static void __copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
 	 * ANDROID_KABI_REPLACE() macros below here as well.
 	 */
 	new->scm_io_uring = old->scm_io_uring;
+#ifdef CONFIG_TCP_CONG_BBR3
+	/* BBRv3 value snapshots occupy existing Android reserved storage. */
+	new->android_kabi_reserved1_padding3 = old->android_kabi_reserved1_padding3;
+	new->android_kabi_reserved2 = old->android_kabi_reserved2;
+#endif
 }
 
 /*

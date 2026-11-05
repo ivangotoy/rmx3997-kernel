@@ -418,6 +418,9 @@ void tcp_init_sock(struct sock *sk)
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	struct tcp_sock *tp = tcp_sk(sk);
 
+	/* Wild TCP_NODELAY intent; explicit socket options remain authoritative. */
+	tp->nonagle = TCP_NAGLE_OFF;
+
 	tp->out_of_order_queue = RB_ROOT;
 	sk->tcp_rtx_queue = RB_ROOT;
 	tcp_init_xmit_timers(sk);

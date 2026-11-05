@@ -30,11 +30,11 @@ argv = json.loads((repo / 'rmx3997/build-argv.json').read_text())
 argv[2] = str(repo)
 argv[3] = 'O=' + str(stage / 'out')
 (stage / 'build-argv.json').write_text(json.dumps(argv, indent=2) + '\n')
-shutil.copy2(repo / 'rmx3997/config/abi-symbol-list.txt', stage / 'out/abi_symbollist.raw')
-config = (repo / 'rmx3997/development/bakasu-susfs.config').read_text()
-config = '\n'.join('CONFIG_UNUSED_KSYMS_WHITELIST="' + str(stage / 'out/abi_symbollist.raw') + '"'
-                   if s.startswith('CONFIG_UNUSED_KSYMS_WHITELIST=') else s for s in config.splitlines()) + '\n'
-(stage / 'out/.config').write_text(config)
+# Bind the current canonical whitelist instead of retaining a copied ancestor
+# path. Use the same helper when preparing an already-existing feature stage.
+(stage / 'out/.config').write_text((repo / 'rmx3997/development/bakasu-susfs.config').read_text())
+subprocess.run([sys.executable, str(repo / 'rmx3997/development/prepare-kmi-whitelist.py'),
+                '--stage', str(stage), '--evidence', str(stage / 'whitelist-preparation')], check=True)
 runenv = os.environ.copy()
 runenv.update(env)
 with (stage / 'prepare.log').open('wb') as log:

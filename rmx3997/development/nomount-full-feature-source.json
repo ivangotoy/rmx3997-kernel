@@ -1,0 +1,35 @@
+{
+  "primary_commit": "ab8c05775122e1363e6cd7809f9ac8375da5092c",
+  "primary_kernel_src_tree": "49d57aa94105e74102686892b1c27950c2d0a2ca",
+  "legacy_base": "bf1847f98fed382369c43bfd652cd93774b9b8e3",
+  "legacy_kernel_src_tree": "edf27303d5067af6311f472f61ce86add67d0c4a",
+  "verified_source_blobs": {
+    "kernel/src/Kconfig": "638b9427ef638f786d288d0a93f731676cf32c62",
+    "kernel/src/Makefile": "cb4d3eef3ae93645591c1dcf8afaf4efef90c20a",
+    "kernel/src/nomount.c": "46fabf0c29ee13443863e0c9d7a357f31a82095b",
+    "kernel/src/nomount.h": "48cf84e8407d62a1dc263f2f0511b01ef5e9f2ca"
+  },
+  "selected_backports": "Full primary kernel/src nomount.c and nomount.h, with adaptations below",
+  "not_imported": [
+    "Raw PID1 sync_fs shutdown trigger; replaced by explicit reboot notifier"
+  ],
+  "compatibility_review": "Full primary update now ported with explicit reboot notifier rather than PID1 sync_fs trigger. Actual object and focused host lifetime/registration tests passed; real VFS/RCU/superblock runtime remains a downstream gate, not a claim of impossibility.",
+  "tests": [
+    "/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/review-delta-library.json",
+    "/home/build/.cache/codex-work/rmx3997-full-features-20261104/parity-nomount-corrected/results.json",
+    "/home/build/.cache/codex-work/rmx3997-full-features-20261104/nomount-init/results.json"
+  ],
+  "status": "Primary kernel update implemented with explicit reboot lifecycle; focused host shims and actual ARM64 object passed; real VFS concurrency/runtime pending",
+  "adaptations": [
+    "Do not hijack sync_fs or treat ordinary PID1 sync as shutdown",
+    "Register reboot notifier before key type; unwind notifier on key registration failure; unregister on exit",
+    "Retain current target Makefile/stack protector settings and private ABI structures; no public VFS type changes"
+  ],
+  "current_source_sha256": {
+    "fs/nomount/nomount.c": "f97a1081997c54fc1cee6b72a81e515a21e58c250b1eef39abd06ce04eb908b3",
+    "fs/nomount/nomount.h": "cf469d4d3bbf96203f091dc004632be354c0ec06171ef7081c4717afaabe8442",
+    "fs/nomount/Kconfig": "1df7ad3589a282128f797f7a46b28aee315d080550aae26b681a898f11c7abc7",
+    "fs/nomount/Makefile": "ba36c3935a02c34003a4248c41d9b648b59177ddd337b02f56684f5be8d0a38c"
+  },
+  "reviewed_previous_pair": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/nomount-primary-reconciliation.json"
+}

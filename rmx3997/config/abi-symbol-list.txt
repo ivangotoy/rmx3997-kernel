@@ -2210,6 +2210,7 @@ cec_unregister_adapter
 cgroup_add_dfl_cftypes
 cgroup_add_legacy_cftypes
 cgroup_path_ns
+cgroup_rm_cftypes
 cgroup_taskset_first
 cgroup_taskset_next
 check_preempt_curr

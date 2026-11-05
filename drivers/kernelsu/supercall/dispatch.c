@@ -1108,6 +1108,11 @@ static int do_get_kernel_patch_implement(void __user *arg)
 int ksu_handle_susfs_cmd(unsigned int cmd, void __user **arg)
 {
     switch (cmd) {
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+    case CMD_SUSFS_SET_PRIORITY_UID_FILTER:
+        susfs_set_priority_uid_filter(arg);
+        return 0;
+#endif
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
     case CMD_SUSFS_ADD_SUS_PATH: {
         susfs_add_sus_path(arg);
