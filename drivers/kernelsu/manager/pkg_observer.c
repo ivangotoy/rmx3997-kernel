@@ -10,11 +10,8 @@
 #include <linux/version.h>
 #include "klog.h" // IWYU pragma: keep
 #include "manager/throne_tracker.h"
-#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
-#include <linux/susfs.h>
-#endif
 
-#define MASK_SYSTEM (FS_CREATE | FS_MOVE | FS_DELETE | FS_CLOSE_WRITE | FS_EVENT_ON_CHILD)
+#define MASK_SYSTEM (FS_CREATE | FS_MOVE | FS_EVENT_ON_CHILD)
 
 struct watch_dir {
     const char *path;
@@ -33,10 +30,6 @@ static void ksu_track_throne_tw_func(struct callback_head *cb)
     if (current->flags & PF_EXITING)
         return;
     track_throne(TRACK_THRONE_FORCE_SYNCHRONOUS);
-#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
-    /* Process context, after publication and outside fsnotify/rename locks. */
-    susfs_parse_priority_app_strings();
-#endif
 }
 
 // Never scan from the fsnotify handler: fsnotify_mark_srcu and the rename's dir
@@ -69,10 +62,6 @@ static int ksu_handle_inode_event(struct fsnotify_mark *mark, u32 mask, struct i
     if (mask & FS_ISDIR)
         return 0;
     if (file_name->len == 13 && !memcmp(file_name->name, "packages.list", 13)) {
-#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
-        /* Invalidate before deferral, even if allocating task_work fails. */
-        susfs_notify_priority_uid_update();
-#endif
         pr_info("packages.list detected: %d\n", mask);
         ksu_defer_track_throne();
     }

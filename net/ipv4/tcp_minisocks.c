@@ -26,7 +26,6 @@
 #include <linux/workqueue.h>
 #include <linux/static_key.h>
 #include <net/tcp.h>
-#include "tcp_bbr3_compat.h"
 #include <net/inet_common.h>
 #include <net/xfrm.h>
 #include <net/busy_poll.h>
@@ -409,8 +408,6 @@ void tcp_ca_openreq_child(struct sock *sk, const struct dst_entry *dst)
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	u32 ca_key = dst_metric(dst, RTAX_CC_ALGO);
 	bool ca_got_dst = false;
-
-	tcp_set_ecn_low_from_dst(sk, dst);
 
 	if (ca_key != TCP_CA_UNSPEC) {
 		const struct tcp_congestion_ops *ca;

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <net/tcp.h>
-#include "tcp_bbr3_compat.h"
 
 /* The bandwidth estimator estimates the rate at which the network
  * can currently deliver outbound data packets for this flow. At a high
@@ -67,13 +66,6 @@ void tcp_rate_skb_sent(struct sock *sk, struct sk_buff *skb)
 	TCP_SKB_CB(skb)->tx.delivered_mstamp	= tp->delivered_mstamp;
 	TCP_SKB_CB(skb)->tx.delivered		= tp->delivered;
 	TCP_SKB_CB(skb)->tx.is_app_limited	= tp->app_limited ? 1 : 0;
-	if (tcp_bbr3_enabled(sk)) {
-		skb->android_kabi_reserved2 = ((u64)tp->lost << 32) | tp->delivered_ce;
-		tcp_bbr3_skb_set_inflight(skb, min_t(u32, TCPCB_IN_FLIGHT_MAX,
-			tcp_packets_in_flight(tp) + tcp_skb_pcount(skb)));
-	} else {
-		skb->android_kabi_reserved1_padding3 = 0;
-	}
 }
 
 /* When an skb is sacked or acked, we fill in the rate sample with the (prior)
@@ -98,12 +90,6 @@ void tcp_rate_skb_delivered(struct sock *sk, struct sk_buff *skb,
 	if (!rs->prior_delivered ||
 	    tcp_skb_sent_after(tx_tstamp, tp->first_tx_mstamp,
 			       scb->end_seq, rs->last_end_seq)) {
-		if (tcp_bbr3_enabled(sk)) {
-			tcp_bbr3_rs(rs)->snapshot_valid = tcp_bbr3_skb_valid(skb);
-			tcp_bbr3_rs(rs)->prior_lost = tcp_bbr3_skb_lost(skb);
-			tcp_bbr3_rs(rs)->prior_delivered_ce = tcp_bbr3_skb_ce(skb);
-			tcp_bbr3_rs(rs)->tx_in_flight = tcp_bbr3_skb_inflight(skb);
-		}
 		rs->prior_delivered  = scb->tx.delivered;
 		rs->prior_mstamp     = scb->tx.delivered_mstamp;
 		rs->is_app_limited   = scb->tx.is_app_limited;
@@ -156,11 +142,6 @@ void tcp_rate_gen(struct sock *sk, u32 delivered, u32 lost,
 		return;
 	}
 	rs->delivered   = tp->delivered - rs->prior_delivered;
-	if (tcp_bbr3_enabled(sk) && tcp_bbr3_rs(rs)->snapshot_valid) {
-		tcp_bbr3_rs(rs)->lost = tp->lost - tcp_bbr3_rs(rs)->prior_lost;
-		tcp_bbr3_rs(rs)->delivered_ce = tp->delivered_ce -
-			tcp_bbr3_rs(rs)->prior_delivered_ce;
-	}
 
 	/* Model sending data and receiving ACKs as separate pipeline phases
 	 * for a window. Usually the ACK phase is longer, but with ACK

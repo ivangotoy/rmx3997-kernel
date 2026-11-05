@@ -434,12 +434,12 @@ void exit_shm(struct task_struct *task)
 
 		task_lock(task);
 
-		if (list_empty(&task_sysvshm(task)->shm_clist)) {
+		if (list_empty(&task->sysvshm.shm_clist)) {
 			task_unlock(task);
 			break;
 		}
 
-		shp = list_first_entry(&task_sysvshm(task)->shm_clist, struct shmid_kernel,
+		shp = list_first_entry(&task->sysvshm.shm_clist, struct shmid_kernel,
 				shm_clist);
 
 		/*
@@ -778,7 +778,7 @@ static int newseg(struct ipc_namespace *ns, struct ipc_params *params)
 	shp->ns = ns;
 
 	task_lock(current);
-	list_add(&shp->shm_clist, &task_sysvshm(current)->shm_clist);
+	list_add(&shp->shm_clist, &current->sysvshm.shm_clist);
 	task_unlock(current);
 
 	/*

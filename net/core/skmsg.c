@@ -9,34 +9,6 @@
 #include <net/tcp.h>
 #include <net/tls.h>
 
-/* The parser belongs to the allocation, not the vendor-visible sk_psock.
- * Keep the existing psock prefix and its RCU destruction/free path intact.
- */
-#if IS_ENABLED(CONFIG_BPF_STREAM_PARSER)
-struct sk_psock_parser {
-	struct sk_psock psock;
-	struct strparser strp;
-};
-
-static struct strparser *sk_psock_strp(struct sk_psock *psock)
-{
-	return &container_of(psock, struct sk_psock_parser, psock)->strp;
-}
-#endif
-
-static struct sk_psock *sk_psock_alloc(int node)
-{
-#if IS_ENABLED(CONFIG_BPF_STREAM_PARSER)
-	struct sk_psock_parser *parser;
-
-	BUILD_BUG_ON(offsetof(struct sk_psock_parser, psock));
-	parser = kzalloc_node(sizeof(*parser), GFP_ATOMIC | __GFP_NOWARN, node);
-	return parser ? &parser->psock : NULL;
-#else
-	return kzalloc_node(sizeof(struct sk_psock), GFP_ATOMIC | __GFP_NOWARN, node);
-#endif
-}
-
 static bool sk_msg_try_coalesce_ok(struct sk_msg *msg, int elem_first_coalesce)
 {
 	if (msg->sg.end > msg->sg.start &&
@@ -766,7 +738,7 @@ struct sk_psock *sk_psock_init(struct sock *sk, int node)
 		goto out;
 	}
 
-	psock = sk_psock_alloc(node);
+	psock = kzalloc_node(sizeof(*psock), GFP_ATOMIC | __GFP_NOWARN, node);
 	if (!psock) {
 		psock = ERR_PTR(-ENOMEM);
 		goto out;
@@ -1143,7 +1115,7 @@ static int sk_psock_strp_read_done(struct strparser *strp, int err)
 
 static int sk_psock_strp_parse(struct strparser *strp, struct sk_buff *skb)
 {
-	struct sk_psock *psock = &container_of(strp, struct sk_psock_parser, strp)->psock;
+	struct sk_psock *psock = container_of(strp, struct sk_psock, strp);
 	struct bpf_prog *prog;
 	int ret = skb->len;
 
@@ -1170,7 +1142,7 @@ static void sk_psock_strp_data_ready(struct sock *sk)
 			psock->saved_data_ready(sk);
 		} else {
 			read_lock_bh(&sk->sk_callback_lock);
-			strp_data_ready(sk_psock_strp(psock));
+			strp_data_ready(&psock->strp);
 			read_unlock_bh(&sk->sk_callback_lock);
 		}
 	}
@@ -1187,7 +1159,7 @@ int sk_psock_init_strp(struct sock *sk, struct sk_psock *psock)
 		.parse_msg	= sk_psock_strp_parse,
 	};
 
-	ret = strp_init(sk_psock_strp(psock), sk, &cb);
+	ret = strp_init(&psock->strp, sk, &cb);
 	if (!ret)
 		sk_psock_set_state(psock, SK_PSOCK_RX_STRP_ENABLED);
 
@@ -1213,14 +1185,14 @@ void sk_psock_stop_strp(struct sock *sk, struct sk_psock *psock)
 
 	sk->sk_data_ready = psock->saved_data_ready;
 	psock->saved_data_ready = NULL;
-	strp_stop(sk_psock_strp(psock));
+	strp_stop(&psock->strp);
 }
 
 static void sk_psock_done_strp(struct sk_psock *psock)
 {
 	/* Parser has been stopped */
 	if (sk_psock_test_state(psock, SK_PSOCK_RX_STRP_ENABLED))
-		strp_done(sk_psock_strp(psock));
+		strp_done(&psock->strp);
 }
 #else
 static void sk_psock_done_strp(struct sk_psock *psock)

@@ -17,15 +17,17 @@ def main(out):
     canonical = REPO/'rmx3997/config/abi-symbol-list.txt'
     current = canonical.read_bytes()
     old = out/'inherited.raw'
-    old.write_bytes(b'\n'.join(v for v in current.splitlines() if v != b'cgroup_rm_cftypes')+b'\n')
+    # Start with the actual prior provider whitelist, including its sole export.
+    assert b'cgroup_rm_cftypes' not in current.splitlines()
+    old.write_bytes(current+b'cgroup_rm_cftypes\n')
     stage = out/'stage';(stage/'out').mkdir(parents=True)
     config = stage/'out/.config'
     config.write_text('CONFIG_TRIM_UNUSED_KSYMS=y\nCONFIG_MODVERSIONS=y\nCONFIG_MODULE_SIG_PROTECT=y\n'
                       'CONFIG_CFI_CLANG=y\nCONFIG_UNUSED_KSYMS_WHITELIST="'+str(old)+'"\n')
     old_bytes = old.read_bytes()
     record = m.bind(stage, out/'binding')
-    assert record['added_symbols'] == ['cgroup_rm_cftypes']
-    assert record['removed_symbols'] == [] and old.read_bytes() == old_bytes
+    assert record['added_symbols'] == []
+    assert record['removed_symbols'] == ['cgroup_rm_cftypes'] and old.read_bytes() == old_bytes
     assert set(m.symbols(current)) == m.symbols((stage/'out/abi_symbollist.raw').read_bytes())
     assert str(stage/'out/abi_symbollist.raw') in config.read_text()
     # Run the real shell consumer against the generated list, not a reimplementation.
@@ -34,11 +36,12 @@ def main(out):
     subprocess.run(['/bin/sh',str(REPO/'scripts/gen_autoksyms.sh'),str(out/'autoksyms.h')],
                    cwd=stage/'out',check=True)
     header=(out/'autoksyms.h').read_text()
-    assert '#define __KSYM_cgroup_rm_cftypes 1\n' in header
-    for name in m.symbols(old_bytes):assert '#define __KSYM_'+name+' 1\n' in header
+    assert '#define __KSYM_cgroup_rm_cftypes 1\n' not in header
+    for name in m.symbols(current):assert '#define __KSYM_'+name+' 1\n' in header
     # Losing an existing symbol and disabled trim both reject before writes.
     before=config.read_bytes();snapshot=(stage/'out/abi_symbollist.raw').read_bytes()
-    try:m.bind(stage,out/'loss-rejected',old)
+    loss=out/'loss.raw';loss.write_bytes(b'\n'.join(current.splitlines()[1:])+b'\n')
+    try:m.bind(stage,out/'loss-rejected',loss)
     except ValueError as e:assert 'loses inherited' in str(e)
     else:raise AssertionError('symbol loss accepted')
     assert config.read_bytes()==before and (stage/'out/abi_symbollist.raw').read_bytes()==snapshot
@@ -48,10 +51,10 @@ def main(out):
     else:raise AssertionError('disabled trim accepted')
     assert not (out/'loss-rejected').exists() and not (out/'trim-rejected').exists()
     (out/'results.json').write_text(json.dumps({'status':'PASS','real_flatten':str(m.FLATTEN),
-        'real_autoksyms':str(REPO/'scripts/gen_autoksyms.sh'),'existing_symbols_preserved':len(m.symbols(old_bytes)),
-        'added':['cgroup_rm_cftypes'],'loss_rejected_before_write':True,'disabled_trim_rejected':True,
+        'real_autoksyms':str(REPO/'scripts/gen_autoksyms.sh'),'existing_symbols_preserved':len(m.symbols(current)),
+        'removed':['cgroup_rm_cftypes'],'loss_rejected_before_write':True,'disabled_trim_rejected':True,
         'limits':'Real producer/consumer on disk fixtures, no kernel link/module ABI/runtime proof'},indent=2)+'\n')
-    print('PASS real flatten/autoksyms, inherited symbols retained, config bound, loss/trim fail closed')
+    print('PASS real flatten/autoksyms, OEM symbols retained, provider-only export retired, other loss/trim fail closed')
 
 
 if __name__=='__main__':

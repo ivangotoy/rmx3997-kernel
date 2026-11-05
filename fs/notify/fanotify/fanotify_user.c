@@ -61,7 +61,7 @@ static long ft_int_max = INT_MAX;
 struct ctl_table fanotify_table[] = {
 	{
 		.procname	= "max_user_groups",
-		.data	= &init_user_ns.android_kabi_reserved1,
+		.data	= &init_user_ns.ucount_max[UCOUNT_FANOTIFY_GROUPS],
 		.maxlen		= sizeof(long),
 		.mode		= 0644,
 		.proc_handler	= proc_doulongvec_minmax,
@@ -70,7 +70,7 @@ struct ctl_table fanotify_table[] = {
 	},
 	{
 		.procname	= "max_user_marks",
-		.data	= &init_user_ns.android_kabi_reserved2,
+		.data	= &init_user_ns.ucount_max[UCOUNT_FANOTIFY_MARKS],
 		.maxlen		= sizeof(long),
 		.mode		= 0644,
 		.proc_handler	= proc_doulongvec_minmax,
@@ -1619,9 +1619,9 @@ static int __init fanotify_user_setup(void)
 	}
 
 	fanotify_max_queued_events = FANOTIFY_DEFAULT_MAX_EVENTS;
-	*userns_ucount_max(&init_user_ns, UCOUNT_FANOTIFY_GROUPS) =
+	init_user_ns.ucount_max[UCOUNT_FANOTIFY_GROUPS] =
 					FANOTIFY_DEFAULT_MAX_GROUPS;
-	*userns_ucount_max(&init_user_ns, UCOUNT_FANOTIFY_MARKS) = max_marks;
+	init_user_ns.ucount_max[UCOUNT_FANOTIFY_MARKS] = max_marks;
 
 	return 0;
 }

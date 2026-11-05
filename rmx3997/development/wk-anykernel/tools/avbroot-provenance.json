@@ -1,0 +1,15 @@
+{
+  "project": "https://github.com/chenxiaolong/avbroot",
+  "version": "3.37.1",
+  "commit": "88362620a21377b160ae7500f64f144a2262a281",
+  "asset": "avbroot-3.37.1-aarch64-linux-android31.zip",
+  "asset_sha256": "bd4445239bac7a8a6597b02a9a38354817b149b24a44e95311960044674432c7",
+  "binary_sha256": "8edf57de0b181a65a6915198972f539cb1d7d9f34825127e6bb81dd69cb323ed",
+  "signature": "Verified detached SSH file signature; chenxiaolong ED25519 SHA256:Ct0HoRyrFLrnF9W+A/BKEiJmwx7yWkgaW/JvghKrboA",
+  "license_sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+  "cli": "Pinned extra avb subcommands; static Android API31 AArch64 executable",
+  "verification_evidence": "/home/build/.cache/codex-work/rmx3997-full-features-20261104/avbroot-capability/signature-verification.json",
+  "source": "https://github.com/chenxiaolong/avbroot/tree/88362620a21377b160ae7500f64f144a2262a281",
+  "source_archive": "https://github.com/chenxiaolong/avbroot/archive/refs/tags/v3.37.1.tar.gz",
+  "license": "GPL-3.0-only; unmodified official release binary; license included in avbroot-LICENSE"
+}

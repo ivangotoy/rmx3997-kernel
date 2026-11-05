@@ -1215,6 +1215,7 @@ static void ntsync_fix_perms_worker(struct work_struct *work)
     if (!kern_path("/dev/ntsync", LOOKUP_FOLLOW, &path)) {
         struct inode *inode = d_backing_inode(path.dentry);
         if (inode) {
+            inode_lock(inode);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,12,0)
              __vfs_setxattr_noperm(path.dentry, "security.selinux", ctx, strlen(ctx) + 1, 0);
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(6,3,0)
@@ -1223,6 +1224,7 @@ static void ntsync_fix_perms_worker(struct work_struct *work)
             __vfs_setxattr_noperm(&nop_mnt_idmap, path.dentry, "security.selinux", ctx, strlen(ctx) + 1, 0);
 #endif
             inode->i_mode = (inode->i_mode & ~S_IALLUGO) | 0666;
+            inode_unlock(inode);
             pr_info("ntsync: Applied 0666 and gpu_device context\n");
         }
         path_put(&path);

@@ -1954,16 +1954,6 @@ config CRYPTO_USER_API_ENABLE_OBSOLETE
 	  already been phased out from internal use by the kernel, and are
 	  only useful for userspace clients that still rely on them.
 
-config CRYPTO_ZRAM_MULTI
-	bool "Per-page multi-codec compression for OEM ZRAM"
-	select CRYPTO_LZO
-	select CRYPTO_ZSTD
-	help
-	  Register the zram-multi page compressor for providers accepting the
-	  synchronous Crypto API. Each frame selects LZO-RLE or Zstd and records
-	  its decoder. Existing ZRAM devices and their selected compressor are
-	  unaffected. This does not add the upstream ZRAM recompression sysfs ABI.
-
 config CRYPTO_STATS
 	bool "Crypto usage statistics for User-space"
 	depends on CRYPTO_USER

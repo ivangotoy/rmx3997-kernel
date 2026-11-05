@@ -388,5 +388,3 @@ config IO_WQ
 	bool
 
 endmenu
-
-source "fs/nomount/Kconfig"

@@ -51,21 +51,16 @@ enum ucount_type {
 	UCOUNT_INOTIFY_INSTANCES,
 	UCOUNT_INOTIFY_WATCHES,
 #endif
+#ifdef CONFIG_FANOTIFY
+	UCOUNT_FANOTIFY_GROUPS,
+	UCOUNT_FANOTIFY_MARKS,
+#endif
 	UCOUNT_RLIMIT_NPROC,
 	UCOUNT_RLIMIT_MSGQUEUE,
 	UCOUNT_RLIMIT_SIGPENDING,
 	UCOUNT_RLIMIT_MEMLOCK,
 	UCOUNT_COUNTS,
 };
-
-/* Keep the shipping non-fanotify enum values and embedded array bounds. */
-#ifdef CONFIG_FANOTIFY
-#define UCOUNT_FANOTIFY_GROUPS ((enum ucount_type)UCOUNT_COUNTS)
-#define UCOUNT_FANOTIFY_MARKS ((enum ucount_type)(UCOUNT_COUNTS + 1))
-#define UCOUNT_STORAGE_COUNTS (UCOUNT_COUNTS + 2)
-#else
-#define UCOUNT_STORAGE_COUNTS UCOUNT_COUNTS
-#endif
 
 #define MAX_PER_NAMESPACE_UCOUNTS UCOUNT_RLIMIT_NPROC
 
@@ -121,43 +116,6 @@ struct ucounts {
 extern struct user_namespace init_user_ns;
 extern struct ucounts init_ucounts;
 
-#ifdef CONFIG_FANOTIFY
-/* The public struct ucounts prefix stays identical to the shipping ABI. */
-struct fanotify_ucounts {
-	struct ucounts core;
-	atomic_long_t counters[2];
-};
-extern atomic_long_t init_fanotify_ucounts[2];
-#endif
-
-static inline long *userns_ucount_max(struct user_namespace *ns,
-				     enum ucount_type type)
-{
-#ifdef CONFIG_FANOTIFY
-	/* Two unused Android KABI words provide these per-namespace limits. */
-	if (type == UCOUNT_FANOTIFY_GROUPS)
-		return (long *)&ns->android_kabi_reserved1;
-	if (type == UCOUNT_FANOTIFY_MARKS)
-		return (long *)&ns->android_kabi_reserved2;
-#endif
-	return &ns->ucount_max[type];
-}
-
-static inline atomic_long_t *ucounts_counter(struct ucounts *ucounts,
-					   enum ucount_type type)
-{
-#ifdef CONFIG_FANOTIFY
-	if (type == UCOUNT_FANOTIFY_GROUPS || type == UCOUNT_FANOTIFY_MARKS) {
-		unsigned int index = type - UCOUNT_COUNTS;
-
-		if (ucounts == &init_ucounts)
-			return &init_fanotify_ucounts[index];
-		return &container_of(ucounts, struct fanotify_ucounts, core)->counters[index];
-	}
-#endif
-	return &ucounts->ucount[type];
-}
-
 bool setup_userns_sysctls(struct user_namespace *ns);
 void retire_userns_sysctls(struct user_namespace *ns);
 struct ucounts *inc_ucount(struct user_namespace *ns, kuid_t uid, enum ucount_type type);
@@ -168,7 +126,7 @@ void put_ucounts(struct ucounts *ucounts);
 
 static inline long get_ucounts_value(struct ucounts *ucounts, enum ucount_type type)
 {
-	return atomic_long_read(ucounts_counter(ucounts, type));
+	return atomic_long_read(&ucounts->ucount[type]);
 }
 
 long inc_rlimit_ucounts(struct ucounts *ucounts, enum ucount_type type, long v);

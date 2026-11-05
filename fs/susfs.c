@@ -22,7 +22,6 @@
 #include <linux/jump_label.h>
 #include <linux/security.h>
 #include <linux/bitmap.h>
-#include <linux/atomic.h>
 #include <linux/limits.h>
 #include <linux/rcupdate.h>
 #include <linux/string.h>
@@ -173,7 +172,6 @@ void susfs_spoof_avd_allowed_rcu(u32 s_type, u32 t_type, u32 c_type, u32 *avd_al
 	}
 }
 
-#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
 /*
  * Switches the selinux domain of the current process to the KernelSU one, so
  * that the data paths of the apps can be accessed despite of the selinux
@@ -182,31 +180,46 @@ void susfs_spoof_avd_allowed_rcu(u32 s_type, u32 t_type, u32 c_type, u32 *avd_al
  * susfs_restore_creds() afterwards.
  * Returns the original credentials on success, NULL on failure.
  */
-static const struct cred *susfs_switch_to_ksu_domain(void)
-{
-	const struct cred *orig_cred;
-	struct cred *cred = prepare_creds();
+static struct cred *susfs_switch_to_ksu_domain(void) {
+	struct cred *orig_cred = NULL;
+	struct cred *cred = NULL;
 
-	if (!cred)
-		return NULL;
-
-	setup_selinux("u:r:ksu:s0", cred);
-	orig_cred = override_creds(cred);
-	put_cred(cred);
-	if (!susfs_is_current_ksu_domain()) {
-		revert_creds(orig_cred);
+	/* a copy of the current credentials, which is restored later on */
+	orig_cred = prepare_creds();
+	if (!orig_cred) {
+		SUSFS_LOGE("failed to prepare creds!\n");
 		return NULL;
 	}
+
+	cred = prepare_creds();
+	if (!cred) {
+		SUSFS_LOGE("failed to prepare creds!\n");
+		abort_creds(orig_cred);
+		return NULL;
+	}
+
+	setup_selinux("u:r:ksu:s0", cred);
+	commit_creds(cred);
+
+	if (!susfs_is_current_ksu_domain()) {
+		SUSFS_LOGE("domain is not ksu, restoring the original creds\n");
+		commit_creds(orig_cred);
+		return NULL;
+	}
+
 	return orig_cred;
 }
 
-static void susfs_restore_creds(const struct cred *orig_cred)
-{
-	if (orig_cred)
-		revert_creds(orig_cred);
-}
-#endif // #ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER /* credential helpers */
+/*
+ * Restores the original credentials that were saved by
+ * susfs_switch_to_ksu_domain().
+ */
+static void susfs_restore_creds(struct cred *orig_cred) {
+	if (!orig_cred)
+		return;
 
+	commit_creds(orig_cred);
+}
 
 /* sus_path */
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
@@ -374,7 +387,7 @@ bool susfs_is_inode_sus_path(struct inode *inode)
 			is_i_uid_not_allowed(i_uid_into_vfsuid(idmap, &fi->inode).val)))
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 		if (unlikely(test_bit(AS_FLAGS_SUS_PATH, &fi->inode.i_mapping->flags) &&
-			is_i_uid_not_allowed(i_uid_into_mnt(&init_user_ns, &fi->inode).val)))
+			is_i_uid_not_allowed(i_uid_into_mnt(i_user_ns(&fi->inode), &fi->inode).val)))
 #else
 		if (unlikely(test_bit(AS_FLAGS_SUS_PATH, &fi->inode.i_mapping->flags) &&
 			is_i_uid_not_allowed(fi->inode.i_uid.val)))
@@ -390,7 +403,7 @@ bool susfs_is_inode_sus_path(struct inode *inode)
 		is_i_uid_not_allowed(i_uid_into_vfsuid(idmap, inode).val)))
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 	if (unlikely(test_bit(AS_FLAGS_SUS_PATH, &inode->i_mapping->flags) &&
-		is_i_uid_not_allowed(i_uid_into_mnt(&init_user_ns, inode).val)))
+		is_i_uid_not_allowed(i_uid_into_mnt(i_user_ns(inode), inode).val)))
 #else
 	if (unlikely(test_bit(AS_FLAGS_SUS_PATH, &inode->i_mapping->flags) &&
 		is_i_uid_not_allowed(inode->i_uid.val)))
@@ -1375,7 +1388,6 @@ out_copy_to_user:
 
 struct susfs_priority_uid_filter_bitmap {
 	struct rcu_head			rcu;
-	u64				package_generation;
 	unsigned long			bits[SUSFS_PRIORITY_UID_FILTER_BITMAP_LEN];
 };
 
@@ -1389,16 +1401,8 @@ static DEFINE_MUTEX(susfs_mutex_lock_priority_uid_filter);
  * Protected by susfs_mutex_lock_priority_uid_filter.
  */
 static char *susfs_priority_app_strings = NULL;
-/* Events immediately invalidate old UID assignments, even if deferral fails. */
-static atomic64_t susfs_priority_package_generation = ATOMIC64_INIT(0);
-/* Protected by susfs_mutex_lock_priority_uid_filter. */
-static u64 susfs_priority_config_generation;
-
-/* Called under fsnotify/rename locks: no allocation, mutex or path lookup. */
-void susfs_notify_priority_uid_update(void)
-{
-	atomic64_inc(&susfs_priority_package_generation);
-}
+/* Ensures that there is only one resolving thread running at the same time */
+static atomic_t susfs_priority_app_strings_running = ATOMIC_INIT(0);
 
 /*
  * Checks whether the given string is a valid app package name.
@@ -1581,11 +1585,10 @@ void susfs_set_priority_uid_filter(void __user **user_info) {
 	struct susfs_priority_uid_filter_bitmap *new_bitmap = NULL;
 	struct susfs_priority_uid_filter_bitmap *old_bitmap = NULL;
 	char *new_app_strings = NULL;
-	const struct cred *orig_cred = NULL;
+	struct cred *orig_cred = NULL;
 	size_t app_str_len = 0;
 	int err = 0;
 	static bool is_uid_filter_set_before = false;
-	u64 package_generation = atomic64_read(&susfs_priority_package_generation);
 
 	info = kvmalloc(sizeof(*info), GFP_KERNEL | __GFP_ZERO);
 	if (!info) {
@@ -1658,22 +1661,17 @@ void susfs_set_priority_uid_filter(void __user **user_info) {
 	 * never access a freed bitmap.
 	 */
 	mutex_lock(&susfs_mutex_lock_priority_uid_filter);
-	new_bitmap->package_generation = package_generation;
 	old_bitmap = rcu_dereference_protected(priority_uid_filter_bitmap, lockdep_is_held(&susfs_mutex_lock_priority_uid_filter));
 	rcu_assign_pointer(priority_uid_filter_bitmap, new_bitmap);
 	new_bitmap = NULL;
 	kvfree(susfs_priority_app_strings);
 	susfs_priority_app_strings = new_app_strings;
-	susfs_priority_config_generation++;
 	new_app_strings = NULL;
 	if (!is_uid_filter_set_before)
 		is_uid_filter_set_before = true;
 	mutex_unlock(&susfs_mutex_lock_priority_uid_filter);
 	synchronize_rcu();
 	kfree_rcu(old_bitmap, rcu);
-	/* An update may have run before the initial configuration was published. */
-	if (package_generation != atomic64_read(&susfs_priority_package_generation))
-		susfs_parse_priority_app_strings();
 
 	SUSFS_LOGI("the priority uid filter is set\n");
 	err = 0;
@@ -1694,18 +1692,17 @@ out_copy_to_user:
 }
 
 /*
- * Resolve the uids of the stored app package names again,
+ * The thread that resolves the uids of the stored app package names again,
  * so that the filter stays up to date when the apps are installed or
  * uninstalled, because the uid of an app changes when it is reinstalled.
  */
 static int susfs_priority_app_strings_worker(void *data) {
 	struct susfs_priority_uid_filter_bitmap *new_bitmap = NULL;
 	struct susfs_priority_uid_filter_bitmap *old_bitmap = NULL;
-	const struct cred *orig_cred = NULL;
+	struct cred *orig_cred = NULL;
 	char *app_strings = NULL;
 	size_t app_str_len = 0;
 	int ret = 0;
-	u64 config_generation, package_generation;
 
 	/*
 	 * The data paths of the apps cannot be accessed with the selinux
@@ -1718,8 +1715,6 @@ static int susfs_priority_app_strings_worker(void *data) {
 
 	/* take a snapshot of the stored app package names */
 	mutex_lock(&susfs_mutex_lock_priority_uid_filter);
-	config_generation = susfs_priority_config_generation;
-	package_generation = atomic64_read(&susfs_priority_package_generation);
 	if (susfs_priority_app_strings) {
 		app_str_len = strlen(susfs_priority_app_strings);
 		app_strings = kvmalloc(app_str_len + 1, GFP_KERNEL | __GFP_ZERO);
@@ -1745,13 +1740,6 @@ static int susfs_priority_app_strings_worker(void *data) {
 	 * the new one, which is then published to the readers.
 	 */
 	mutex_lock(&susfs_mutex_lock_priority_uid_filter);
-	/* Never publish a snapshot superseded by another configuration/event. */
-	if (config_generation != susfs_priority_config_generation ||
-	    package_generation != atomic64_read(&susfs_priority_package_generation)) {
-		mutex_unlock(&susfs_mutex_lock_priority_uid_filter);
-		goto out_restore_creds;
-	}
-	new_bitmap->package_generation = package_generation;
 	old_bitmap = rcu_dereference_protected(priority_uid_filter_bitmap, lockdep_is_held(&susfs_mutex_lock_priority_uid_filter));
 	rcu_assign_pointer(priority_uid_filter_bitmap, new_bitmap);
 	new_bitmap = NULL;
@@ -1769,18 +1757,25 @@ out:
 		kfree(new_bitmap);
 	if (app_strings)
 		kvfree(app_strings);
+	atomic_set(&susfs_priority_app_strings_running, 0);
 
 	return ret;
 }
 
 /*
- * Called from the package writer's deferred task_work, outside fsnotify and
- * rename locks, retaining Android's filesystem and mount namespace. Temporary
- * credentials are restored before returning. Failed refreshes leave stale
- * generations inactive rather than filtering an unrelated, reused UID.
+ * Resolves the uids of the stored app package names again in a new thread,
+ * because the resolving of the uids requires the KernelSU selinux domain,
+ * which must not be applied to the calling process.
  */
 void susfs_parse_priority_app_strings(void) {
-	susfs_priority_app_strings_worker(NULL);
+	/* do not spawn a new thread if there is already one running */
+	if (atomic_cmpxchg(&susfs_priority_app_strings_running, 0, 1))
+		return;
+
+	if (IS_ERR(kthread_run(susfs_priority_app_strings_worker, NULL, "susfs_gpsp_appstr"))) {
+		atomic_set(&susfs_priority_app_strings_running, 0);
+		SUSFS_LOGE("failed to create the thread susfs_priority_app_strings\n");
+	}
 }
 
 /*
@@ -1798,8 +1793,7 @@ bool susfs_is_priority_uid_filtered(uid_t uid) {
 
 	/* no need rcu_read_lock() and rcu_read_unlock() here as caller already holds it */
 	bitmap = rcu_dereference(priority_uid_filter_bitmap);
-	if (likely(bitmap) && bitmap->package_generation ==
-	    atomic64_read(&susfs_priority_package_generation)) {
+	if (likely(bitmap)) {
 		if (test_bit(app_id - SUSFS_PRIORITY_UID_FILTER_MIN_UID, bitmap->bits)) {
 			//SUSFS_LOGI("uid '%u' is filtered\n", uid);
 			return true;

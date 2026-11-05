@@ -40,6 +40,6 @@ os.chdir(stage / 'kernel/common')
 result = stage / 'build-execution.json'
 if result.exists():
     result.rename(stage / (label + '-prior-build-execution.json'))
-argv = ['/usr/bin/python3', str(stage / 'resource_guard.py'), '--log', str(log),
+argv = ['/usr/bin/python3', str(Path(__file__).resolve().with_name('resource-guard.py')), '--log', str(log),
         '--result', str(result), '--'] + json.loads((stage / 'build-argv.json').read_text())
 sys.exit(subprocess.call(argv, env=env))

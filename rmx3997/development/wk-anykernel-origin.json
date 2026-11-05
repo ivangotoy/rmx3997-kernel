@@ -1,0 +1,22 @@
+{
+  "repository": "WildKernels/AnyKernel3",
+  "commit": "0b46673ae91aee8d60bd6ee257b4d56d3f6a0114",
+  "authenticated_binary_git_blobs": {
+    "tools/busybox": "9a8246d1726a65f94105fce2115b3354d322996c",
+    "tools/magiskboot": "c8719093d934b383d7ade6aaa0fe237acf31203a",
+    "META-INF/com/google/android/updater-script": "d9b711118e7438f5113ec56eca7a239c01cea720",
+    "LICENSE": "20a447ebe28baf309eeed88eac8cd86a4c3eeeec"
+  },
+  "authenticated_text_git_blobs": {
+    "anykernel.sh": "6a97197fef49cc39ca8f4f241734460651272352",
+    "ak3-core.sh": "9ba26e9587731d06e86ea45cbe672a1284d92cf4",
+    "update-binary": "9b321d0e6e785ee59deaf232cb54b6333a38bdb0"
+  },
+  "adaptation": {
+    "anykernel.sh": "RMX3997/MT6835 Android16, active boot size/header/Image checks; WK split_boot + flash_boot; retain split ramdisk, no ramdisk reconstruction or multi-partition dispatch; AVB original-input validation before flash_boot; kernel version comparison explicitly after split/header validation",
+    "tools/ak3-core.sh": "Pinned core with optional key-event scratch relocated to AKHOME and split magiskboot unpack -n -h: retain original compressed ramdisk/DT components byte-for-byte instead of decompressing/recompressing them. Repack and flash methods unchanged. Payload dd adds conv=fsync: actual persistent ENOSPC guest showed plain buffered dd could return success before kernel writeback failure. No automatic rollback or new transaction. AVB correction hook immediately before partition write; rmx-avb.sh verifies original NONE/SHA256_RSA2048 metadata under explicit RMX3997 0/unlocked/orange policy and regenerates descriptor from the complete dynamically sized repacked payload using pinned avbroot 3.37.1 documented pack --force without a key for truthful CUSTOM-UNSIGNED NONE output; no parent vbmeta or rollback flag changes. Version safety check uses the captured split kernel payload and is invoked by anykernel.sh after split_boot; it never scans/decompresses an Android boot container.",
+    "META-INF/com/google/android/update-binary": "Pinned backend with required on-disk AKHOME, booted-Android-only gate and disk debug paths; recovery helpers remain unreachable",
+    "install-on-device.sh": "Android mksh launcher extracts to private disk path, verifies SHA256SUMS and invokes real WK backend; no custom boot-image transaction"
+  },
+  "avbroot_provenance": "wk-anykernel/tools/avbroot-provenance.json"
+}

@@ -1504,12 +1504,16 @@ struct task_struct {
 	struct callback_head		l1d_flush_kill;
 #endif
 
+#ifdef CONFIG_SYSVIPC
+	ANDROID_KABI_USE(1, struct sysv_sem sysvsem);
+	_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(2); ANDROID_KABI_RESERVE(3), struct sysv_shm sysvshm);
+#else
 	ANDROID_KABI_RESERVE(1);
 	ANDROID_KABI_RESERVE(2);
 	ANDROID_KABI_RESERVE(3);
+#endif
 	ANDROID_KABI_RESERVE(4);
 	ANDROID_KABI_RESERVE(5);
-
 	ANDROID_KABI_RESERVE(6);
 	ANDROID_KABI_RESERVE(7);
 	ANDROID_KABI_RESERVE(8);
@@ -1530,24 +1534,6 @@ struct task_struct {
 	 * Do not put anything below here!
 	 */
 };
-
-#ifdef CONFIG_SYSVIPC
-/* Use the reserved storage without changing the shipping task type. */
-static inline struct sysv_sem *task_sysvsem(struct task_struct *task)
-{
-	BUILD_BUG_ON(sizeof(struct sysv_sem) > sizeof(task->android_kabi_reserved6));
-	return (struct sysv_sem *)&task->android_kabi_reserved6;
-}
-
-static inline struct sysv_shm *task_sysvshm(struct task_struct *task)
-{
-	BUILD_BUG_ON(sizeof(struct sysv_shm) >
-		     sizeof(task->android_kabi_reserved7) + sizeof(task->android_kabi_reserved8));
-	BUILD_BUG_ON(offsetof(struct task_struct, android_kabi_reserved8) !=
-		     offsetof(struct task_struct, android_kabi_reserved7) + sizeof(u64));
-	return (struct sysv_shm *)&task->android_kabi_reserved7;
-}
-#endif
 
 static inline struct pid *task_pid(struct task_struct *task)
 {

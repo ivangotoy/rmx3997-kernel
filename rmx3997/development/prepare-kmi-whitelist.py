@@ -13,7 +13,8 @@ import subprocess
 import sys
 
 REPO = Path(__file__).resolve().parents[2]
-FLATTEN = Path('/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/build/kernel/abi/flatten_symbol_list')
+# Unmodified Android build/kernel/abi producer; provenance in ../delivery-provenance.json.
+FLATTEN = Path(__file__).resolve().with_name('flatten_symbol_list')
 
 
 def sha(data):
@@ -44,14 +45,24 @@ def bind(stage, evidence, source=REPO / 'rmx3997/config/abi-symbol-list.txt'):
     if any(old.get(k) != 'y' for k in required):
         raise ValueError('Trim/module protections must already be enabled')
     configured = old.get('CONFIG_UNUSED_KSYMS_WHITELIST', '')
-    if not re.fullmatch(r'"/[^"\n]+"', configured):
-        raise ValueError('Expected absolute inherited whitelist path')
+    if not re.fullmatch(r'"[^"\n]+"', configured):
+        raise ValueError('Expected quoted whitelist path')
     previous = Path(configured[1:-1])
+    # Match gen_autoksyms.sh: relative whitelist paths are source-root relative.
+    if not previous.is_absolute():
+        previous = REPO / previous
     previous_bytes = previous.read_bytes()
     source_bytes = source.read_bytes()
     prior_symbols, current_symbols = symbols(previous_bytes), symbols(source_bytes)
-    if not prior_symbols <= current_symbols:
-        raise ValueError('Current whitelist loses inherited symbols: ' + ','.join(sorted(prior_symbols-current_symbols)))
+    removed = prior_symbols - current_symbols
+    # This export was added only for the retired replacement provider's unwind.
+    # Permit its removal only after both kernel producers have been removed.
+    retired = {'cgroup_rm_cftypes'} if (
+        not (REPO / 'crypto/zram_multi.c').exists() and
+        'EXPORT_SYMBOL_GPL(cgroup_rm_cftypes)' not in
+        (REPO / 'kernel/cgroup/cgroup.c').read_text()) else set()
+    if removed - retired:
+        raise ValueError('Current whitelist loses inherited symbols: ' + ','.join(sorted(removed)))
     target = stage / 'out/abi_symbollist.raw'
     structured = stage / 'abi/abi_symbollist.current'
     if target.is_symlink() or structured.is_symlink():
@@ -83,8 +94,8 @@ def bind(stage, evidence, source=REPO / 'rmx3997/config/abi-symbol-list.txt'):
               'inherited_whitelist': str(previous), 'inherited_sha256': sha(previous_bytes),
               'structured': str(structured), 'structured_sha256': sha(text.encode()),
               'generated_whitelist': str(target), 'generated_sha256': sha(raw),
-              'preserved_symbols': len(prior_symbols), 'generated_symbols': len(current_symbols),
-              'added_symbols': sorted(current_symbols-prior_symbols), 'removed_symbols': [],
+              'preserved_symbols': len(prior_symbols & current_symbols), 'generated_symbols': len(current_symbols),
+              'added_symbols': sorted(current_symbols-prior_symbols), 'removed_symbols': sorted(removed),
               'flatten_argv': argv, 'flatten_tool_sha256': sha(FLATTEN.read_bytes()),
               'set_config_argv': set_config, 'config_before_sha256': sha(before),
               'config_after_sha256': sha(config.read_bytes()),

@@ -1853,7 +1853,7 @@ static inline int get_undo_list(struct sem_undo_list **undo_listp)
 {
 	struct sem_undo_list *undo_list;
 
-	undo_list = task_sysvsem(current)->undo_list;
+	undo_list = current->sysvsem.undo_list;
 	if (!undo_list) {
 		undo_list = kzalloc(sizeof(*undo_list), GFP_KERNEL_ACCOUNT);
 		if (undo_list == NULL)
@@ -1862,7 +1862,7 @@ static inline int get_undo_list(struct sem_undo_list **undo_listp)
 		refcount_set(&undo_list->refcnt, 1);
 		INIT_LIST_HEAD(&undo_list->list_proc);
 
-		task_sysvsem(current)->undo_list = undo_list;
+		current->sysvsem.undo_list = undo_list;
 	}
 	*undo_listp = undo_list;
 	return 0;
@@ -2318,9 +2318,9 @@ int copy_semundo(unsigned long clone_flags, struct task_struct *tsk)
 		if (error)
 			return error;
 		refcount_inc(&undo_list->refcnt);
-		task_sysvsem(tsk)->undo_list = undo_list;
+		tsk->sysvsem.undo_list = undo_list;
 	} else
-		task_sysvsem(tsk)->undo_list = NULL;
+		tsk->sysvsem.undo_list = NULL;
 
 	return 0;
 }
@@ -2341,10 +2341,10 @@ void exit_sem(struct task_struct *tsk)
 {
 	struct sem_undo_list *ulp;
 
-	ulp = task_sysvsem(tsk)->undo_list;
+	ulp = tsk->sysvsem.undo_list;
 	if (!ulp)
 		return;
-	task_sysvsem(tsk)->undo_list = NULL;
+	tsk->sysvsem.undo_list = NULL;
 
 	if (!refcount_dec_and_test(&ulp->refcnt))
 		return;
