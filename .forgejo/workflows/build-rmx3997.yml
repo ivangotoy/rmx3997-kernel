@@ -26,11 +26,26 @@ jobs:
     runs-on: aimax-rmx-host
     timeout-minutes: 150
     steps:
+      # Plain git instead of actions/checkout: that action logs host paths
+      # (workspace, HOME, credential helper files) into the public run log.
+      # The job token is passed only as an in-memory header; the user's global
+      # and system git config (and its credential helper) are not consulted.
       - name: Checkout
-        uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-        with:
-          fetch-depth: 1
-          persist-credentials: false
+        env:
+          TOKEN: ${{ forgejo.token }}
+          GIT_CONFIG_GLOBAL: /dev/null
+          GIT_CONFIG_NOSYSTEM: '1'
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -Eeuo pipefail
+          case "$PWD" in "$HOME"/forgejo-runners/*/workspace/*) ;; *) echo 'FAIL: unexpected workspace'; exit 1;; esac
+          find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          git init -q .
+          auth=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+          git -c http.extraHeader="Authorization: basic $auth" fetch -q --depth 1 --no-tags \
+            "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" "$FORGEJO_SHA"
+          git checkout -q --detach FETCH_HEAD
+          echo "checked out $(git rev-parse HEAD)"
 
       - name: Bind to the exact commit
         env:
