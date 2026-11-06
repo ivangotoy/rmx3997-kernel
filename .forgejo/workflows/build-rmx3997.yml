@@ -78,7 +78,7 @@ jobs:
       - name: Acceptance gates
         run: python3 -I rmx3997/ci/rmx_ci.py accept --stage "$STAGE"
 
-      - name: Package ZIP and full boot_b image
+      - name: Package ZIP (boot_b image stays on the host)
         env:
           LABEL: ${{ forgejo.ref_type == 'tag' && forgejo.ref_name || format('ci{0}', forgejo.run_number) }}
           RUN_URL: ${{ forgejo.server_url }}/${{ forgejo.repository }}/actions/runs/${{ forgejo.run_number }}

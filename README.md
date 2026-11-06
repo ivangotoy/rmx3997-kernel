@@ -181,11 +181,11 @@ One run does the following, and any failed gate fails the run:
    embedded config, required root/SUSFS/NTSync symbols, MGLRU still default-off,
    and every imported symbol CRC of all stock OEM modules against the built
    `Module.symvers`.
-6. Packages the AnyKernel3 ZIP and a full 64 MiB `boot_b` partition image, then
-   verifies the AVB hash footer and that the kernel inside the image is the
-   built `Image`.
-7. Uploads both files with checksums and a provenance record as a run artifact.
-   A tag build also creates a draft release.
+6. Packages the AnyKernel3 ZIP and fails if the kernel or any ZIP member
+   contains a host build path.
+7. Uploads only the ZIP and its checksum as a run artifact. A tag build also
+   creates a draft release with those two files. Partition images are never
+   published.
 
 A release stays a draft until the image has been flashed and boot-tested on
 the phone. CI cannot test a boot. The kernel release string comes from the

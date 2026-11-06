@@ -42,6 +42,11 @@ def die(msg):
     raise SystemExit(1)
 
 
+def host_markers():
+    home = os.path.expanduser('~').encode()
+    return sorted({home + b'/', b'/home/', b'forgejo-runners', REPO.as_posix().encode()})
+
+
 def load_pins():
     return json.loads(PINS.read_text())
 
@@ -184,6 +189,11 @@ def cmd_accept(a):
         if line in config:
             die('forbidden config line present: ' + line)
     result['config_invariants'] = 'PASS'
+    image = (out / 'arch/arm64/boot/Image').read_bytes()
+    leaks = {m.decode(): image.count(m) for m in host_markers() if image.count(m)}
+    if leaks:
+        die('Image contains host paths: %r' % leaks)
+    result['host_paths_in_Image'] = 0
     symbols = set()
     for line in (out / 'System.map').read_text().splitlines():
         parts = line.split()
@@ -285,11 +295,18 @@ def cmd_package(a):
     ident = dict(identity, build_purpose='forgejo-ci', source_commit=a.commit,
                  ci_run=a.run_url, oem_crc_gate=acc['oem_crc']['status'])
     m.package(image, zip_path, ident)
-    img_path = dist / (base + '-boot_b.img')
+    private = expand(a.private_dir) / base
+    private.mkdir(parents=True, exist_ok=True)
+    img_path = private / (base + '-boot_b.img')
     template = expand(pins['files']['boot_b_layout_template']['path'])
     built = build_boot_image(template, image, img_path, work)
     checked = verify_boot_image(img_path, image, work)
-    (dist / (img_path.name + '.sha256')).write_text(sha(img_path) + '  ' + img_path.name + '\n')
+    (private / (img_path.name + '.sha256')).write_text(sha(img_path) + '  ' + img_path.name + '\n')
+    (dist / (zip_path.name + '.sha256')).write_text(sha(zip_path) + '  ' + zip_path.name + '\n')
+    z = __import__('zipfile').ZipFile(zip_path)
+    zleaks = sorted(n for n in z.namelist() if any(m in z.read(n) for m in host_markers()))
+    if zleaks:
+        die('ZIP members contain host paths: %s' % ', '.join(zleaks))
     tools = {}
     for line in (stage / 'toolchain.txt').read_text().splitlines():
         if ': ' in line:
@@ -310,11 +327,15 @@ def cmd_package(a):
         'acceptance': acc,
         'phone_boot': 'UNVERIFIED (CI cannot boot the phone; flash and test before publishing)',
     }
-    (dist / (base + '.provenance.json')).write_text(json.dumps(prov, indent=2) + '\n')
+    (private / (base + '.provenance.json')).write_text(json.dumps(prov, indent=2) + '\n')
     with open(stage / 'dist.env', 'w') as f:
         f.write('RMX_DIST=%s\nRMX_BASE=%s\n' % (dist, base))
     for p in sorted(dist.iterdir()):
         print('%s  %s  %d' % (sha(p), p.name, p.stat().st_size))
+    allowed = {zip_path.name, zip_path.name + '.sha256'}
+    if {p.name for p in dist.iterdir()} != allowed:
+        die('dist must contain only the ZIP and its checksum')
+    print('host-only (not uploaded): %s' % img_path.name)
 
 
 # ------------------------------------------------------------------ release
@@ -388,6 +409,7 @@ def main():
     c.add_argument('--label', required=True)
     c.add_argument('--commit', required=True)
     c.add_argument('--run-url', required=True)
+    c.add_argument('--private-dir', default='~/.cache/rmx3997-ci/private')
     c = sub.add_parser('release')
     for flag in ('--api', '--repo', '--tag', '--commit', '--dist', '--run-url'):
         c.add_argument(flag, required=True)

@@ -39,7 +39,10 @@ mkdir -p "$OUT" "$STAGE/tmp"
 export BRANCH=android13-5.15 KMI_GENERATION=8 LC_ALL=C TZ=UTC
 export KBUILD_BUILD_HOST=build-host KBUILD_BUILD_USER=build-user KBUILD_BUILD_VERSION=1
 export KBUILD_BUILD_TIMESTAMP='Tue Oct 13 20:28:27 UTC 2026' SOURCE_DATE_EPOCH=1791923307
-export KCFLAGS=' -D__ANDROID_COMMON_KERNEL__'
+# CFI/UBSAN check data embeds source paths that -fmacro-prefix-map does not
+# remap; strip the source directory (and the leading root) from them.
+STRIP=$(( $(printf %s "$SRC" | tr -cd / | wc -c) + 1 ))
+export KCFLAGS=" -D__ANDROID_COMMON_KERNEL__ -fsanitize-undefined-strip-path-components=$STRIP"
 export HOSTCFLAGS="-I$BT/include"
 export HOSTLDFLAGS="-L$BT/lib64 -Wl,-rpath,$BT/lib64 -fuse-ld=lld --rtlib=compiler-rt"
 export USERCFLAGS="--target=aarch64-linux-android31 --sysroot=$SYSROOT -Wno-unused-function"
