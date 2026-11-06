@@ -359,11 +359,18 @@ def cmd_release(a):
         if st not in (200, 201):
             die('asset upload %s returned HTTP %d' % (p.name, st))
         asset = json.loads(body)
-        st, data = api('GET', asset['browser_download_url'], token)
-        if st != 200 or hashlib.sha256(data).hexdigest() != sha(p):
-            die('asset %s did not round-trip (HTTP %d)' % (p.name, st))
+        # The job token cannot download draft-release files (web route, 404),
+        # so verify the stored size through the API here. Byte-level checks
+        # are done by the owner before publishing (sha256 files are attached).
+        st, body = api('GET', '%s/releases/%d/assets/%d' % (base, rel['id'], asset['id']), token)
+        if st != 200 or json.loads(body).get('size') != p.stat().st_size:
+            die('asset %s: stored size does not match (HTTP %d)' % (p.name, st))
         uploaded.append(p.name)
-    print('draft release %s (id %d) with %d verified assets: %s'
+    st, body = api('GET', '%s/releases/%d/assets' % (base, rel['id']), token)
+    names = sorted(a['name'] for a in json.loads(body)) if st == 200 else []
+    if names != sorted(uploaded):
+        die('release asset list differs from uploaded files')
+    print('draft release %s (id %d) with %d size-verified assets: %s'
           % (tag, rel['id'], len(uploaded), ', '.join(uploaded)))
 
 
