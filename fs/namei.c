@@ -21,6 +21,7 @@
 #include <linux/slab.h>
 #include <linux/fs.h>
 #include <linux/namei.h>
+#include <linux/nomount.h>
 #include <linux/pagemap.h>
 #include <linux/fsnotify.h>
 #include <linux/personality.h>
@@ -4478,7 +4479,11 @@ int vfs_unlink(struct user_namespace *mnt_userns, struct inode *dir,
 	       struct dentry *dentry, struct inode **delegated_inode)
 {
 	struct inode *target = dentry->d_inode;
-	int error = may_delete(mnt_userns, dir, dentry, 0);
+	int error;
+
+	if (nomount_is_virtual_inode(target))
+		return -EOPNOTSUPP;
+	error = may_delete(mnt_userns, dir, dentry, 0);
 
 	if (error)
 		return error;
@@ -4734,6 +4739,9 @@ int vfs_link(struct dentry *old_dentry, struct user_namespace *mnt_userns,
 	unsigned max_links = dir->i_sb->s_max_links;
 	int error;
 
+	if (nomount_is_virtual_inode(inode))
+		return -EOPNOTSUPP;
+
 	if (!inode)
 		return -ENOENT;
 
@@ -4943,6 +4951,9 @@ int vfs_rename(struct renamedata *rd)
 	unsigned max_links = new_dir->i_sb->s_max_links;
 	struct name_snapshot old_name;
 	bool lock_old_subdir, lock_new_subdir;
+
+	if (nomount_is_virtual_inode(source) || nomount_is_virtual_inode(target))
+		return -EOPNOTSUPP;
 
 	if (source == target)
 		return 0;

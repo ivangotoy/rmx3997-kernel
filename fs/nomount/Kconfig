@@ -1,8 +1,9 @@
-# Kconfig for NoMount
-
+# Pinned maxsteeel NoMount diagnostic integration; built-in ownership only.
 config NOMOUNT
-	tristate "NoMount Path Redirection Subsystem"
-	default y
-	help
-	  NoMount allows path redirection and virtual file injection
-	  without mounting filesystems. Useful for systemless modifications.
+    bool "NoMount ext4 regular-file diagnostic redirection"
+    depends on KEYS && EXT4_FS=y
+    default n
+    help
+      Paired add_key NoMount protocol. This bounded integration supports only
+      regular files below existing writable ext4 directories on the same
+      filesystem. Other rule kinds/filesystems fail with EOPNOTSUPP.
