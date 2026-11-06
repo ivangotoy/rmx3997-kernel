@@ -158,6 +158,40 @@ struct is not a performance or power claim, and a guest run is not hardware.
 - No performance or battery certification is claimed for the scheduling,
   filesystem, cache or logging defaults
 
+## CI builds
+
+`.forgejo/workflows/build-rmx3997.yml` builds the kernel on the maintainer's
+own host runner (`aimax-rmx-host`). It runs only on manual dispatch or when an
+`rmx3997-*` tag is pushed. Both need write access to this repository, and
+there is no pull-request trigger, so outside code never runs on the runner.
+Forks and mirrors skip the job.
+
+One run does the following, and any failed gate fails the run:
+
+1. Checks out the exact commit, optionally pinned with the `expected_sha` input.
+2. Verifies the host-local inputs against `rmx3997/ci/host-inputs.json`: ZyC
+   Clang 18 and LLD, the host Clang and pahole, the stock OEM module corpus
+   (489 files) and the boot_b layout template. None of these are in the repository.
+3. Runs `olddefconfig` and requires the result to equal
+   `rmx3997/config/production.config` byte for byte.
+4. Builds `Image` and modules with Full LTO inside a systemd scope
+   (MemoryMax 16G) under `rmx3997/development/resource-guard.py`, which aborts
+   the build before host memory or swap runs out.
+5. Acceptance: root, SUSFS, CFI, LTO and MODVERSIONS contract, the Image's
+   embedded config, required root/SUSFS/NTSync symbols, MGLRU still default-off,
+   and every imported symbol CRC of all stock OEM modules against the built
+   `Module.symvers`.
+6. Packages the AnyKernel3 ZIP and a full 64 MiB `boot_b` partition image, then
+   verifies the AVB hash footer and that the kernel inside the image is the
+   built `Image`.
+7. Uploads both files with checksums and a provenance record as a run artifact.
+   A tag build also creates a draft release.
+
+A release stays a draft until the image has been flashed and boot-tested on
+the phone. CI cannot test a boot. The kernel release string comes from the
+built commit (`-g<sha12>`), so CI images differ byte-wise from older manually
+built deliveries even with an identical config.
+
 ## License
 
 The kernel source is Linux, licensed under GPL-2.0; [COPYING](COPYING) is the

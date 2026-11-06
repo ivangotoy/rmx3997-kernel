@@ -1,0 +1,96 @@
+name: RMX3997 kernel
+
+# Builds run on the maintainer's own host runner. Only people with write
+# access can trigger them: manual dispatch, or pushing an rmx3997-* tag.
+# There is deliberately no pull_request trigger.
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact commit to build (optional; guards against a moving branch)
+        required: false
+        default: ''
+        type: string
+  push:
+    tags:
+      - 'rmx3997-*'
+
+concurrency:
+  group: rmx3997-kernel-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Forks and mirrors never schedule jobs onto the host runner.
+    if: forgejo.repository == 'ivangotoy/rmx3997-kernel'
+    runs-on: aimax-rmx-host
+    timeout-minutes: 150
+    steps:
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Bind to the exact commit
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EVENT_SHA: ${{ forgejo.sha }}
+        run: |
+          set -Eeuo pipefail
+          head=$(git rev-parse HEAD)
+          test "$head" = "$EVENT_SHA"
+          if [ -n "$EXPECTED_SHA" ]; then test "$head" = "$EXPECTED_SHA"; fi
+          test -z "$(git status --porcelain)"
+          echo "building $head"
+
+      - name: Prepare disk-backed stage
+        run: |
+          set -Eeuo pipefail
+          case "$(findmnt -n -o FSTYPE --target "$HOME/.cache")" in ext4|xfs|btrfs) ;; *) echo 'FAIL: stage would not be disk-backed'; exit 1;; esac
+          STAGE="$HOME/.cache/rmx3997-ci/run-${FORGEJO_RUN_ID}-${FORGEJO_RUN_ATTEMPT:-1}"
+          test ! -e "$STAGE"
+          install -d -m 700 "$STAGE"
+          echo "STAGE=$STAGE" >> "$FORGEJO_ENV"
+          df -h --output=avail "$HOME/.cache" | tail -1
+
+      - name: Verify pinned host inputs
+        run: python3 -I rmx3997/ci/rmx_ci.py preflight
+
+      - name: Build (config gate, guarded Full-LTO build)
+        run: bash rmx3997/ci/build.sh "$STAGE"
+
+      - name: Acceptance gates
+        run: python3 -I rmx3997/ci/rmx_ci.py accept --stage "$STAGE"
+
+      - name: Package ZIP and full boot_b image
+        env:
+          LABEL: ${{ forgejo.ref_type == 'tag' && forgejo.ref_name || format('ci{0}', forgejo.run_number) }}
+          RUN_URL: ${{ forgejo.server_url }}/${{ forgejo.repository }}/actions/runs/${{ forgejo.run_number }}
+        run: |
+          set -Eeuo pipefail
+          python3 -I rmx3997/ci/rmx_ci.py package --stage "$STAGE" --label "$LABEL" \
+            --commit "$(git rev-parse HEAD)" --run-url "$RUN_URL"
+          cat "$STAGE/dist.env" >> "$FORGEJO_ENV"
+
+      - name: Upload build artifact
+        uses: https://code.forgejo.org/forgejo/upload-artifact@16871d9e8cfcf27ff31822cac382bbb5450f1e1e
+        with:
+          name: ${{ env.RMX_BASE }}
+          path: ${{ env.RMX_DIST }}/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create draft release (tag builds only)
+        if: forgejo.ref_type == 'tag'
+        env:
+          RELEASE_TOKEN: ${{ forgejo.token }}
+          RUN_URL: ${{ forgejo.server_url }}/${{ forgejo.repository }}/actions/runs/${{ forgejo.run_number }}
+        run: |
+          python3 -I rmx3997/ci/rmx_ci.py release --api "$FORGEJO_API_URL" \
+            --repo "$FORGEJO_REPOSITORY" --tag "$FORGEJO_REF_NAME" \
+            --commit "$(git rev-parse HEAD)" --dist "$RMX_DIST" --run-url "$RUN_URL"
+
+      - name: Remove build tree
+        if: success()
+        run: rm -rf "$STAGE/out" "$STAGE/work" "$STAGE/tmp" "$STAGE/pycache"

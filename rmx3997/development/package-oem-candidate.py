@@ -56,6 +56,8 @@ def package(image, output, identity):
              'tools/ak3-core.sh', 'tools/busybox', 'tools/magiskboot',
              'tools/avbroot', 'tools/avbroot-LICENSE',
              'tools/avbroot-provenance.json', 'tools/rmx-avb.sh',
+             'tools/busybox-LICENSE', 'tools/busybox-provenance.json',
+             'tools/magiskboot-LICENSE', 'tools/magiskboot-provenance.json',
              'META-INF/com/google/android/update-binary',
              'META-INF/com/google/android/updater-script'}
     actual = {str(f.relative_to(core)) for f in core.rglob('*') if f.is_file()}

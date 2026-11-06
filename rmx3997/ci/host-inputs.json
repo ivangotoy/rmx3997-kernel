@@ -1,0 +1,57 @@
+{
+  "description": "Host-local CI inputs on the aimax runner. Never committed; identified by SHA-256 and verified before every build. Paths are relative to the runner user's home.",
+  "files": {
+    "zyc_clang": {
+      "path": "~/.cache/zyc-clang-18.0.0git-20240124/extracted/bin/clang",
+      "sha256": "b5503efa7d5a738eb95af3a60bfd59b580eb1a5324d721f8e064c40d11783697"
+    },
+    "zyc_ld_lld": {
+      "path": "~/.cache/zyc-clang-18.0.0git-20240124/extracted/bin/ld.lld",
+      "sha256": "744f3e46fe02a0ff882d9a69f1b20d67ee2d217df38070f018dd7b7c9d23d0b2"
+    },
+    "host_clang_r450784e": {
+      "path": "~/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang",
+      "sha256": "41131b03d674645836c23635a7e2ae478bd869b3b3da98204365c06610ec5438"
+    },
+    "pahole": {
+      "path": "~/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/kernel-build-tools/linux-x86/bin/pahole",
+      "sha256": "1841c3ad7132c040d5bbfa30d9e126624d9a72e1a32f90636cc444fe75c144a6"
+    },
+    "boot_b_layout_template": {
+      "path": "~/Downloads/RMX3997-boot_b-D2-ZYC/boot_b-D2-ZYC.img",
+      "sha256": "df8e83eaec4542dfa590a47b7bf2a3c8b732a10b6d422465150103ab37735f51"
+    }
+  },
+  "oem_modules": {
+    "description": "Stock vendor_boot_b and vendor_dlkm_b kernel modules read from the phone. Every imported symbol CRC must match the built kernel.",
+    "dirs": [
+      "~/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/vendor_boot_b/files/lib/modules",
+      "~/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/filesystems/vendor_dlkm_b/lib/modules"
+    ],
+    "count": 489,
+    "manifest_sha256": "283d6564ec0baf2e28bb9255826ec818a43ad46460fd3174631df9f6d65cb13c",
+    "known_unresolved": [
+      [
+        "game_opt.ko",
+        "kpie_other2core_notify_sched_wakeup"
+      ]
+    ]
+  },
+  "required_config": [],
+  "forbidden_config": [
+    "CONFIG_LRU_GEN_ENABLED=y",
+    "CONFIG_CRYPTO_ZRAM_MULTI=y"
+  ],
+  "required_symbols": [
+    "ksu_sucompat_init",
+    "ksu_sulog_init",
+    "ksu_supercalls_init",
+    "ksu_handle_sys_read",
+    "susfs_init",
+    "susfs_set_uname",
+    "susfs_add_sus_path",
+    "ntsync_init",
+    "ntsync_char_ioctl",
+    "ntsync_obj_ioctl"
+  ]
+}
