@@ -96,7 +96,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Create draft release (tag builds only)
+      - name: Publish release (tag builds only)
         if: forgejo.ref_type == 'tag'
         env:
           RELEASE_TOKEN: ${{ forgejo.token }}

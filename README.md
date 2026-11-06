@@ -94,7 +94,7 @@ truthful unsigned AVB `NONE` metadata, keeping a backup under
 
 ## Verification
 
-Every delivery is checked before it reaches the phone:
+Every build is checked:
 
 - Build under the retained memory guard, with the effective config compared to
   the seed
@@ -105,8 +105,6 @@ Every delivery is checked before it reaches the phone:
 - QEMU guest run of the actual `Image`: CFI negative test, OEM module loads,
   NoMount runtime, networking and container features
 - Installer and full payload verification
-- On-device run: boot completion, live config hash, CFI failure count, OEM
-  guard modules, NoMount protocol, and a container workload with networking
 
 Capability claims are limited to what was measured. Static equivalence of a
 struct is not a performance or power claim, and a guest run is not hardware.
@@ -147,10 +145,9 @@ One run does the following, and any failed gate fails the run:
 6. Packages the AnyKernel3 ZIP and fails if the kernel or any ZIP member
    contains a host build path.
 7. Uploads only the ZIP and its checksum as a run artifact. A tag build also
-   creates a draft release with those two files.
+   publishes a release with those two files.
 
-A release stays a draft until the maintainer publishes it. The kernel release
-string comes from the built commit (`-g<sha12>`).
+The kernel release string comes from the built commit (`-g<sha12>`).
 
 ## License
 
