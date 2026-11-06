@@ -1414,6 +1414,14 @@ struct task_struct {
 
 	/* Collect coverage from softirq context: */
 	unsigned int			kcov_softirq;
+
+	/* Temporary storage for preempting remote coverage collection: */
+	unsigned int			kcov_saved_mode;
+	unsigned int			kcov_saved_size;
+	void				*kcov_saved_area;
+	struct kcov			*kcov_saved_kcov;
+	int				kcov_saved_sequence;
+
 #endif
 
 #ifdef CONFIG_MEMCG
@@ -1504,15 +1512,19 @@ struct task_struct {
 	struct callback_head		l1d_flush_kill;
 #endif
 
+	ANDROID_KABI_USE(1, struct {
+		/* Save user-dumpable when mm goes away */
+		unsigned	user_dumpable:1;
+		});
+
 #ifdef CONFIG_SYSVIPC
-	ANDROID_KABI_USE(1, struct sysv_sem sysvsem);
-	_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(2); ANDROID_KABI_RESERVE(3), struct sysv_shm sysvshm);
+	ANDROID_KABI_USE(2, struct sysv_sem sysvsem);
+	_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(3); ANDROID_KABI_RESERVE(4), struct sysv_shm sysvshm);
 #else
-	ANDROID_KABI_RESERVE(1);
 	ANDROID_KABI_RESERVE(2);
 	ANDROID_KABI_RESERVE(3);
-#endif
 	ANDROID_KABI_RESERVE(4);
+#endif
 	ANDROID_KABI_RESERVE(5);
 	ANDROID_KABI_RESERVE(6);
 	ANDROID_KABI_RESERVE(7);
