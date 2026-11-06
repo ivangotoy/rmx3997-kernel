@@ -1,9 +1,8 @@
-# Pinned maxsteeel NoMount diagnostic integration; built-in ownership only.
+# Built-in NoMount integration; operation tables live through superblock eviction.
 config NOMOUNT
-    bool "NoMount ext4 regular-file diagnostic redirection"
-    depends on KEYS && EXT4_FS=y
+    bool "NoMount Path Redirection Subsystem"
+    depends on KEYS
     default n
     help
-      Paired add_key NoMount protocol. This bounded integration supports only
-      regular files below existing writable ext4 directories on the same
-      filesystem. Other rule kinds/filesystems fail with EOPNOTSUPP.
+      VFS path redirection and virtual file injection without mounting
+      filesystems. Uses the paired add_key NoMount userspace protocol.

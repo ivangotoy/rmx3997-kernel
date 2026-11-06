@@ -62,8 +62,8 @@ static inline int ptrace_report_syscall(struct pt_regs *regs,
 	if (!(ptrace & PT_PTRACED))
 		return 0;
 
-	current->ptrace_message = message;
-	ptrace_notify(SIGTRAP | ((ptrace & PT_TRACESYSGOOD) ? 0x80 : 0));
+	ptrace_notify_message(SIGTRAP | ((ptrace & PT_TRACESYSGOOD) ? 0x80 : 0),
+			      message);
 
 	/*
 	 * this isn't the same as continuing with a signal, but it will do
