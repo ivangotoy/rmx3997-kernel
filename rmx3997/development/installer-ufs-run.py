@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """One actual packaged installer execution in the retained disposable ARM64 VM."""
-import argparse, datetime, gzip, hashlib, importlib.util, json, os, pathlib, re, shutil, stat, subprocess, sys, time, zipfile
+import argparse, datetime, gzip, hashlib, json, os, pathlib, re, shutil, stat, subprocess, sys, time, zipfile
 R=pathlib.Path(__file__).resolve().parent; P=R.parent.parent; N=P.parent
 Q=N/'qemu-guest-boot-20261103'
 FW=pathlib.Path('/home/build/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/vendor_boot_b/files/system')
@@ -108,18 +108,19 @@ esac
    argv += ['-drive',f'file={run/path},if=none,format=raw,id={ident}'+(',readonly=on' if ro else '')]
   argv += ['-device',f'ufs-lu,drive={ident},lun='+str({'boot':0,'init':1,'data':2}[ident])]
  (run/'qemu-argv.json').write_text(json.dumps(argv,indent=2)+'\n')
- spec=importlib.util.spec_from_file_location('guard',Q/'resource_guard.py');guard=importlib.util.module_from_spec(spec);spec.loader.exec_module(guard)
- assert guard.available()>=guard.FLOOR
- record={'package_sha256':digest(package),'kernel_sha256':digest(N/'out/arch/arm64/boot/Image'),'init_sha256':digest(R/'init'),'argv':argv,'formatter_argv':fmt,'guest_only':True,'memory_floor_bytes':guard.FLOOR,'timeout_seconds':240,'rollback_write_error':fault}
- start=time.monotonic();minimum=guard.available()
+ # A dedicated canonical supervisor owns cleanup, including orphaned descendants.
+ # Keep this guest's 240-second deadline; memory/swap policy stays canonical.
+ command=['/usr/bin/python3',str(R/'resource_guard.py'),'--timeout','240','--report',str(run/'guard-result.json'),'--']+argv
+ record={'package_sha256':digest(package),'kernel_sha256':digest(N/'out/arch/arm64/boot/Image'),'init_sha256':digest(R/'init'),'argv':argv,'guard_argv':command,'guard_sha256':digest(R/'resource_guard.py'),'formatter_argv':fmt,'guest_only':True,'timeout_seconds':240,'rollback_write_error':fault}
+ start=time.monotonic()
  with (run/'console.log').open('xb') as log:
-  proc=subprocess.Popen(argv,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);record['pid']=proc.pid
-  while proc.poll() is None:
-   available=guard.available();minimum=min(minimum,available)
-   if available<guard.FLOOR or time.monotonic()-start>240:
-    record['abort']='memory_floor' if available<guard.FLOOR else 'timeout';guard.terminate(proc.pid);proc.wait();break
-   time.sleep(.2)
- record.update(exit_code=proc.returncode,elapsed_seconds=time.monotonic()-start,minimum_available_bytes=minimum)
+  proc=subprocess.run(command,stdout=log,stderr=subprocess.STDOUT)
+ report=json.loads((run/'guard-result.json').read_text())
+ record.update(exit_code=proc.returncode,elapsed_seconds=time.monotonic()-start,
+               memory_floor_bytes=report['min_available_kib']*1024,
+               minimum_available_bytes=report['minimum_available_kib']*1024 if report['minimum_available_kib'] is not None else None,
+               forgejo_report=report)
+ if report['aborted']:record['abort']=report['reason']
  (run/'execution.json').write_text(json.dumps(record,indent=2)+'\n')
  console=(run/'console.log').read_text(errors='replace').replace('\r','')
  match=re.search('RMX_NATIVE_KERNEL_LOG_BEGIN\n(.*?)\nRMX_NATIVE_KERNEL_LOG_END',console,re.S)

@@ -158,6 +158,28 @@ struct is not a performance or power claim, and a guest run is not hardware.
 - No performance or battery certification is claimed for the scheduling,
   filesystem, cache or logging defaults
 
+## License
+
+The kernel source is Linux, licensed under GPL-2.0; [COPYING](COPYING) is the
+short pointer this tree ships and the full text is in
+[LICENSES/preferred/GPL-2.0](LICENSES/preferred/GPL-2.0). The AnyKernel3 installer scripts under
+`rmx3997/development/wk-anykernel/` keep their upstream license, reproduced in
+that directory. The bundled installer tools keep their own licenses and carry
+provenance records beside them: avbroot (GPL-3.0), magiskboot (GPL-3.0) and
+BusyBox (GPL-2.0), each with its license text and upstream source location.
+
+The project's own build, packaging and acceptance scripts are provided under
+GPL-2.0 as well, to match the kernel they operate on.
+
+Nothing here is affiliated with or endorsed by realme, Oplus or MediaTek. No
+vendor firmware, proprietary module or signing material is redistributed.
+
+## Publication notes
+
+Records under `rmx3997/` were normalized for publication: absolute builder home
+paths were rewritten to `/home/build`. Artifact hashes, sizes and invocation
+flags are unchanged. Earlier Git history still contains the original paths.
+
 ## Repository layout
 
 `rmx3997/config/` seed configuration and KMI symbol list.

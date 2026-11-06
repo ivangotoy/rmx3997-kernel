@@ -39,7 +39,9 @@ provider_preflight() {
                 [ "$(stat -c %u "$path")" = 0 ] || return 1
                 local mode
                 mode=$(stat -c %a "$path") || return 1
-                [ $((0$mode & 0022)) = 0 ] || return 1
+                # Explicit octal works in Android mksh and BusyBox ash.
+                case $mode in ''|*[!0-7]*) return 1;; esac
+                [ $((8#$mode & 18)) = 0 ] || return 1
             fi
         fi
     done

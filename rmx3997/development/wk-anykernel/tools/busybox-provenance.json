@@ -1,0 +1,16 @@
+{
+  "project": "BusyBox",
+  "version": "1.36.1-osm0sis (build 2023-05-25)",
+  "upstream": "https://busybox.net",
+  "binary": "tools/busybox",
+  "binary_sha256": "c629fce4b0dd3ba9775f851d0941e74582115f423258d3a79800f2bd11d30f5c",
+  "size": 1498688,
+  "format": "ELF 64-bit aarch64, static, stripped, NDK r15c build",
+  "obtained_via": {
+    "repository": "WildKernels/AnyKernel3",
+    "commit": "0b46673ae91aee8d60bd6ee257b4d56d3f6a0114",
+    "git_blob": "9a8246d1726a65f94105fce2115b3354d322996c"
+  },
+  "license": "GPL-2.0-only; license text in busybox-LICENSE",
+  "notes": "Unmodified AnyKernel3 helper binary. Source for the corresponding BusyBox release is available from https://busybox.net/downloads/ and the AnyKernel3 repository above."
+}

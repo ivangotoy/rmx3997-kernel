@@ -89,6 +89,8 @@ def provider_core_script(script):
 
 
 def main():
+    raise SystemExit('Retired replacement-provider delivery. Use package-oem-candidate.py; '
+                     'historical code and validated installer repair are retained as evidence.')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--stage', type=Path, required=True)
     parser.add_argument('--boot', type=Path, required=True)
@@ -131,7 +133,11 @@ def main():
     if len(provider['dependency_files']) != 7:
         raise ValueError('Missing exact dependency closure')
     names += ['provider-dependencies.sha256'] + sorted(provider['dependency_files'])
-    for name in names: shutil.copy2(assets / name, contents / 'provider' / name)
+    for name in names:
+        source = (REPO / 'rmx3997/provider' / name
+                  if name in ('provider-install-entry.sh', 'provider-transaction.sh', 'provider-android.sh')
+                  else assets / name)
+        shutil.copy2(source, contents / 'provider' / name)
     for field, name in [('PROVIDER_MODULE_SHA256', 'provider.ko'),
                         ('PROVIDER_LOADER_SHA256', 'provider-loader'),
                         ('PROVIDER_CONF_SHA256', 'preinit.conf')]:

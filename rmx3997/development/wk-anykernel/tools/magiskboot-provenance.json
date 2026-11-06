@@ -1,0 +1,16 @@
+{
+  "project": "Magisk (magiskboot)",
+  "version": "unversioned static build; identified by git blob",
+  "upstream": "https://github.com/topjohnwu/Magisk",
+  "binary": "tools/magiskboot",
+  "binary_sha256": "4c480c9ffc51b4b9d8c3760bb188fd1eb73972a90983963ef791bca6faa65d6c",
+  "size": 1015160,
+  "format": "ELF 64-bit aarch64, static, stripped",
+  "obtained_via": {
+    "repository": "WildKernels/AnyKernel3",
+    "commit": "0b46673ae91aee8d60bd6ee257b4d56d3f6a0114",
+    "git_blob": "c8719093d934b383d7ade6aaa0fe237acf31203a"
+  },
+  "license": "GPL-3.0; license text in magiskboot-LICENSE",
+  "notes": "Unmodified AnyKernel3 helper binary. Corresponding source: https://github.com/topjohnwu/Magisk and the AnyKernel3 repository above."
+}

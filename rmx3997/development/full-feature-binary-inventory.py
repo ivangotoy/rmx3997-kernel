@@ -30,7 +30,15 @@ sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
 build = json.loads((a.stage / 'build-execution.json').read_text())
 assert build['exit_code'] == 0 and build['reason'] == 'completed'
 assert build['argv'] == json.loads((a.stage / 'build-argv.json').read_text())
-assert build['memory_floor_bytes'] >= 8*1024**3 and build['log_limit_bytes'] <= 64*1024**2
+if 'forgejo_report' in build:
+    guard = build['forgejo_report']
+    assert not guard['aborted'] and guard['returncode'] == 0
+    assert guard['min_available_kib'] == 3*1024**2
+    assert guard['min_swap_free_kib'] == 4*1024**2 and guard['timeout_seconds'] == 21600
+    assert guard['unreaped_pids'] == []
+else:
+    # Frozen historical builds retain their original guard evidence.
+    assert build['memory_floor_bytes'] >= 8*1024**3 and build['log_limit_bytes'] <= 64*1024**2
 assert build['test_only_injected_pressure'] is False
 image = a.stage / 'out/arch/arm64/boot/Image'
 assert sha(image) != 'e2e7bdd324419318b5da8571817da9c1ffcfa925b821c78c277b287c6209fefa', 'Inherited core Image is not a new candidate'
