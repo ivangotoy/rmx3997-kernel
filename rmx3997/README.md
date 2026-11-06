@@ -1,28 +1,32 @@
 # RMX3997 phone-confirmed kernel source
 
-The current delivery is Linux 5.15.197 / Android13 KMI8 with built-in
-BakaSU/SUSFS, NTSync, the retained networking integration, SYSVIPC,
-POSIX_MQUEUE, IPC_NS and PID_NS, full upstream NoMount (maxsteeel `bf1847f`,
-v2.2.0, protocol 22) and NP3/diting configuration parity: USER_NS, DEVTMPFS
-(not auto-mounted), TMPFS xattr/ACL, IPv6 NAT/MASQUERADE/HL, ipset, xt
-set/LOG/recent, CAKE, CIFS and Baseband Guard `028ff7fd`. The default TCP
-congestion control is upstream BBR; BBRv3 is not included because its TCP
-layout changes are not proven safe for every OEM module. IPC uses task_struct
-reserve slots 1-3; the original OEM guard keeps slots 4-8. OEM F2FS and the
-original Realme ZRAM/HybridSwap modules are preserved. CFS_BANDWIDTH and
-CGROUP_PIDS remain disabled; MGLRU is compiled but default-off.
+The current delivery is Linux 5.15.197 / Android13 KMI8 built with ZyC Clang
+18.0.0git (LLVM `3dea0aa8`) and Full LTO with strict CFI. It carries built-in
+BakaSU/SUSFS, NTSync, SYSVIPC, POSIX_MQUEUE, IPC_NS and PID_NS, upstream
+NoMount (maxsteeel `dev` `3f8b5d1`, protocol 22, metamodule versionCode 647),
+NP3/diting configuration parity (USER_NS, DEVTMPFS not auto-mounted, TMPFS
+xattr/ACL, IPv6 NAT/MASQUERADE/HL, ipset, xt set/LOG/recent, CAKE, CIFS,
+Baseband Guard `028ff7fd`) and the applicable WildKernels parity items
+(MACVLAN, Westwood/HTCP, TTL/HL, CONNMARK, PIE/FQ-PIE, KSU toolkit, and the
+WildKernels tuning patches). The default TCP congestion control is upstream
+BBR; BBRv3 is not included. IPC uses task_struct reserve slots 1-3; the
+original OEM guard keeps slots 4-8. OEM F2FS and the original Realme
+ZRAM/HybridSwap modules are preserved. CFS_BANDWIDTH and CGROUP_PIDS remain
+disabled; MGLRU is compiled but default-off. The stock Oplus vendor modules
+(built with Clang 14) load unchanged under this kernel.
 
 The delivery was flashed and verified over ADB on the phone, including the
 NoMount metamodule and a DroidSpaces Ubuntu 24.04 container:
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `RMX3997-5.15.197-PARITY-B.zip` | `dd1e45182dde74db85fa52adc749b14774731ff34e561d7270c3781a620f9651` |
-| Raw ARM64 Image | `76d399a2180c80e068e9b8124376cf18a070cc20c726239964e6f6982d569239` |
-| Effective config | `7fc0ddc8302c359bce5745c8916e587627a2eb621a6de2bdce6c595d4162e4a9` |
+| `RMX3997-5.15.197-D2-ZYC.zip` | `05c0f085f56a6e274ce773dc50b8efa9974b975a67d7879c1c2cb1a0356618a2` |
+| Raw ARM64 Image | `3b6d80254000af12a780a7837a4b4aa63cad0f3f242dafab1f20ba8015f3c45a` |
+| Effective config | `b1156505705f99cefcc53a3d26370b0926952dab116ca2dafd7c97e89330d286` |
 
-These artifact hashes are not live partition-byte hashes. The previous IPC
-slots 1-3 delivery and the NoMount-only intermediate are recorded in
+`build-argv.json` and `build-environment.json` record the D2 build. These
+artifact hashes are not live partition-byte hashes. The stock-Clang D1 build,
+the PARITY-B delivery and earlier records are kept in
 [artifact and evidence provenance](delivery-provenance.json).
 
 ## Canonical configuration and build

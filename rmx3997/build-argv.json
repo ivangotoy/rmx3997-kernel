@@ -1,8 +1,8 @@
 [
   "make",
   "-C",
-  "/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/oem-f2fs-implementation-20261103/kernel/common",
-  "O=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/oem-f2fs-implementation-20261103/out",
+  "/home/build/Downloads/rmx3997-kernel",
+  "O=/home/build/.cache/codex-work/rmx3997-parity-20261106/D/D2/out",
   "ARCH=arm64",
   "LLVM=1",
   "LLVM_IAS=1",
@@ -11,7 +11,7 @@
   "HOSTCC=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang",
   "HOSTCXX=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang++",
   "PAHOLE=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/kernel-build-tools/linux-x86/bin/pahole",
-  "LD=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/ld.lld --threads=1",
+  "LD=/home/build/.cache/zyc-clang-18.0.0git-20240124/extracted/bin/ld.lld --threads=1",
   "-j4",
   "Image",
   "modules"
