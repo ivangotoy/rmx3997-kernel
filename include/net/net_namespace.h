@@ -138,9 +138,11 @@ struct net {
 #if defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE)
 	struct netns_ct		ct;
 #endif
-#if defined(CONFIG_NF_TABLES) || defined(CONFIG_NF_TABLES_MODULE)
-	struct netns_nftables	nft;
-#endif
+	/*
+	 * RMX3997: no nft member here. The stock kernel and the OEM modules
+	 * were built without nf_tables, so struct net keeps that layout; the
+	 * nf_tables generation cursor lives in struct nftables_pernet instead.
+	 */
 #if IS_ENABLED(CONFIG_NF_FLOW_TABLE)
 	struct netns_ft ft;
 #endif

@@ -1413,6 +1413,28 @@ void nft_trace_notify(struct nft_traceinfo *info);
 
 #if IS_ENABLED(CONFIG_NF_TABLES)
 
+struct nftables_pernet {
+	struct list_head	tables;
+	struct list_head	commit_list;
+	struct list_head	binding_list;
+	struct list_head	module_list;
+	struct list_head	notify_list;
+	struct mutex		commit_mutex;
+	u64			table_handle;
+	u64			tstamp;
+	unsigned int		base_seq;
+	u8			validate_state;
+	unsigned int		gc_seq;
+	u8			gencursor;
+};
+
+extern unsigned int nf_tables_net_id;
+
+static inline struct nftables_pernet *nft_pernet(const struct net *net)
+{
+	return net_generic(net, nf_tables_net_id);
+}
+
 /*
  * The gencursor defines two generations, the currently active and the
  * next one. Objects contain a bitmask of 2 bits specifying the generations
@@ -1427,7 +1449,7 @@ void nft_trace_notify(struct nft_traceinfo *info);
  */
 static inline unsigned int nft_gencursor_next(const struct net *net)
 {
-	return net->nft.gencursor + 1 == 1 ? 1 : 0;
+	return nft_pernet(net)->gencursor + 1 == 1 ? 1 : 0;
 }
 
 static inline u8 nft_genmask_next(const struct net *net)
@@ -1438,7 +1460,7 @@ static inline u8 nft_genmask_next(const struct net *net)
 static inline u8 nft_genmask_cur(const struct net *net)
 {
 	/* Use READ_ONCE() to prevent refetching the value for atomicity */
-	return 1 << READ_ONCE(net->nft.gencursor);
+	return 1 << READ_ONCE(nft_pernet(net)->gencursor);
 }
 
 #define NFT_GENMASK_ANY		((1 << 0) | (1 << 1))
@@ -1700,26 +1722,6 @@ __printf(2, 3) int nft_request_module(struct net *net, const char *fmt, ...);
 static inline int nft_request_module(struct net *net, const char *fmt, ...) { return -ENOENT; }
 #endif
 
-struct nftables_pernet {
-	struct list_head	tables;
-	struct list_head	commit_list;
-	struct list_head	binding_list;
-	struct list_head	module_list;
-	struct list_head	notify_list;
-	struct mutex		commit_mutex;
-	u64			table_handle;
-	u64			tstamp;
-	unsigned int		base_seq;
-	u8			validate_state;
-	unsigned int		gc_seq;
-};
-
-extern unsigned int nf_tables_net_id;
-
-static inline struct nftables_pernet *nft_pernet(const struct net *net)
-{
-	return net_generic(net, nf_tables_net_id);
-}
 
 static inline u64 nft_net_tstamp(const struct net *net)
 {
