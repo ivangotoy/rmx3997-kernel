@@ -20,7 +20,6 @@
  */
 
 #include <net/tcp.h>
-#include "tcp_bbr3_compat.h"
 
 /* Called once per round-trip to update PLB state for a connection. */
 void tcp_plb_update_state(const struct sock *sk, struct tcp_plb_state *plb,

@@ -10,9 +10,9 @@
   "KMI_GENERATION": "8",
   "LC_ALL": "C",
   "PATH": "/home/build/.cache/zyc-clang-18.0.0git-20240124/extracted/bin:/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin:/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/kernel-build-tools/linux-x86/bin:/usr/bin:/bin",
-  "PYTHONPYCACHEPREFIX": "/home/build/.cache/codex-work/rmx3997-parity-20261106/D/D2/pycache",
+  "PYTHONPYCACHEPREFIX": "/home/build/.cache/codex-work/rmx3997-parity-20261106/E/pycache",
   "SOURCE_DATE_EPOCH": "1791923307",
-  "TMPDIR": "/home/build/.cache/codex-work/rmx3997-parity-20261106/D/D2/scratch",
+  "TMPDIR": "/home/build/.cache/codex-work/rmx3997-parity-20261106/E/tmp",
   "TZ": "UTC",
   "USERCFLAGS": "--target=aarch64-linux-android31 --sysroot=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/ndk-r23/toolchains/llvm/prebuilt/linux-x86_64/sysroot -Wno-unused-function",
   "USERLDFLAGS": "-fuse-ld=lld --rtlib=compiler-rt --target=aarch64-linux-android31 -resource-dir=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/lib64/clang/14.0.7 --unwindlib=none"

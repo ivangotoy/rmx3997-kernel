@@ -2,7 +2,7 @@
   "make",
   "-C",
   "/home/build/Downloads/rmx3997-kernel",
-  "O=/home/build/.cache/codex-work/rmx3997-parity-20261106/D/D2/out",
+  "O=/home/build/.cache/codex-work/rmx3997-parity-20261106/E/out",
   "ARCH=arm64",
   "LLVM=1",
   "LLVM_IAS=1",
@@ -12,7 +12,7 @@
   "HOSTCXX=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/clang/host/linux-x86/clang-r450784e/bin/clang++",
   "PAHOLE=/home/build/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts/kernel-build-tools/linux-x86/bin/pahole",
   "LD=/home/build/.cache/zyc-clang-18.0.0git-20240124/extracted/bin/ld.lld --threads=1",
-  "-j4",
+  "-j16",
   "Image",
   "modules"
 ]

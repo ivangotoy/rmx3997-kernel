@@ -1,5 +1,88 @@
 {
   "current": {
+    "candidate": "Phone-confirmed RMX3997 E: D2 (B + latest NoMount dev + WildKernels parity, ZyC Clang 18) plus the BBRv3 TCP congestion-control backport, default congestion control bbr3",
+    "kernel_release": "5.15.197-android13-8-g7bdd6d06fa9d-dirty",
+    "compiler": "ZyC clang version 18.0.0git (https://github.com/llvm/llvm-project 3dea0aa8f4607888d0c32cd7a691d8090b1b73c7), toolchain /home/build/.cache/zyc-clang-18.0.0git-20240124; host tools remain clang-r450784e",
+    "artifacts": {
+      "zip": {
+        "filename": "RMX3997-5.15.197-E-ZYC-BBRV3.zip",
+        "sha256": "85079edee98ee7e25c7a2d6fe2479f749528eb6bdc985b127ca489ad686260a1"
+      },
+      "Image": {
+        "sha256": "c3ff239ac2e96b9e90b8ee41c5afc83415d380c1e5263d329bac51467b419dbd"
+      },
+      "effective.config": {
+        "sha256": "1156a9cbaf11bd605baa7b6965e38b9408b8540090a4043099ce688da26c07e7"
+      },
+      "candidate-E.patch": {
+        "sha256": "b7967a303ffe73df1341abfb002dad72b641cd4b211a00f9b4096a36be6f6bcf"
+      },
+      "boot_b_partition_image": {
+        "filename": "boot_b-E-ZYC-BBRV3.img",
+        "sha256": "585515f7e96989adedce0e1e6c16e9305912528d080fa850ad61559a221ecf49",
+        "size": 67108864
+      }
+    },
+    "bbrv3": {
+      "donor": "kernel-patches/common/bbrv3/0001-net-tcp-backport-BBRv3-to-android13-5.15.patch sha256 6f7e3eef4027154249d65f141d2e7e9aec1368010e566147b2f5d5885cce63b8, context adapted, +/- lines byte-identical",
+      "config": [
+        "TCP_CONG_BBR3=y",
+        "DEFAULT_BBR3=y",
+        "DEFAULT_BBR unset",
+        "DEFAULT_TCP_CONG=bbr3"
+      ],
+      "oem_validation": "Ghidra classification of every OEM access to the changed TCP structures: 840/840 flagged accesses SAFE, including the wlan_drv_gen4m_6835 reads of skb->cb+24/+32 (driver-allocated buffers, debug counters only). E layout table equals D3's, OEM binaries unchanged, so the classification carries over.",
+      "residual_risks": "tcp_skb_cb tx.in_flight semantics are bytes -> packets for OEM readers outside the flagged set; GENKSYMS masks the layout change; TCP_CC_INFO now reports 52 bytes instead of 20; vendor TCP congestion-control modules do not link into this code (per the corpus check)."
+    },
+    "offline_acceptance": {
+      "config_delta_vs_D2_only_BBRv3_symbols": "PASS {\"CONFIG_DEFAULT_BBR\": [\"y\", \"n\"], \"CONFIG_DEFAULT_BBR3\": [null, \"y\"], \"CONFIG_DEFAULT_TCP_CONG\": [\"\\\"bbr\\\"\", \"\\\"bbr3\\\"\"], \"CONFIG_TCP_CONG_BBR3\": [null, \"y\"]}",
+      "OEM463_all_imported_CRCs": "PASS (463 unique modules; only pre-existing game_opt stock gap, same as B/D1/D2/D3; all binary-check-acceptance flags true)",
+      "Module_symvers_vs_D2": "0 CRC changes, 0 added, 0 removed",
+      "required_30_public_struct_layouts_vs_D2": "PASS (30 structs, 1274 members)",
+      "CFI_runtime_interface_vs_D2": "PASS (module.cfi_check ABI/offset, module size, cfi_shadow, CFI/LTO/MODVERSIONS/page config, __cfi_check page alignment identical; 8450 admitted dispatcher IDs and 2926 type hashes identical; __cfi_slowpath_diag/cfi_module_add/update_shadow/add_module_to_shadow/__ubsan abort and vfs_ioctl/crypto_comp_* callers identical modulo relocations; OEM corpus hashes reverified). Note: __cfi_check body differs only in kernel-internal jump-table bounds (see cfi-proof/result.json); attempt1 failed on unmasked adrp lo12 immediates, retained as cfi-proof/result-attempt1-FAILED-adrp-lo12-not-masked.json",
+      "CFI_enforcing_negative_guest": "PASS",
+      "QEMU_guest_on_actual_E_Image": "PASS 85/85 CORE_TEST (82 B checks with default-bbr replaced by d3_bbr3_is_default_tcp_congestion, plus d3_bbr3_available_with_bbr_retained, d3_bbr3_ipv6_setsockopt_getsockopt_switch, d3_bbr3_loopback_tcp_8MiB_transfer) + 20/20 D2_TEST (OEM loads incl. Clang14 crypto via CFI probe, sg ioctl CFI callback, guard retained), NoMount runtime + consumer (NoMount 647 metamodule) PASS",
+      "bbr3_loopback": "8388608 bytes, pattern match, accepted cc=bbr3, rtt 255us, cwnd 10, 0 retransmits",
+      "IPC_binary_D2_inlined_variant": "PASS",
+      "NoMount_binary": "PASS",
+      "parity_binary_E_variant": "PASS (D2 symbol list, exact BBRv1 tcp_bbr_cong_ops, bbr3 static ops tcp_bbr_cong_ops.83105, BBR3 config, hardening incl. CFI and stack-protector-strong, CGROUP_PIDS/CFS_BANDWIDTH/LRU_GEN_ENABLED off)",
+      "ghidra_ownership": "VALID: D3 840/840 SAFE; check-bbrv3-layout-vs-D3 PASS (tcp_skb_cb, tcp_sock, rate_sample, tcp_bbr_info, tcp_cc_info, sk_buff, sock, inet_connection_sock, tcp_congestion_ops: E==D3 raw and flattened; D2==B), no re-run needed; OEM binaries unchanged",
+      "unchanged_installer_actual_stock_android": "PASS",
+      "AVB_full_payload_delivery_verification": "PASS (37/37)",
+      "ZIP_vs_D2": "same members, only Image/SHA256SUMS/manifest.json changed",
+      "protected19_bytes_and_restore": "PASS (git status lists exactly the 19 protected paths; git diff --name-only HEAD lists only 10 of them (the other 9 are untracked); bytes equal start hashes)"
+    },
+    "offline_status_note": "Worker status PASS for E. Raw strict checks that fail by construction (NoMount-private structs, Clang 18 bitfield encoding, free_ipc_ns inlining, BBRv3 layouts vs B) are retained as failures, not waived.",
+    "phone_acceptance": "2026-11-06 flashed as a full boot_b partition image over fastbootd (fastboot flash boot_b, image sha256 585515f7..., partition read-back identical) and booted: boot_completed=1, live /proc/config.gz = 1156a9cb..., bbr3 active and default, 0 CFI failures, OEM guard modules loaded, NoMount 647 protocol 22, DroidSpaces Ubuntu container running with 0 failed units and ~11.3 MB/s over Wi-Fi.",
+    "limits": "Delivered hashes are not live partition-byte hashes except where stated. fastbootd depends on a bootable kernel; preloader mode remains the kernel-independent recovery path. Real bootloader fastboot is unattainable on this handset (SBC fused on)."
+  },
+  "phone_confirmed_D2": {
+    "candidate": "D1 source built with ZyC Clang 18",
+    "zip": {
+      "filename": "RMX3997-5.15.197-D2-ZYC.zip",
+      "sha256": "05c0f085f56a6e274ce773dc50b8efa9974b975a67d7879c1c2cb1a0356618a2"
+    },
+    "Image_sha256": "3b6d80254000af12a780a7837a4b4aa63cad0f3f242dafab1f20ba8015f3c45a",
+    "effective_config_sha256": "b1156505705f99cefcc53a3d26370b0926952dab116ca2dafd7c97e89330d286",
+    "boot_b_partition_image": {
+      "filename": "boot_b-D2-ZYC.img",
+      "sha256": "df8e83eaec4542dfa590a47b7bf2a3c8b732a10b6d422465150103ab37735f51",
+      "size": 67108864
+    },
+    "phone_acceptance": "2026-11-06 boots; NoMount 647, DroidSpaces Ubuntu container and networking verified over ADB."
+  },
+  "phone_confirmed_D1": {
+    "candidate": "B + latest NoMount dev + WildKernels parity, stock Android Clang 14.0.7 r450784e",
+    "zip": {
+      "filename": "RMX3997-5.15.197-D1.zip",
+      "sha256": "4edb83856b882ad3d00664c5c41057f688e75d48947090d7d81ab007e7c23224"
+    },
+    "Image_sha256": "9cd2b3839c9b0ff7c3f4b72ff861cb4560ac22be66748224f5f7f51bebe22cfa",
+    "effective_config_sha256": "2e24515d602f4bd76039c58a6ebb1803745e895ca2fda7abac9d24daa0e0c51e",
+    "phone_acceptance": "2026-11-06 boots; NoMount 647, DroidSpaces Ubuntu container and networking verified over ADB."
+  },
+  "retained_evidence": "/home/build/.cache/codex-work/rmx3997-parity-20261106",
+  "previous_delivery_parity_b": {
     "candidate": "Phone-confirmed RMX3997 D2-ZYC: D1 source (B + latest NoMount dev + WildKernels parity) built with ZyC Clang 18.0.0git; IPC reserves 1-3, OEM guard reserves 4-8 preserved",
     "kernel_release": "5.15.197-android13-8-g7bdd6d06fa9d-dirty",
     "compiler": "ZyC clang version 18.0.0git (https://github.com/llvm/llvm-project 3dea0aa8f4607888d0c32cd7a691d8090b1b73c7), toolchain /home/build/.cache/zyc-clang-18.0.0git-20240124; host tools remain clang-r450784e",
@@ -61,459 +144,461 @@
     "phone_acceptance": "2026-11-06 user flashed; ADB verified boot_completed=1, live /proc/config.gz sha256 equals effective config, /proc/version reports ZyC clang 18.0.0git, 0 CFI failures, guard modules and oplus_bsp_sched_assist loaded, warning set unchanged, Wi-Fi up, NoMount 647 protocol 22 redirect, BakaSU root, DroidSpaces Ubuntu systemd running with 0 failed units and NAT.",
     "limits": "Delivered hashes are not live partition-byte hashes. BBRv3 not included. Bluetooth runtime under ZyC not exercised."
   },
-  "phone_confirmed_intermediate_D1": {
-    "candidate": "B + latest NoMount dev + WildKernels parity, stock Android Clang 14.0.7 r450784e",
-    "zip": {
-      "filename": "RMX3997-5.15.197-D1.zip",
-      "sha256": "4edb83856b882ad3d00664c5c41057f688e75d48947090d7d81ab007e7c23224"
-    },
-    "Image_sha256": "9cd2b3839c9b0ff7c3f4b72ff861cb4560ac22be66748224f5f7f51bebe22cfa",
-    "effective_config_sha256": "2e24515d602f4bd76039c58a6ebb1803745e895ca2fda7abac9d24daa0e0c51e",
-    "phone_acceptance": "2026-11-06 boots; NoMount 647, DroidSpaces Ubuntu container and networking verified over ADB."
-  },
-  "retained_evidence": "/home/build/.cache/codex-work/rmx3997-parity-20261106",
-  "previous_delivery_parity_b": {
-    "candidate": "Phone-confirmed RMX3997 PARITY-B: full upstream NoMount bf1847f plus NP3/diting config parity; IPC reserves 1-3, OEM guard reserves 4-8 preserved",
-    "base_commit": "cad998e99",
-    "kernel_release": "5.15.197-android13-8-g7bdd6d06fa9d-dirty",
-    "artifacts": {
-      "zip": {
-        "filename": "RMX3997-5.15.197-PARITY-B.zip",
-        "sha256": "dd1e45182dde74db85fa52adc749b14774731ff34e561d7270c3781a620f9651"
-      },
-      "Image": {
-        "sha256": "76d399a2180c80e068e9b8124376cf18a070cc20c726239964e6f6982d569239"
-      },
-      "effective.config": {
-        "sha256": "7fc0ddc8302c359bce5745c8916e587627a2eb621a6de2bdce6c595d4162e4a9"
-      },
-      "vmlinux": {
-        "sha256": "d3add36c6526a9cca4b1cc9835f29528ad185332c6b3293febf163e637d3e22a"
-      },
-      "candidate-B.patch": {
-        "sha256": "95b6ac50c95a705eb8874eaac80f4db83572b60c7d31cbdc20b0023d4fd40688"
-      }
-    },
-    "configuration": {
-      "canonical": "config/production.config",
-      "normalization": "Identical to the effective config except CONFIG_UNUSED_KSYMS_WHITELIST, which is the relocatable rmx3997/config/abi-symbol-list.txt path."
-    },
-    "features_added_vs_rung4": [
-      "USER_NS",
-      "DEVTMPFS (no DEVTMPFS_MOUNT)",
-      "TMPFS_XATTR",
-      "TMPFS_POSIX_ACL",
-      "IP6_NF_NAT",
-      "IP6_NF_TARGET_MASQUERADE",
-      "IP6_NF_TARGET_HL",
-      "IP_SET with NP3 set types",
-      "NETFILTER_XT_SET",
-      "NETFILTER_XT_TARGET_LOG",
-      "NETFILTER_XT_MATCH_RECENT",
-      "NET_SCH_CAKE",
-      "CIFS, CIFS_XATTR, CIFS_POSIX",
-      "BBG 028ff7fd (after SELinux in CONFIG_LSM; boot/recovery blocking off)",
-      "TCP_CONG_BBR with DEFAULT_BBR (upstream BBR, default bbr)"
-    ],
-    "dropped": [
-      {
-        "feature": "BBRv3",
-        "fallback": "upstream TCP_CONG_BBR=y DEFAULT_BBR=y default bbr",
-        "reason": "Changed TCP layout ownership cannot be proven across every OEM binary; two lack BTF and declaration metadata cannot prove direct-field access absence",
-        "evidence": "/home/build/.cache/codex-work/rmx3997-parity-20261106/A/prerequisites-b/findings.md"
-      }
-    ],
-    "offline_acceptance": {
-      "build": "PASS under retained resource guard and exact systemd memory limits",
-      "config": "PASS exact 72-symbol delta including newly visible inactive symbols; every changed line in config-delta.json",
-      "OEM": "PASS 463 unique OEM binaries, every imported CRC/protection/layout requirement preserved",
-      "layouts": "PASS all common named BTF struct/union groups plus required public structures; no unsafe OEM layout feature retained",
-      "guest": "PASS 82 checks: A 69 with updated USER_NS expectation plus 13 parity checks",
-      "NoMount": "PASS retained EROFS/F2FS full consumer cases and unmodified metamodule rule generation",
-      "network_parity": "PASS actual IPv6 NAT MASQUERADE add/readback/restore, IPSET create/add/test/delete/destroy and CAKE add/dump/delete through kernel UAPI; ARM64 CLI tools unavailable",
-      "containers_and_filesystems": "PASS USER_NS unshare/mapping, devtmpfs registered/noautomount/nodes, CIFS builtin registration; TMPFS xattr/ACL config and actual Image handler-table proof without tmpfs mount",
-      "BBR": "PASS upstream BBR default bbr and setsockopt/get verification; BBRv3 dropped",
-      "BBG": "PASS registered after existing LSMs including SELinux; trusted writes to disposable MTK-named block aliases; source policy examined against 256 retained init/fstab files",
-      "installer_AVB_payload": "PASS unchanged installer, independent AOSP AVB and full payload/kernel/ramdisk/header verification"
-    },
-    "phone_acceptance": "2026-11-06 user flashed; ADB verified boot_completed=1, live /proc/config.gz sha256 equals effective config, guard modules and oplus_bsp_sched_assist loaded, warning set unchanged, LSM order capability,safesetid,selinux,baseband_guard,ksu with 0 BBG denials, default bbr, devtmpfs/cifs registered, host USER_NS unshare works, NoMount v2.2.0 metamodule protocol 22 redirects /system/bin/droidspaces with no mount, DroidSpaces Ubuntu 24.04 systemd running with 0 failed units, NAT, CAKE and SysV IPC isolation.",
-    "limits": "Delivered hashes are not live partition-byte hashes. BBRv3 not included. unshare -U inside the DroidSpaces container is refused by the container runtime, not the kernel."
-  },
   "earlier_records": {
-    "phone_confirmed_intermediate_A": {
-      "candidate": "Rung 4 plus full upstream NoMount bf1847f only; effective config unchanged",
+    "phone_confirmed_intermediate_D1": {
+      "candidate": "B + latest NoMount dev + WildKernels parity, stock Android Clang 14.0.7 r450784e",
       "zip": {
-        "filename": "RMX3997-5.15.197-NOMOUNT-FULL-A.zip",
-        "sha256": "66a14a9b14f680276a0e9ff2444ec8e92edfd4722e067b7f57e0d63916ce5fda"
+        "filename": "RMX3997-5.15.197-D1.zip",
+        "sha256": "4edb83856b882ad3d00664c5c41057f688e75d48947090d7d81ab007e7c23224"
       },
-      "Image_sha256": "278a9d931cdd7f8b97001d20c9d66aa5280fc96511aaf6913165069a7c1c9850",
-      "effective_config_sha256": "6d47b7ccfaa8d2ec437373e968bcc0d8c6e9493d49939340462ff8f0eb97c61d",
-      "candidate-A.patch_sha256": "72cc96aaf4f81b36a118f35864f60ec8cbf12e9f699249931b4d597fab888e58",
-      "phone_acceptance": "2026-11-06 boots; NoMount metamodule operational on EROFS targets with F2FS backing."
+      "Image_sha256": "9cd2b3839c9b0ff7c3f4b72ff861cb4560ac22be66748224f5f7f51bebe22cfa",
+      "effective_config_sha256": "2e24515d602f4bd76039c58a6ebb1803745e895ca2fda7abac9d24daa0e0c51e",
+      "phone_acceptance": "2026-11-06 boots; NoMount 647, DroidSpaces Ubuntu container and networking verified over ADB."
     },
     "retained_evidence": "/home/build/.cache/codex-work/rmx3997-parity-20261106",
-    "previous_delivery_ipc_slots123": {
-      "candidate": "Phone-confirmed RMX3997 IPC slots1-3; OEM guard reserves4-8 preserved",
-      "publication_base": "a48e9c4c5a68f4287af45d0cd2bc3fd662a9c8d2",
+    "previous_delivery_parity_b": {
+      "candidate": "Phone-confirmed RMX3997 PARITY-B: full upstream NoMount bf1847f plus NP3/diting config parity; IPC reserves 1-3, OEM guard reserves 4-8 preserved",
+      "base_commit": "cad998e99",
       "kernel_release": "5.15.197-android13-8-g7bdd6d06fa9d-dirty",
       "artifacts": {
-        "Image": {
-          "filename": "Image",
-          "sha256": "927db11b449ebba5fdd8d808fdae55a39fe6b0726aa9f6ff4efc61a77f621b36"
+        "zip": {
+          "filename": "RMX3997-5.15.197-PARITY-B.zip",
+          "sha256": "dd1e45182dde74db85fa52adc749b14774731ff34e561d7270c3781a620f9651"
         },
-        "baseline.zip": {
-          "filename": "RMX3997-5.15.197-IPC-SLOTS123-GUARD-PRESERVED-DIAGNOSTIC.zip",
-          "sha256": "b0fe0a27b43725770843216fb11ddbc6032b88a2baee363b6dcf4e2296345084"
+        "Image": {
+          "sha256": "76d399a2180c80e068e9b8124376cf18a070cc20c726239964e6f6982d569239"
         },
         "effective.config": {
-          "filename": "effective.config",
-          "sha256": "789f557486f3f02cd029716720d2bc9befa9c871af75450792a560371f1204c3"
+          "sha256": "7fc0ddc8302c359bce5745c8916e587627a2eb621a6de2bdce6c595d4162e4a9"
         },
-        "frozen-candidate.patch": {
-          "filename": "frozen-candidate.patch",
-          "sha256": "c713d67053c5416709a5e1613b22a5a78d59ff98adf872e73bbf1889a09a5026"
+        "vmlinux": {
+          "sha256": "d3add36c6526a9cca4b1cc9835f29528ad185332c6b3293febf163e637d3e22a"
         },
-        "build-argv.json": {
-          "filename": "build-argv.json",
-          "sha256": "dd9174823945d84b413782cb5c7bfc6e2b1f03e5a328a63c9575fa8c7ae874a6"
-        },
-        "build-environment.json": {
-          "filename": "build-environment.json",
-          "sha256": "930f3869bfe09bdb57a4c53b7c1d4d7f81b3c52899cbc3b395b5d6fdcbaa9271"
-        },
-        "build-launch.json": {
-          "filename": "build-launch.json",
-          "sha256": "db40ff17ecc6a4714d1e28170407ceb05a73ac9695fea529750098c06626b975"
-        },
-        "build-execution.json": {
-          "filename": "build-execution.json",
-          "sha256": "25c884c4cb186ea7e5f0c0ed789e18a841cf8309b0caf278da090bbfb8e93bbb"
-        },
-        "targeted-preflight.json": {
-          "filename": "targeted-preflight.json",
-          "sha256": "db563d003fb1262cb5097ec80d5a9b83a1df77ee1660c9b44e851901c4eefc03"
-        },
-        "acceptance-controller-commands.json": {
-          "filename": "acceptance-controller-commands.json",
-          "sha256": "2104a18c7f71cdfe0d66409ff383de6286bd05f641b2d967e614ba51f450030a"
-        },
-        "delivery-verification.json": {
-          "filename": "delivery-verification.json",
-          "sha256": "5d9b28268ebeb0fc11bdbe9337950598ccd7fb6bc63fe0376fb7898255baa540"
-        },
-        "ipc-slots123-delivery-report.md": {
-          "filename": "ipc-slots123-delivery-report.md",
-          "sha256": "f68aa49c595ffb758f510f22fea612ea33addd2ef9e1b7c47f1a807c2702d33c"
-        },
-        "material-source-preservation.json": {
-          "filename": "material-source-preservation.json",
-          "sha256": "93b657fbe8c41ea16cf993b6679cc517e41eb33174f9b69556bcad55ce47841b"
+        "candidate-B.patch": {
+          "sha256": "95b6ac50c95a705eb8874eaac80f4db83572b60c7d31cbdc20b0023d4fd40688"
         }
       },
-      "vmlinux_sha256": "cae544f2a7a23e0f127a5520e046122ee37b9c9ed3490529607015917aa22cf3",
       "configuration": {
         "canonical": "config/production.config",
-        "canonical_sha256": "587f2c1e9e8e9f1d0e26dc5863638222f191b3d7bd53984c2bd958c25a2349bb",
-        "frozen_effective_sha256": "789f557486f3f02cd029716720d2bc9befa9c871af75450792a560371f1204c3",
-        "normalization": "Replace only CONFIG_UNUSED_KSYMS_WHITELIST with the frozen effective config value to recover the exact frozen bytes. No other line, ordering, whitespace or symbol normalization. The original absolute path is provenance only, not a required host path.",
-        "relocatable_whitelist": "rmx3997/config/abi-symbol-list.txt",
-        "whitelist_sha256": "1b6652e1e38f09e3c30102cefbb4253d57606c4afd3b02f6c7a61db8e246f5cb",
-        "whitelist_symbols": 8656,
-        "prepare_binding": "Source-root relative whitelist is flattened to stage/out/abi_symbollist.raw and bound as an absolute path in stage/out/.config.",
-        "generated_config_comparison": "Canonical prepare-stage --config-only and actual olddefconfig passed; normalized config equals frozen SHA256. Relative and bound paths produced identical gen_autoksyms headers."
+        "normalization": "Identical to the effective config except CONFIG_UNUSED_KSYMS_WHITELIST, which is the relocatable rmx3997/config/abi-symbol-list.txt path."
       },
-      "flattener": {
-        "path": "development/flatten_symbol_list",
-        "origin": "Unmodified retained Android kernel/build/kernel/abi/flatten_symbol_list; Apache-2.0 header preserved. Upstream checkout revision unavailable in retained workspace; no revision is inferred.",
-        "sha256": "84eb50d7966d6a65448a4f83b5c56d9f57e0c1354aeba70fc83600d4e1e912b6"
-      },
-      "kernel_source_records": {
-        "arch/arm64/lib/clear_page.S": {
-          "sha256": "505f589c75be98cfbaf0479f6b58a6c66515ab2a4995266f8c33fb90f43df530",
-          "mode": 420
-        },
-        "arch/arm64/lib/copy_template.S": {
-          "sha256": "faf431e258b0180883dddb5b581d2a36eb4a8998f7c33959e72e00ebb30476b0",
-          "mode": 420
-        },
-        "arch/arm64/lib/memcmp.S": {
-          "sha256": "6a2bbfc7d078eaaf2556a412c9050bb1fb0fa68fffb23bf0dc317572cf7b2e61",
-          "mode": 420
-        },
-        "crypto/Kconfig": {
-          "sha256": "6ca054b190dfba4d9f5fb5426fa08b07726f43ae7e0ee869e0779b5c8eda726f",
-          "mode": 420
-        },
-        "crypto/Makefile": {
-          "sha256": "5c59113d2e48a9ad516d114aef8521bbc5005613afeae2cf76721891645b46f1",
-          "mode": 420
-        },
-        "crypto/zram_multi.c": {
-          "deleted": true
-        },
-        "drivers/Kconfig": {
-          "sha256": "cf56958e8c6c60460f61f45b0bb90d1f75416e708171176c2b94e69acdcd34a2",
-          "mode": 420
-        },
-        "drivers/base/power/wakeup.c": {
-          "sha256": "5ea465d30e42bdf2087aa8287c49ad3f1ae948281adcd809edc91a70701ba9a8",
-          "mode": 420
-        },
-        "drivers/cpufreq/cpufreq.c": {
-          "sha256": "7c9908c47a5eb913b2ae7f7a559bf83bd4f2ef22d50dee48d31797cf1b37f882",
-          "mode": 420
-        },
-        "drivers/kernelsu/manager/pkg_observer.c": {
-          "sha256": "c364594f76ec6ad46dbf1255111aad8cd2035e372ab631a93a8cfc78c00977d5",
-          "mode": 420
-        },
-        "drivers/kernelsu/manager/throne_tracker.c": {
-          "sha256": "ccb8e63b10e145d894d83bfcae937bde5b605717991d58c61ac59329776a0dbb",
-          "mode": 420
-        },
-        "drivers/misc/ntsync.c": {
-          "sha256": "68e98793639e4c0d38a0fb125afad9cc7c112efcd9261f2f834e46a17c9ad3b9",
-          "mode": 420
-        },
-        "drivers/pci/pci.c": {
-          "sha256": "e40a8bae756a70035b99bb6a0b6b7ceeeb6fec42252f32af36e220d13bd28ae4",
-          "mode": 420
-        },
-        "fs/Kconfig": {
-          "sha256": "f60853df39b4915df64560843b67182f5f1c19617e5be50be1e237831b84abb8",
-          "mode": 420
-        },
-        "fs/Makefile": {
-          "sha256": "0d7e3e2f6a130614253c8d7b81440e1530b488368a2cf431df864e2b698a759e",
-          "mode": 420
-        },
-        "fs/dcache.c": {
-          "sha256": "02552f0bf93b1f6f7501a3c92e620ce1bbdbe7f8b267a0d17fb8b2f90d03f2bf",
-          "mode": 420
-        },
-        "fs/f2fs/f2fs.h": {
-          "sha256": "2e30a5c25975424e135c1cd758f943c7b8d79a9fc71058f35e03ccb4460f2d54",
-          "mode": 420
-        },
-        "fs/f2fs/gc.h": {
-          "sha256": "f4226cf04747fb6e3e5e24b016644a9046d13e94229d92779bc8a11ada77a1eb",
-          "mode": 420
-        },
-        "fs/f2fs/segment.h": {
-          "sha256": "6574c0aa60ddee78983008b5d14626283ce9176a6a674fb47e4d7b92e01ba2ce",
-          "mode": 420
-        },
-        "fs/notify/fanotify/fanotify_user.c": {
-          "sha256": "4b6865cabbb417e3eb007aa76ab42bb3ae1ec09de63160280d4f91d4c456c927",
-          "mode": 420
-        },
-        "fs/notify/fdinfo.c": {
-          "sha256": "d2fa2ec36f0b203f1e3793b5ee3b9bd7aaf19814b76b4894cb420af26ff77610",
-          "mode": 420
-        },
-        "fs/susfs.c": {
-          "sha256": "239ae171b7accad1116977ad7cb01b2391c5879118e1700cdd94997635eb76c7",
-          "mode": 420
-        },
-        "include/linux/fs.h": {
-          "sha256": "4066e8694defd433bed4da18ff694cecbd7dfd3f5bcb1badcce912bebe9cc8f0",
-          "mode": 420
-        },
-        "include/linux/jbd2.h": {
-          "sha256": "13df64c0fe89e468b45d6ec5de389335107b1cae9eda9dc076185a811c25368c",
-          "mode": 420
-        },
-        "include/linux/ptrace.h": {
-          "sha256": "b2126b4ee02e00d90b9b2023573f0efa3b5c2a1774fb861788e01213b5858660",
-          "mode": 420
-        },
-        "include/linux/sched.h": {
-          "sha256": "75d44ab60c056ea89be4b76abacf8b2a2902c85b810f86cd92139fd888a9db4a",
-          "mode": 420
-        },
-        "include/linux/shm.h": {
-          "sha256": "e171e53ab6cf10da0b6fab0d93823eb5018458245917be8646f5ed6d70cc62b3",
-          "mode": 420
-        },
-        "include/linux/skmsg.h": {
-          "sha256": "003dcaf664bddea9fc3e96e51cb09eff8bda47b139e650969af5262fe3bc88fc",
-          "mode": 420
-        },
-        "include/linux/susfs.h": {
-          "sha256": "e0cf92e9974fe4d962829be3f40ae81639eae8ff000027cced4558ab438a10fc",
-          "mode": 420
-        },
-        "include/linux/tracehook.h": {
-          "sha256": "ab5ebb21451ba4ec46d4f702994d63c054c18d23c1f1ae36a491cfac46872d39",
-          "mode": 420
-        },
-        "include/linux/user_namespace.h": {
-          "sha256": "26152f03d2bb459238443d5c1f7df85b4442e230b82b2301641c9180001a6f17",
-          "mode": 420
-        },
-        "include/net/sock.h": {
-          "sha256": "358ab5dc00f55d08b381c383762f5d3644191209863deeaec4580833ff1ce513",
-          "mode": 420
-        },
-        "include/uapi/linux/rtnetlink.h": {
-          "sha256": "bad80ba048a6755d35fe4e8d86f5ba58975c19eae909306550dee1b294250bd8",
-          "mode": 420
-        },
-        "ipc/sem.c": {
-          "sha256": "a6ac85f6830613e96b6b3aa6e67f5b4af59cf9491ba7b101071010c3dad81a53",
-          "mode": 420
-        },
-        "ipc/shm.c": {
-          "sha256": "8f0c9d1e84c52899f76dbf1a1b4fa3520abbddbd5034a25ad93202aeb758757f",
-          "mode": 420
-        },
-        "kernel/cgroup/cgroup.c": {
-          "sha256": "d2f27771a84b6656a246df29d40730437d9e1651138cba07b8f7adc584d95ea5",
-          "mode": 420
-        },
-        "kernel/fork.c": {
-          "sha256": "ba74faa04998c737e59f43b2c58713259eb7ce5108eda2aa4536f784db472bad",
-          "mode": 420
-        },
-        "kernel/irq/cpuhotplug.c": {
-          "sha256": "12b69083037fd1b7d45d1a4b9bfaf8d58eaac52e937583491cda911e3275e38b",
-          "mode": 420
-        },
-        "kernel/kcmp.c": {
-          "sha256": "a104d3d481f5f2106e6e23cb04f5ec75e93d42fd339bba26a4b50147d5e03031",
-          "mode": 420
-        },
-        "kernel/power/process.c": {
-          "sha256": "b23f4b3958236bbe82831b41cffc130082157976b3958bb876a764d1707d0b22",
-          "mode": 420
-        },
-        "kernel/printk/printk.c": {
-          "sha256": "fa79aa8c7b174fc320deab3c6392f7eadf81cec671c0c0e09ac399681c5832fd",
-          "mode": 420
-        },
-        "kernel/sched/fair.c": {
-          "sha256": "eb763379504d2069e19dcde0b8bcd0db85a26fd36f01025d33382df3f2024fed",
-          "mode": 420
-        },
-        "kernel/sched/features.h": {
-          "sha256": "a289e4fcc6534e72a6280507e08d0462d738ef371b7f7da6ecbe0d04b210f3a9",
-          "mode": 420
-        },
-        "kernel/signal.c": {
-          "sha256": "425e85138b283d183528b44f36bac1d3e77d6fa5c7cbcc890229caf5e62aaa0a",
-          "mode": 420
-        },
-        "kernel/time/alarmtimer.c": {
-          "sha256": "4380ac3cb5f1bd9df28d8d30139040ce668f23b10b45e5beaf75c893e50558c8",
-          "mode": 420
-        },
-        "kernel/ucount.c": {
-          "sha256": "1ef18b35bc6b9a9b9816d9b07ff40466b489584fc671df8f481394b7e8d031bd",
-          "mode": 420
-        },
-        "kernel/user_namespace.c": {
-          "sha256": "cbb03a3d8603be057223e00e0b1a193a9bc3cacc0acc0048811d0cd3e86051c8",
-          "mode": 420
-        },
-        "lib/math/int_sqrt.c": {
-          "sha256": "a51e271e78ec485015762a62838c2919a050b1fceb9cf6d0e306558ab97ff846",
-          "mode": 420
-        },
-        "net/core/skbuff.c": {
-          "sha256": "78926d6b2e747122f7f12de23decd60cf08c04c0504bd901e220c6d576e47ec1",
-          "mode": 420
-        },
-        "net/core/skmsg.c": {
-          "sha256": "747fbf7cdcc29d9db3072e205a4abbbfb5dc36b77d7899722173b976531a4c01",
-          "mode": 420
-        },
-        "net/ipv4/Kconfig": {
-          "sha256": "b92c724eae1de2c516ee0fd3e98114f0c693bb74676be18d7788063b88d0db27",
-          "mode": 420
-        },
-        "net/ipv4/Makefile": {
-          "sha256": "c778e499dce80e0cc3ac3abc698da3753b2f81f455d8833e8c3d4480d3f1e10b",
-          "mode": 420
-        },
-        "net/ipv4/sysctl_net_ipv4.c": {
-          "sha256": "a377f74c7fd248b5c83f93767bf1482ebdfd34b9e5b5165857fa799f8ff67d4e",
-          "mode": 420
-        },
-        "net/ipv4/tcp.c": {
-          "sha256": "a185351d32310a17ad68eb3788f786f8f26ec444a13239d3a01d6edbcf20f4ad",
-          "mode": 420
-        },
-        "net/ipv4/tcp_input.c": {
-          "sha256": "446a69ed66e44b0bd9a0e569e9bb2635f68964ed8f7f9d7550ddd4b56c91c69c",
-          "mode": 420
-        },
-        "net/ipv4/tcp_minisocks.c": {
-          "sha256": "7815e9675c589da3b2ee5db11619af5922e692182e34d4fbef8b0af29ee7780d",
-          "mode": 420
-        },
-        "net/ipv4/tcp_output.c": {
-          "sha256": "5dd1fe4cd1806e0b325e8abddd1a0bc003103ead61298a2728d563ef568a3a60",
-          "mode": 420
-        },
-        "net/ipv4/tcp_rate.c": {
-          "sha256": "bdbe9d1fc6df51c77ef74d6e0b28bb46a2b401476f52ce80c5be3d04524dd135",
-          "mode": 420
-        },
-        "security/Kconfig": {
-          "sha256": "6091b084fac176ca86723ddc03bd758eef4be17a65a593b2acb0cb84990404f8",
-          "mode": 420
-        },
-        "security/Makefile": {
-          "sha256": "30a964a32a41a5b1b8737d9208d29c7ecb583de8fd6e5236e19dae1daae8bfde",
-          "mode": 420
+      "features_added_vs_rung4": [
+        "USER_NS",
+        "DEVTMPFS (no DEVTMPFS_MOUNT)",
+        "TMPFS_XATTR",
+        "TMPFS_POSIX_ACL",
+        "IP6_NF_NAT",
+        "IP6_NF_TARGET_MASQUERADE",
+        "IP6_NF_TARGET_HL",
+        "IP_SET with NP3 set types",
+        "NETFILTER_XT_SET",
+        "NETFILTER_XT_TARGET_LOG",
+        "NETFILTER_XT_MATCH_RECENT",
+        "NET_SCH_CAKE",
+        "CIFS, CIFS_XATTR, CIFS_POSIX",
+        "BBG 028ff7fd (after SELinux in CONFIG_LSM; boot/recovery blocking off)",
+        "TCP_CONG_BBR with DEFAULT_BBR (upstream BBR, default bbr)"
+      ],
+      "dropped": [
+        {
+          "feature": "BBRv3",
+          "fallback": "upstream TCP_CONG_BBR=y DEFAULT_BBR=y default bbr",
+          "reason": "Changed TCP layout ownership cannot be proven across every OEM binary; two lack BTF and declaration metadata cannot prove direct-field access absence",
+          "evidence": "/home/build/.cache/codex-work/rmx3997-parity-20261106/A/prerequisites-b/findings.md"
         }
+      ],
+      "offline_acceptance": {
+        "build": "PASS under retained resource guard and exact systemd memory limits",
+        "config": "PASS exact 72-symbol delta including newly visible inactive symbols; every changed line in config-delta.json",
+        "OEM": "PASS 463 unique OEM binaries, every imported CRC/protection/layout requirement preserved",
+        "layouts": "PASS all common named BTF struct/union groups plus required public structures; no unsafe OEM layout feature retained",
+        "guest": "PASS 82 checks: A 69 with updated USER_NS expectation plus 13 parity checks",
+        "NoMount": "PASS retained EROFS/F2FS full consumer cases and unmodified metamodule rule generation",
+        "network_parity": "PASS actual IPv6 NAT MASQUERADE add/readback/restore, IPSET create/add/test/delete/destroy and CAKE add/dump/delete through kernel UAPI; ARM64 CLI tools unavailable",
+        "containers_and_filesystems": "PASS USER_NS unshare/mapping, devtmpfs registered/noautomount/nodes, CIFS builtin registration; TMPFS xattr/ACL config and actual Image handler-table proof without tmpfs mount",
+        "BBR": "PASS upstream BBR default bbr and setsockopt/get verification; BBRv3 dropped",
+        "BBG": "PASS registered after existing LSMs including SELinux; trusted writes to disposable MTK-named block aliases; source policy examined against 256 retained init/fstab files",
+        "installer_AVB_payload": "PASS unchanged installer, independent AOSP AVB and full payload/kernel/ramdisk/header verification"
       },
-      "installer": {
-        "source": "development/wk-anykernel",
-        "members": {
-          "LICENSE": "df6f65da47d459fdf2a2ef0eadb34f37d838befc91352b64a84f35507bea95cd",
-          "META-INF/com/google/android/update-binary": "5123eeee4d13b18a738da0360cada4d03e5d77a70845f1144bb078de8b513a50",
-          "META-INF/com/google/android/updater-script": "ef91e7d8a9b3dc2076be6412932d82657751d0f21471b1d09f2ca8855bcbb899",
-          "anykernel.sh": "496969ec96b8a230bdf3079cec105cfbc1ef29c47b08ce304e70e6f57b2cbc40",
-          "install-on-device.sh": "4dce19cdce715e23cb292025a042107b7735e20d10a81f8b1f270080d4894f94",
-          "tools/ak3-core.sh": "e0e084bbfebe1cb1e7c68e3669ba7bf3763ba05f8c15360ccbbfc6c075b5c25d",
-          "tools/avbroot": "8edf57de0b181a65a6915198972f539cb1d7d9f34825127e6bb81dd69cb323ed",
-          "tools/avbroot-LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
-          "tools/avbroot-provenance.json": "39da151c53a356e4ac263f8d4ed49fd1bc835c77db06c6dd690dc8ddb3244e67",
-          "tools/busybox": "c629fce4b0dd3ba9775f851d0941e74582115f423258d3a79800f2bd11d30f5c",
-          "tools/magiskboot": "4c480c9ffc51b4b9d8c3760bb188fd1eb73972a90983963ef791bca6faa65d6c",
-          "tools/rmx-avb.sh": "32e14b4a930d5c9f39fcc00758c9c9aff60c1a1041e4f390b6ca6861468bceea"
+      "phone_acceptance": "2026-11-06 user flashed; ADB verified boot_completed=1, live /proc/config.gz sha256 equals effective config, guard modules and oplus_bsp_sched_assist loaded, warning set unchanged, LSM order capability,safesetid,selinux,baseband_guard,ksu with 0 BBG denials, default bbr, devtmpfs/cifs registered, host USER_NS unshare works, NoMount v2.2.0 metamodule protocol 22 redirects /system/bin/droidspaces with no mount, DroidSpaces Ubuntu 24.04 systemd running with 0 failed units, NAT, CAKE and SysV IPC isolation.",
+      "limits": "Delivered hashes are not live partition-byte hashes. BBRv3 not included. unshare -U inside the DroidSpaces container is refused by the container runtime, not the kernel."
+    },
+    "earlier_records": {
+      "phone_confirmed_intermediate_A": {
+        "candidate": "Rung 4 plus full upstream NoMount bf1847f only; effective config unchanged",
+        "zip": {
+          "filename": "RMX3997-5.15.197-NOMOUNT-FULL-A.zip",
+          "sha256": "66a14a9b14f680276a0e9ff2444ec8e92edfd4722e067b7f57e0d63916ce5fda"
         },
-        "upstream": "WildKernels/AnyKernel3@0b46673ae91aee8d60bd6ee257b4d56d3f6a0114",
-        "origin_record": "development/wk-anykernel-origin.json",
-        "avbroot_provenance": "development/wk-anykernel/tools/avbroot-provenance.json",
-        "frozen_ZIP_members": "All 12 source members exactly match the phone-confirmed ZIP; Image/manifest.json/SHA256SUMS are generated package contents, excluded from Git."
+        "Image_sha256": "278a9d931cdd7f8b97001d20c9d66aa5280fc96511aaf6913165069a7c1c9850",
+        "effective_config_sha256": "6d47b7ccfaa8d2ec437373e968bcc0d8c6e9493d49939340462ff8f0eb97c61d",
+        "candidate-A.patch_sha256": "72cc96aaf4f81b36a118f35864f60ec8cbf12e9f699249931b4d597fab888e58",
+        "phone_acceptance": "2026-11-06 boots; NoMount metamodule operational on EROFS targets with F2FS backing."
       },
-      "retained_evidence": {
-        "root": "Existing rmx3997-full-features-20261104 task archive; relative paths below identify local evidence, not bundled dependencies.",
-        "original_candidate_directory": "ipc-slots123-diagnostic",
-        "original_package_wrapper": {
-          "path": "ipc-slots123-diagnostic/package.py",
-          "sha256": "3386adec2fb9e9860bc6b101291502762b2ea2b9fe88c4d17901a660051d6606",
-          "entry": "Calls package-oem-candidate.inspect/package after exact Image/config identity, runtime, binary/layout and explicit reserved-slot ABI classification checks. Generic packager CLI requires raw upstream PASS and was not the current candidate entry."
+      "retained_evidence": "/home/build/.cache/codex-work/rmx3997-parity-20261106",
+      "previous_delivery_ipc_slots123": {
+        "candidate": "Phone-confirmed RMX3997 IPC slots1-3; OEM guard reserves4-8 preserved",
+        "publication_base": "a48e9c4c5a68f4287af45d0cd2bc3fd662a9c8d2",
+        "kernel_release": "5.15.197-android13-8-g7bdd6d06fa9d-dirty",
+        "artifacts": {
+          "Image": {
+            "filename": "Image",
+            "sha256": "927db11b449ebba5fdd8d808fdae55a39fe6b0726aa9f6ff4efc61a77f621b36"
+          },
+          "baseline.zip": {
+            "filename": "RMX3997-5.15.197-IPC-SLOTS123-GUARD-PRESERVED-DIAGNOSTIC.zip",
+            "sha256": "b0fe0a27b43725770843216fb11ddbc6032b88a2baee363b6dcf4e2296345084"
+          },
+          "effective.config": {
+            "filename": "effective.config",
+            "sha256": "789f557486f3f02cd029716720d2bc9befa9c871af75450792a560371f1204c3"
+          },
+          "frozen-candidate.patch": {
+            "filename": "frozen-candidate.patch",
+            "sha256": "c713d67053c5416709a5e1613b22a5a78d59ff98adf872e73bbf1889a09a5026"
+          },
+          "build-argv.json": {
+            "filename": "build-argv.json",
+            "sha256": "dd9174823945d84b413782cb5c7bfc6e2b1f03e5a328a63c9575fa8c7ae874a6"
+          },
+          "build-environment.json": {
+            "filename": "build-environment.json",
+            "sha256": "930f3869bfe09bdb57a4c53b7c1d4d7f81b3c52899cbc3b395b5d6fdcbaa9271"
+          },
+          "build-launch.json": {
+            "filename": "build-launch.json",
+            "sha256": "db40ff17ecc6a4714d1e28170407ceb05a73ac9695fea529750098c06626b975"
+          },
+          "build-execution.json": {
+            "filename": "build-execution.json",
+            "sha256": "25c884c4cb186ea7e5f0c0ed789e18a841cf8309b0caf278da090bbfb8e93bbb"
+          },
+          "targeted-preflight.json": {
+            "filename": "targeted-preflight.json",
+            "sha256": "db563d003fb1262cb5097ec80d5a9b83a1df77ee1660c9b44e851901c4eefc03"
+          },
+          "acceptance-controller-commands.json": {
+            "filename": "acceptance-controller-commands.json",
+            "sha256": "2104a18c7f71cdfe0d66409ff383de6286bd05f641b2d967e614ba51f450030a"
+          },
+          "delivery-verification.json": {
+            "filename": "delivery-verification.json",
+            "sha256": "5d9b28268ebeb0fc11bdbe9337950598ccd7fb6bc63fe0376fb7898255baa540"
+          },
+          "ipc-slots123-delivery-report.md": {
+            "filename": "ipc-slots123-delivery-report.md",
+            "sha256": "f68aa49c595ffb758f510f22fea612ea33addd2ef9e1b7c47f1a807c2702d33c"
+          },
+          "material-source-preservation.json": {
+            "filename": "material-source-preservation.json",
+            "sha256": "93b657fbe8c41ea16cf993b6679cc517e41eb33174f9b69556bcad55ce47841b"
+          }
         },
-        "publication_input_comparison": "overnight-improvement/publication/input-comparison.json",
-        "independent_review": "overnight-improvement/publication/independent-review.md",
-        "config_verification": "overnight-improvement/publication/alignment/config-comparison.json",
-        "whitelist_regression": "overnight-improvement/publication/alignment/whitelist-regression/results.json",
-        "boot_confirmation": {
-          "path": "overnight-improvement/evidence/postboot-snapshot/boot-confirmation.json",
-          "sha256": "d2258d5c94d096929497fa966ef97686f4ac0dbad0c93ecfdfe97aa1085e9b3e"
+        "vmlinux_sha256": "cae544f2a7a23e0f127a5520e046122ee37b9c9ed3490529607015917aa22cf3",
+        "configuration": {
+          "canonical": "config/production.config",
+          "canonical_sha256": "587f2c1e9e8e9f1d0e26dc5863638222f191b3d7bd53984c2bd958c25a2349bb",
+          "frozen_effective_sha256": "789f557486f3f02cd029716720d2bc9befa9c871af75450792a560371f1204c3",
+          "normalization": "Replace only CONFIG_UNUSED_KSYMS_WHITELIST with the frozen effective config value to recover the exact frozen bytes. No other line, ordering, whitespace or symbol normalization. The original absolute path is provenance only, not a required host path.",
+          "relocatable_whitelist": "rmx3997/config/abi-symbol-list.txt",
+          "whitelist_sha256": "1b6652e1e38f09e3c30102cefbb4253d57606c4afd3b02f6c7a61db8e246f5cb",
+          "whitelist_symbols": 8656,
+          "prepare_binding": "Source-root relative whitelist is flattened to stage/out/abi_symbollist.raw and bound as an absolute path in stage/out/.config.",
+          "generated_config_comparison": "Canonical prepare-stage --config-only and actual olddefconfig passed; normalized config equals frozen SHA256. Relative and bound paths produced identical gen_autoksyms headers."
+        },
+        "flattener": {
+          "path": "development/flatten_symbol_list",
+          "origin": "Unmodified retained Android kernel/build/kernel/abi/flatten_symbol_list; Apache-2.0 header preserved. Upstream checkout revision unavailable in retained workspace; no revision is inferred.",
+          "sha256": "84eb50d7966d6a65448a4f83b5c56d9f57e0c1354aeba70fc83600d4e1e912b6"
+        },
+        "kernel_source_records": {
+          "arch/arm64/lib/clear_page.S": {
+            "sha256": "505f589c75be98cfbaf0479f6b58a6c66515ab2a4995266f8c33fb90f43df530",
+            "mode": 420
+          },
+          "arch/arm64/lib/copy_template.S": {
+            "sha256": "faf431e258b0180883dddb5b581d2a36eb4a8998f7c33959e72e00ebb30476b0",
+            "mode": 420
+          },
+          "arch/arm64/lib/memcmp.S": {
+            "sha256": "6a2bbfc7d078eaaf2556a412c9050bb1fb0fa68fffb23bf0dc317572cf7b2e61",
+            "mode": 420
+          },
+          "crypto/Kconfig": {
+            "sha256": "6ca054b190dfba4d9f5fb5426fa08b07726f43ae7e0ee869e0779b5c8eda726f",
+            "mode": 420
+          },
+          "crypto/Makefile": {
+            "sha256": "5c59113d2e48a9ad516d114aef8521bbc5005613afeae2cf76721891645b46f1",
+            "mode": 420
+          },
+          "crypto/zram_multi.c": {
+            "deleted": true
+          },
+          "drivers/Kconfig": {
+            "sha256": "cf56958e8c6c60460f61f45b0bb90d1f75416e708171176c2b94e69acdcd34a2",
+            "mode": 420
+          },
+          "drivers/base/power/wakeup.c": {
+            "sha256": "5ea465d30e42bdf2087aa8287c49ad3f1ae948281adcd809edc91a70701ba9a8",
+            "mode": 420
+          },
+          "drivers/cpufreq/cpufreq.c": {
+            "sha256": "7c9908c47a5eb913b2ae7f7a559bf83bd4f2ef22d50dee48d31797cf1b37f882",
+            "mode": 420
+          },
+          "drivers/kernelsu/manager/pkg_observer.c": {
+            "sha256": "c364594f76ec6ad46dbf1255111aad8cd2035e372ab631a93a8cfc78c00977d5",
+            "mode": 420
+          },
+          "drivers/kernelsu/manager/throne_tracker.c": {
+            "sha256": "ccb8e63b10e145d894d83bfcae937bde5b605717991d58c61ac59329776a0dbb",
+            "mode": 420
+          },
+          "drivers/misc/ntsync.c": {
+            "sha256": "68e98793639e4c0d38a0fb125afad9cc7c112efcd9261f2f834e46a17c9ad3b9",
+            "mode": 420
+          },
+          "drivers/pci/pci.c": {
+            "sha256": "e40a8bae756a70035b99bb6a0b6b7ceeeb6fec42252f32af36e220d13bd28ae4",
+            "mode": 420
+          },
+          "fs/Kconfig": {
+            "sha256": "f60853df39b4915df64560843b67182f5f1c19617e5be50be1e237831b84abb8",
+            "mode": 420
+          },
+          "fs/Makefile": {
+            "sha256": "0d7e3e2f6a130614253c8d7b81440e1530b488368a2cf431df864e2b698a759e",
+            "mode": 420
+          },
+          "fs/dcache.c": {
+            "sha256": "02552f0bf93b1f6f7501a3c92e620ce1bbdbe7f8b267a0d17fb8b2f90d03f2bf",
+            "mode": 420
+          },
+          "fs/f2fs/f2fs.h": {
+            "sha256": "2e30a5c25975424e135c1cd758f943c7b8d79a9fc71058f35e03ccb4460f2d54",
+            "mode": 420
+          },
+          "fs/f2fs/gc.h": {
+            "sha256": "f4226cf04747fb6e3e5e24b016644a9046d13e94229d92779bc8a11ada77a1eb",
+            "mode": 420
+          },
+          "fs/f2fs/segment.h": {
+            "sha256": "6574c0aa60ddee78983008b5d14626283ce9176a6a674fb47e4d7b92e01ba2ce",
+            "mode": 420
+          },
+          "fs/notify/fanotify/fanotify_user.c": {
+            "sha256": "4b6865cabbb417e3eb007aa76ab42bb3ae1ec09de63160280d4f91d4c456c927",
+            "mode": 420
+          },
+          "fs/notify/fdinfo.c": {
+            "sha256": "d2fa2ec36f0b203f1e3793b5ee3b9bd7aaf19814b76b4894cb420af26ff77610",
+            "mode": 420
+          },
+          "fs/susfs.c": {
+            "sha256": "239ae171b7accad1116977ad7cb01b2391c5879118e1700cdd94997635eb76c7",
+            "mode": 420
+          },
+          "include/linux/fs.h": {
+            "sha256": "4066e8694defd433bed4da18ff694cecbd7dfd3f5bcb1badcce912bebe9cc8f0",
+            "mode": 420
+          },
+          "include/linux/jbd2.h": {
+            "sha256": "13df64c0fe89e468b45d6ec5de389335107b1cae9eda9dc076185a811c25368c",
+            "mode": 420
+          },
+          "include/linux/ptrace.h": {
+            "sha256": "b2126b4ee02e00d90b9b2023573f0efa3b5c2a1774fb861788e01213b5858660",
+            "mode": 420
+          },
+          "include/linux/sched.h": {
+            "sha256": "75d44ab60c056ea89be4b76abacf8b2a2902c85b810f86cd92139fd888a9db4a",
+            "mode": 420
+          },
+          "include/linux/shm.h": {
+            "sha256": "e171e53ab6cf10da0b6fab0d93823eb5018458245917be8646f5ed6d70cc62b3",
+            "mode": 420
+          },
+          "include/linux/skmsg.h": {
+            "sha256": "003dcaf664bddea9fc3e96e51cb09eff8bda47b139e650969af5262fe3bc88fc",
+            "mode": 420
+          },
+          "include/linux/susfs.h": {
+            "sha256": "e0cf92e9974fe4d962829be3f40ae81639eae8ff000027cced4558ab438a10fc",
+            "mode": 420
+          },
+          "include/linux/tracehook.h": {
+            "sha256": "ab5ebb21451ba4ec46d4f702994d63c054c18d23c1f1ae36a491cfac46872d39",
+            "mode": 420
+          },
+          "include/linux/user_namespace.h": {
+            "sha256": "26152f03d2bb459238443d5c1f7df85b4442e230b82b2301641c9180001a6f17",
+            "mode": 420
+          },
+          "include/net/sock.h": {
+            "sha256": "358ab5dc00f55d08b381c383762f5d3644191209863deeaec4580833ff1ce513",
+            "mode": 420
+          },
+          "include/uapi/linux/rtnetlink.h": {
+            "sha256": "bad80ba048a6755d35fe4e8d86f5ba58975c19eae909306550dee1b294250bd8",
+            "mode": 420
+          },
+          "ipc/sem.c": {
+            "sha256": "a6ac85f6830613e96b6b3aa6e67f5b4af59cf9491ba7b101071010c3dad81a53",
+            "mode": 420
+          },
+          "ipc/shm.c": {
+            "sha256": "8f0c9d1e84c52899f76dbf1a1b4fa3520abbddbd5034a25ad93202aeb758757f",
+            "mode": 420
+          },
+          "kernel/cgroup/cgroup.c": {
+            "sha256": "d2f27771a84b6656a246df29d40730437d9e1651138cba07b8f7adc584d95ea5",
+            "mode": 420
+          },
+          "kernel/fork.c": {
+            "sha256": "ba74faa04998c737e59f43b2c58713259eb7ce5108eda2aa4536f784db472bad",
+            "mode": 420
+          },
+          "kernel/irq/cpuhotplug.c": {
+            "sha256": "12b69083037fd1b7d45d1a4b9bfaf8d58eaac52e937583491cda911e3275e38b",
+            "mode": 420
+          },
+          "kernel/kcmp.c": {
+            "sha256": "a104d3d481f5f2106e6e23cb04f5ec75e93d42fd339bba26a4b50147d5e03031",
+            "mode": 420
+          },
+          "kernel/power/process.c": {
+            "sha256": "b23f4b3958236bbe82831b41cffc130082157976b3958bb876a764d1707d0b22",
+            "mode": 420
+          },
+          "kernel/printk/printk.c": {
+            "sha256": "fa79aa8c7b174fc320deab3c6392f7eadf81cec671c0c0e09ac399681c5832fd",
+            "mode": 420
+          },
+          "kernel/sched/fair.c": {
+            "sha256": "eb763379504d2069e19dcde0b8bcd0db85a26fd36f01025d33382df3f2024fed",
+            "mode": 420
+          },
+          "kernel/sched/features.h": {
+            "sha256": "a289e4fcc6534e72a6280507e08d0462d738ef371b7f7da6ecbe0d04b210f3a9",
+            "mode": 420
+          },
+          "kernel/signal.c": {
+            "sha256": "425e85138b283d183528b44f36bac1d3e77d6fa5c7cbcc890229caf5e62aaa0a",
+            "mode": 420
+          },
+          "kernel/time/alarmtimer.c": {
+            "sha256": "4380ac3cb5f1bd9df28d8d30139040ce668f23b10b45e5beaf75c893e50558c8",
+            "mode": 420
+          },
+          "kernel/ucount.c": {
+            "sha256": "1ef18b35bc6b9a9b9816d9b07ff40466b489584fc671df8f481394b7e8d031bd",
+            "mode": 420
+          },
+          "kernel/user_namespace.c": {
+            "sha256": "cbb03a3d8603be057223e00e0b1a193a9bc3cacc0acc0048811d0cd3e86051c8",
+            "mode": 420
+          },
+          "lib/math/int_sqrt.c": {
+            "sha256": "a51e271e78ec485015762a62838c2919a050b1fceb9cf6d0e306558ab97ff846",
+            "mode": 420
+          },
+          "net/core/skbuff.c": {
+            "sha256": "78926d6b2e747122f7f12de23decd60cf08c04c0504bd901e220c6d576e47ec1",
+            "mode": 420
+          },
+          "net/core/skmsg.c": {
+            "sha256": "747fbf7cdcc29d9db3072e205a4abbbfb5dc36b77d7899722173b976531a4c01",
+            "mode": 420
+          },
+          "net/ipv4/Kconfig": {
+            "sha256": "b92c724eae1de2c516ee0fd3e98114f0c693bb74676be18d7788063b88d0db27",
+            "mode": 420
+          },
+          "net/ipv4/Makefile": {
+            "sha256": "c778e499dce80e0cc3ac3abc698da3753b2f81f455d8833e8c3d4480d3f1e10b",
+            "mode": 420
+          },
+          "net/ipv4/sysctl_net_ipv4.c": {
+            "sha256": "a377f74c7fd248b5c83f93767bf1482ebdfd34b9e5b5165857fa799f8ff67d4e",
+            "mode": 420
+          },
+          "net/ipv4/tcp.c": {
+            "sha256": "a185351d32310a17ad68eb3788f786f8f26ec444a13239d3a01d6edbcf20f4ad",
+            "mode": 420
+          },
+          "net/ipv4/tcp_input.c": {
+            "sha256": "446a69ed66e44b0bd9a0e569e9bb2635f68964ed8f7f9d7550ddd4b56c91c69c",
+            "mode": 420
+          },
+          "net/ipv4/tcp_minisocks.c": {
+            "sha256": "7815e9675c589da3b2ee5db11619af5922e692182e34d4fbef8b0af29ee7780d",
+            "mode": 420
+          },
+          "net/ipv4/tcp_output.c": {
+            "sha256": "5dd1fe4cd1806e0b325e8abddd1a0bc003103ead61298a2728d563ef568a3a60",
+            "mode": 420
+          },
+          "net/ipv4/tcp_rate.c": {
+            "sha256": "bdbe9d1fc6df51c77ef74d6e0b28bb46a2b401476f52ce80c5be3d04524dd135",
+            "mode": 420
+          },
+          "security/Kconfig": {
+            "sha256": "6091b084fac176ca86723ddc03bd758eef4be17a65a593b2acb0cb84990404f8",
+            "mode": 420
+          },
+          "security/Makefile": {
+            "sha256": "30a964a32a41a5b1b8737d9208d29c7ecb583de8fd6e5236e19dae1daae8bfde",
+            "mode": 420
+          }
+        },
+        "installer": {
+          "source": "development/wk-anykernel",
+          "members": {
+            "LICENSE": "df6f65da47d459fdf2a2ef0eadb34f37d838befc91352b64a84f35507bea95cd",
+            "META-INF/com/google/android/update-binary": "5123eeee4d13b18a738da0360cada4d03e5d77a70845f1144bb078de8b513a50",
+            "META-INF/com/google/android/updater-script": "ef91e7d8a9b3dc2076be6412932d82657751d0f21471b1d09f2ca8855bcbb899",
+            "anykernel.sh": "496969ec96b8a230bdf3079cec105cfbc1ef29c47b08ce304e70e6f57b2cbc40",
+            "install-on-device.sh": "4dce19cdce715e23cb292025a042107b7735e20d10a81f8b1f270080d4894f94",
+            "tools/ak3-core.sh": "e0e084bbfebe1cb1e7c68e3669ba7bf3763ba05f8c15360ccbbfc6c075b5c25d",
+            "tools/avbroot": "8edf57de0b181a65a6915198972f539cb1d7d9f34825127e6bb81dd69cb323ed",
+            "tools/avbroot-LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+            "tools/avbroot-provenance.json": "39da151c53a356e4ac263f8d4ed49fd1bc835c77db06c6dd690dc8ddb3244e67",
+            "tools/busybox": "c629fce4b0dd3ba9775f851d0941e74582115f423258d3a79800f2bd11d30f5c",
+            "tools/magiskboot": "4c480c9ffc51b4b9d8c3760bb188fd1eb73972a90983963ef791bca6faa65d6c",
+            "tools/rmx-avb.sh": "32e14b4a930d5c9f39fcc00758c9c9aff60c1a1041e4f390b6ca6861468bceea"
+          },
+          "upstream": "WildKernels/AnyKernel3@0b46673ae91aee8d60bd6ee257b4d56d3f6a0114",
+          "origin_record": "development/wk-anykernel-origin.json",
+          "avbroot_provenance": "development/wk-anykernel/tools/avbroot-provenance.json",
+          "frozen_ZIP_members": "All 12 source members exactly match the phone-confirmed ZIP; Image/manifest.json/SHA256SUMS are generated package contents, excluded from Git."
+        },
+        "retained_evidence": {
+          "root": "Existing rmx3997-full-features-20261104 task archive; relative paths below identify local evidence, not bundled dependencies.",
+          "original_candidate_directory": "ipc-slots123-diagnostic",
+          "original_package_wrapper": {
+            "path": "ipc-slots123-diagnostic/package.py",
+            "sha256": "3386adec2fb9e9860bc6b101291502762b2ea2b9fe88c4d17901a660051d6606",
+            "entry": "Calls package-oem-candidate.inspect/package after exact Image/config identity, runtime, binary/layout and explicit reserved-slot ABI classification checks. Generic packager CLI requires raw upstream PASS and was not the current candidate entry."
+          },
+          "publication_input_comparison": "overnight-improvement/publication/input-comparison.json",
+          "independent_review": "overnight-improvement/publication/independent-review.md",
+          "config_verification": "overnight-improvement/publication/alignment/config-comparison.json",
+          "whitelist_regression": "overnight-improvement/publication/alignment/whitelist-regression/results.json",
+          "boot_confirmation": {
+            "path": "overnight-improvement/evidence/postboot-snapshot/boot-confirmation.json",
+            "sha256": "d2258d5c94d096929497fa966ef97686f4ac0dbad0c93ecfdfe97aa1085e9b3e"
+          }
+        },
+        "acceptance": {
+          "reused": "Unchanged source review; original guarded FullLTO/strictCFI build; OEM binary/import/layout/CRC checks; actual Image guest 17 IPC lifecycle checks with original guard; stock Android installer and AVB/full-payload verification; subsequent bounded physical boot confirmation.",
+          "raw_upstream_abi_exit": 8,
+          "raw_upstream_abi_status": "COMPATIBLE_RESERVED_SLOT_REUSE; not raw PASS/exit0; two anonymous unions added and reserve1-3 members replaced, with original sizes/offsets and CRC/protection preserved.",
+          "raw_report_sha256": "51c0205f2d68d826a7de3a3379aaf70749483d87ee5ca04615ffc32ba15eaff4",
+          "classification_record_sha256": "fe5c579514e23ea969b832b9a98e7606a9b5278c99e53b9a750dfaf672e793c5",
+          "new_execution": "Configuration/whitelist checks only. No kernel Image/modules build, new ZIP, guest execution or phone operation in publication.",
+          "limits": "SCM-dependent kernel release and embedded relocated config can change new binary bytes. Configuration reproduction is not a bit-identical rebuild claim. Full DroidSpaces/rootfs behavior and physical phone IPC lifecycle are not established; delivered Image/ZIP hashes are not live partition-byte hashes."
         }
-      },
-      "acceptance": {
-        "reused": "Unchanged source review; original guarded FullLTO/strictCFI build; OEM binary/import/layout/CRC checks; actual Image guest 17 IPC lifecycle checks with original guard; stock Android installer and AVB/full-payload verification; subsequent bounded physical boot confirmation.",
-        "raw_upstream_abi_exit": 8,
-        "raw_upstream_abi_status": "COMPATIBLE_RESERVED_SLOT_REUSE; not raw PASS/exit0; two anonymous unions added and reserve1-3 members replaced, with original sizes/offsets and CRC/protection preserved.",
-        "raw_report_sha256": "51c0205f2d68d826a7de3a3379aaf70749483d87ee5ca04615ffc32ba15eaff4",
-        "classification_record_sha256": "fe5c579514e23ea969b832b9a98e7606a9b5278c99e53b9a750dfaf672e793c5",
-        "new_execution": "Configuration/whitelist checks only. No kernel Image/modules build, new ZIP, guest execution or phone operation in publication.",
-        "limits": "SCM-dependent kernel release and embedded relocated config can change new binary bytes. Configuration reproduction is not a bit-identical rebuild claim. Full DroidSpaces/rootfs behavior and physical phone IPC lifecycle are not established; delivered Image/ZIP hashes are not live partition-byte hashes."
       }
     }
   }

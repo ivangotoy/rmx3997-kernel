@@ -6,27 +6,31 @@ BakaSU/SUSFS, NTSync, SYSVIPC, POSIX_MQUEUE, IPC_NS and PID_NS, upstream
 NoMount (maxsteeel `dev` `3f8b5d1`, protocol 22, metamodule versionCode 647),
 NP3/diting configuration parity (USER_NS, DEVTMPFS not auto-mounted, TMPFS
 xattr/ACL, IPv6 NAT/MASQUERADE/HL, ipset, xt set/LOG/recent, CAKE, CIFS,
-Baseband Guard `028ff7fd`) and the applicable WildKernels parity items
-(MACVLAN, Westwood/HTCP, TTL/HL, CONNMARK, PIE/FQ-PIE, KSU toolkit, and the
-WildKernels tuning patches). The default TCP congestion control is upstream
-BBR; BBRv3 is not included. IPC uses task_struct reserve slots 1-3; the
-original OEM guard keeps slots 4-8. OEM F2FS and the original Realme
-ZRAM/HybridSwap modules are preserved. CFS_BANDWIDTH and CGROUP_PIDS remain
-disabled; MGLRU is compiled but default-off. The stock Oplus vendor modules
-(built with Clang 14) load unchanged under this kernel.
+Baseband Guard `028ff7fd`), the applicable WildKernels parity items (MACVLAN,
+Westwood/HTCP, TTL/HL, CONNMARK, PIE/FQ-PIE, KSU toolkit, WildKernels tuning
+patches) and the BBRv3 TCP congestion-control backport, which is the default
+congestion control (`bbr3`; upstream BBR remains available). IPC uses
+task_struct reserve slots 1-3; the original OEM guard keeps slots 4-8. OEM F2FS
+and the original Realme ZRAM/HybridSwap modules are preserved.
+CFS_BANDWIDTH and CGROUP_PIDS remain disabled; MGLRU is compiled but
+default-off. The stock Oplus vendor modules (built with Clang 14) load unchanged
+under this kernel.
 
-The delivery was flashed and verified over ADB on the phone, including the
-NoMount metamodule and a DroidSpaces Ubuntu 24.04 container:
+The delivery was flashed as a full boot_b partition image and verified over ADB
+on the phone, including the NoMount metamodule and a DroidSpaces Ubuntu 24.04
+container:
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `RMX3997-5.15.197-D2-ZYC.zip` | `05c0f085f56a6e274ce773dc50b8efa9974b975a67d7879c1c2cb1a0356618a2` |
-| Raw ARM64 Image | `3b6d80254000af12a780a7837a4b4aa63cad0f3f242dafab1f20ba8015f3c45a` |
-| Effective config | `b1156505705f99cefcc53a3d26370b0926952dab116ca2dafd7c97e89330d286` |
+| `RMX3997-5.15.197-E-ZYC-BBRV3.zip` | `85079edee98ee7e25c7a2d6fe2479f749528eb6bdc985b127ca489ad686260a1` |
+| Raw ARM64 Image | `c3ff239ac2e96b9e90b8ee41c5afc83415d380c1e5263d329bac51467b419dbd` |
+| Effective config | `1156a9cbaf11bd605baa7b6965e38b9408b8540090a4043099ce688da26c07e7` |
+| `boot_b-E-ZYC-BBRV3.img` (64 MiB partition image) | `585515f7e96989adedce0e1e6c16e9305912528d080fa850ad61559a221ecf49` |
 
-`build-argv.json` and `build-environment.json` record the D2 build. These
-artifact hashes are not live partition-byte hashes. The stock-Clang D1 build,
-the PARITY-B delivery and earlier records are kept in
+`build-argv.json` and `build-environment.json` record the E build. These
+artifact hashes are not live partition-byte hashes, except the boot_b image
+whose read-back from the device was verified. The phone-confirmed D2 and D1
+builds, the PARITY-B delivery and earlier records are kept in
 [artifact and evidence provenance](delivery-provenance.json).
 
 ## Canonical configuration and build
