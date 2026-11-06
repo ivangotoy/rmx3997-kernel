@@ -55,7 +55,7 @@
       "mode": "subtree",
       "url": "https://github.com/maxsteeel/nomount",
       "ref": "dev",
-      "pin": "3f8b5d131bf73b90f1ad249a9c722979db26d4d0",
+      "pin": "7fce5e2ca6a5b91bebf730e50954d41119794763",
       "paths": {
         "kernel/src/": "fs/nomount/"
       },
@@ -73,7 +73,7 @@
       "mode": "subtree",
       "url": "https://github.com/vc-teahouse/Baseband-guard",
       "ref": "main",
-      "pin": "1c664957da7539de860503940ee73c7447f1dfaf",
+      "pin": "028ff7fd509e2104596da7cc1ef8e6ce2a0c9082",
       "paths": {
         "": "security/baseband-guard/"
       },
