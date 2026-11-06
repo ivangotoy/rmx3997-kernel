@@ -104,8 +104,8 @@ Every delivery is checked before it reaches the phone:
 - CFI runtime interface compared against the Clang 14-built OEM modules
 - QEMU guest run of the actual `Image`: CFI negative test, OEM module loads,
   NoMount runtime, networking and container features
-- Installer, AVB footer and full payload verification
-- After flashing: boot completion, live config hash, CFI failure count, OEM
+- Installer and full payload verification
+- On-device run: boot completion, live config hash, CFI failure count, OEM
   guard modules, NoMount protocol, and a container workload with networking
 
 Capability claims are limited to what was measured. Static equivalence of a
@@ -113,8 +113,6 @@ struct is not a performance or power claim, and a guest run is not hardware.
 
 ## Known limits
 
-- Bootloader fastboot is not available on retail firmware; access is gated by
-  OEM-signed authorization, so flashing uses fastbootd or preloader mode
 - BBRv3 changes TCP structure layouts that kernel symbol versioning does not
   advertise. OEM accesses were classified statically (all flagged reads
   reviewed, none unsafe), but the change is not certified for every binary
@@ -136,7 +134,7 @@ One run does the following, and any failed gate fails the run:
 1. Checks out the exact commit, optionally pinned with the `expected_sha` input.
 2. Verifies the host-local inputs against `rmx3997/ci/host-inputs.json`: ZyC
    Clang 18 and LLD, the host Clang and pahole, the stock OEM module corpus
-   (489 files) and the boot_b layout template. None of these are in the repository.
+   (489 files). None of these are in the repository.
 3. Runs `olddefconfig` and requires the result to equal
    `rmx3997/config/production.config` byte for byte.
 4. Builds `Image` and modules with Full LTO inside a systemd scope
@@ -149,13 +147,10 @@ One run does the following, and any failed gate fails the run:
 6. Packages the AnyKernel3 ZIP and fails if the kernel or any ZIP member
    contains a host build path.
 7. Uploads only the ZIP and its checksum as a run artifact. A tag build also
-   creates a draft release with those two files. Partition images are never
-   published.
+   creates a draft release with those two files.
 
-A release stays a draft until the image has been flashed and boot-tested on
-the phone. CI cannot test a boot. The kernel release string comes from the
-built commit (`-g<sha12>`), so CI images differ byte-wise from older manually
-built deliveries even with an identical config.
+A release stays a draft until the maintainer publishes it. The kernel release
+string comes from the built commit (`-g<sha12>`).
 
 ## License
 
