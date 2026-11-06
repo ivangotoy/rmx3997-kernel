@@ -1,0 +1,112 @@
+name: RMX3997 upstream
+
+# Weekly: compare every pinned upstream (rmx3997/ci/upstreams.json) with its
+# live branch. When something is new, build an auto/<date> candidate branch
+# with the updates applied, run the full build and every acceptance gate, and
+# post the result to the "Upstream updates" issue. Nothing touches main and
+# nothing is released; a release stays a manual tag push.
+on:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: rmx3997-kernel-build
+  cancel-in-progress: false
+
+jobs:
+  upstream:
+    if: forgejo.repository == 'ivangotoy/rmx3997-kernel'
+    runs-on: aimax-rmx-host
+    timeout-minutes: 240
+    steps:
+      - name: Checkout
+        env:
+          TOKEN: ${{ forgejo.token }}
+          GIT_CONFIG_GLOBAL: /dev/null
+          GIT_CONFIG_NOSYSTEM: '1'
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -Eeuo pipefail
+          case "$PWD" in "$HOME"/forgejo-runners/*/workspace/*) ;; *) echo 'FAIL: unexpected workspace'; exit 1;; esac
+          find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          git init -q .
+          auth=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+          git -c http.extraHeader="Authorization: basic $auth" fetch -q --depth 1 --no-tags \
+            "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" "$FORGEJO_SHA"
+          git checkout -q --detach FETCH_HEAD
+          echo "checked out $(git rev-parse HEAD)"
+
+      - name: Prepare disk-backed stage
+        run: |
+          set -Eeuo pipefail
+          case "$(findmnt -n -o FSTYPE --target "$HOME/.cache")" in ext4|xfs|btrfs) ;; *) echo 'FAIL: stage would not be disk-backed'; exit 1;; esac
+          STAGE="$HOME/.cache/rmx3997-ci/upstream-${FORGEJO_RUN_ID}-${FORGEJO_RUN_ATTEMPT:-1}"
+          test ! -e "$STAGE"
+          install -d -m 700 "$STAGE"
+          echo "STAGE=$STAGE" >> "$FORGEJO_ENV"
+          echo "LABEL=$(date -u +%Y%m%d)-r${FORGEJO_RUN_NUMBER}" >> "$FORGEJO_ENV"
+
+      - name: Check upstreams
+        run: python3 -I rmx3997/ci/upstream.py check --stage "$STAGE"
+
+      - name: Prepare candidate branch
+        if: env.RMX_AUTO_UPDATES == '1'
+        run: |
+          python3 -I rmx3997/ci/upstream.py candidate --stage "$STAGE" --label "$LABEL" \
+            --repo-url "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" --expect-main "$(git rev-parse HEAD)"
+
+      - name: Refresh config
+        if: env.RMX_CAND_CHANGED == '1'
+        run: |
+          set -Eeuo pipefail
+          cd "$RMX_CAND_SRC"
+          RMX_REFRESH_CONFIG=1 bash rmx3997/ci/build.sh "$STAGE/cfg"
+          python3 -I rmx3997/ci/upstream.py refresh-commit --src .
+          touch "$STAGE/config-refresh.ok"
+
+      - name: Verify pinned host inputs
+        if: env.RMX_CAND_CHANGED == '1'
+        run: cd "$RMX_CAND_SRC" && python3 -I rmx3997/ci/rmx_ci.py preflight
+
+      - name: Build (config gate, guarded Full-LTO build)
+        if: env.RMX_CAND_CHANGED == '1'
+        run: cd "$RMX_CAND_SRC" && bash rmx3997/ci/build.sh "$STAGE/b"
+
+      - name: Acceptance gates (OEM CRCs, struct layout)
+        if: env.RMX_CAND_CHANGED == '1'
+        run: cd "$RMX_CAND_SRC" && python3 -I rmx3997/ci/rmx_ci.py accept --stage "$STAGE/b"
+
+      - name: Package ZIP
+        if: env.RMX_CAND_CHANGED == '1'
+        env:
+          RUN_URL: ${{ forgejo.server_url }}/${{ forgejo.repository }}/actions/runs/${{ forgejo.run_number }}
+        run: |
+          set -Eeuo pipefail
+          cd "$RMX_CAND_SRC"
+          python3 -I rmx3997/ci/rmx_ci.py package --stage "$STAGE/b" --label "auto-$LABEL" \
+            --commit "$(git rev-parse HEAD)" --run-url "$RUN_URL"
+          cat "$STAGE/b/dist.env" >> "$FORGEJO_ENV"
+
+      - name: Upload candidate ZIP
+        if: env.RMX_CAND_CHANGED == '1'
+        uses: https://code.forgejo.org/forgejo/upload-artifact@16871d9e8cfcf27ff31822cac382bbb5450f1e1e
+        with:
+          name: ${{ env.RMX_BASE }}
+          path: ${{ env.RMX_DIST }}/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Push branch and report
+        if: always() && env.RMX_UPDATES == '1'
+        env:
+          TOKEN: ${{ forgejo.token }}
+          RUN_URL: ${{ forgejo.server_url }}/${{ forgejo.repository }}/actions/runs/${{ forgejo.run_number }}
+        run: |
+          python3 -I rmx3997/ci/upstream.py publish --stage "$STAGE" --api "$FORGEJO_API_URL" \
+            --repo "$FORGEJO_REPOSITORY" --repo-url "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" \
+            --run-url "$RUN_URL"
+
+      - name: Remove build tree
+        if: success()
+        run: rm -rf "$STAGE/b/out" "$STAGE/b/work" "$STAGE/b/tmp" "$STAGE/cfg" "$STAGE/src"

@@ -130,13 +130,45 @@ One run does the following, and any failed gate fails the run:
 5. Acceptance: root, SUSFS, CFI, LTO and MODVERSIONS contract, the Image's
    embedded config, required root/SUSFS/NTSync symbols, MGLRU still default-off,
    and every imported symbol CRC of all stock OEM modules against the built
-   `Module.symvers`.
+   `Module.symvers`, then the struct layout gate: every named struct and union
+   in the stock kernel's BTF is compared member by member with the built
+   kernel, and a difference passes only if it equals the layout recorded from
+   the phone-proven kernel in `rmx3997/ci/layout-approved.json`. It also fails
+   if any member shares bytes with the `task_struct` reserve slots 4 to 8 that
+   the OEM security guard writes. CRCs cannot see these changes; this gate
+   rejects the 5.15.223 build that had SysV IPC in slot 4.
 6. Packages the AnyKernel3 ZIP and fails if the kernel or any ZIP member
    contains a host build path.
 7. Uploads only the ZIP and its checksum as a run artifact. A tag build also
    publishes a release with those two files.
 
 The kernel release string comes from the built commit (`-g<sha12>`).
+
+### Upstream updates
+
+`rmx3997/ci/upstreams.json` lists every upstream the kernel takes code from
+and the exact commit it is at: AOSP `android13-5.15-lts`, the AOSP
+`android13-5.15` security branch, BakaSU, SUSFS, NoMount, Baseband Guard, the
+BBRv3 donor, AnyKernel3 and ZyC Clang. `python3 rmx3997/ci/upstream.py verify`
+checks that the vendored files equal those pins.
+
+`.forgejo/workflows/upstream-rmx3997.yml` runs every Monday (and on manual
+dispatch). When an upstream has moved, it builds an `auto/<date>` branch from
+main with the updates applied:
+
+- AOSP LTS: merged as a tree snapshot, like the earlier LTS merges.
+- AOSP security branch: new commits that are not in LTS are cherry-picked.
+- BakaSU, SUSFS, NoMount, Baseband Guard: the upstream diff since the pin is
+  applied with a 3-way merge onto the local files.
+- BBRv3, AnyKernel3, ZyC Clang: reported only; they need a manual port.
+
+The branch then goes through the same config, build and acceptance gates as a
+tag build, including the struct layout gate, and the ZIP is kept as a run
+artifact. `olddefconfig` may add new symbols there; a change to any existing
+option fails the run. The result, with the upstream commit lists, is posted
+to the `Upstream updates` issue. A merge conflict or failed gate is reported
+the same way. The workflow never changes main and never tags; a release is
+still a manual fast-forward of main and an `rmx3997-*` tag push.
 
 ## License
 

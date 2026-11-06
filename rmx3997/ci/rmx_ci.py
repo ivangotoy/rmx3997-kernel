@@ -83,6 +83,9 @@ def cmd_preflight(a):
     rows = oem_manifest(oem['dirs'])
     if len(rows) != oem['count'] or manifest_digest(rows) != oem['manifest_sha256']:
         bad.append('oem_modules: corpus differs (%d files)' % len(rows))
+    import shutil
+    if not shutil.which('bpftool'):
+        bad.append('bpftool: not installed (struct layout gate)')
     if bad:
         die('host inputs: ' + '; '.join(bad))
     print('host inputs: %d pinned files and %d OEM modules verified' % (len(pins['files']), len(rows)))
@@ -207,12 +210,202 @@ def cmd_accept(a):
     result['required_symbols'] = 'PASS (%d)' % len(pins['required_symbols'])
     gate = oem_crc_gate(out, pins)
     result['oem_crc'] = gate
-    (stage / 'acceptance.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps({k: v for k, v in gate.items() if k not in ('crc_mismatches',)}, indent=2))
     if gate['status'] != 'PASS':
         print('CRC mismatches:', json.dumps(gate['crc_mismatches'][:50]))
         die('OEM module CRC gate')
+    lay = layout_gate(out / 'arch/arm64/boot/Image', stage / 'tmp', pins)
+    result['struct_layout'] = lay
+    print(json.dumps({k: v for k, v in lay.items() if k != 'failures'}, indent=2))
+    if lay['status'] != 'PASS':
+        print('\n'.join(lay['failures'][:40]))
+        die('struct layout gate')
+    (stage / 'acceptance.json').write_text(json.dumps(result, indent=2) + '\n')
     print('acceptance: PASS (%s)' % identity['release'])
+
+
+# ------------------------------------------------------------- struct layout
+# Every named struct/union of the stock kernel's BTF is compared, member by
+# member (anonymous unions/structs flattened), with the built kernel. A
+# difference passes only if the exact layout is recorded in
+# layout-approved.json, which holds the layouts of the phone-proven kernel.
+# CRC checks cannot see a change that genksyms hides (__GENKSYMS__, KABI
+# reserve reuse); this gate can.
+LAYOUT_APPROVED = CI / 'layout-approved.json'
+GUARD_SLOTS = ['android_kabi_reserved%d' % i for i in range(4, 9)]
+_SKIP = ('TYPEDEF', 'CONST', 'VOLATILE', 'RESTRICT', 'TYPE_TAG')
+
+
+def btf_from_image(data):
+    """Return the .BTF blob embedded in an arm64 kernel Image."""
+    i = 0
+    while True:
+        i = data.find(b'\x9f\xeb\x01\x00\x18\x00\x00\x00', i)
+        if i < 0:
+            die('no BTF found in kernel Image')
+        _m, _v, _f, hl, to, tl, so, sl = struct.unpack_from('<HBBIIIII', data, i)
+        if to == 0 and so == tl and sl > 1000000 and hl + so + sl <= len(data) - i:
+            return data[i:i + hl + so + sl]
+        i += 1
+
+
+def btf_layouts(path):
+    raw = subprocess.run(['bpftool', '-j', 'btf', 'dump', 'file', str(path), 'format', 'raw'],
+                         capture_output=True, check=True).stdout
+    ts = json.loads(raw)['types']
+    ids = {t['id']: t for t in ts}
+    ids[0] = {'kind': 'VOID', 'name': 'void'}
+
+    def tname(i, depth=0):
+        t = ids[i]
+        k = t['kind']
+        if k in _SKIP:
+            return tname(t['type_id'], depth)
+        if k == 'PTR':
+            return '*' if depth > 2 else tname(t['type_id'], depth + 1) + '*'
+        if k == 'ARRAY':
+            return '%s[%d]' % (tname(t['type_id'], depth), t['nr_elems'])
+        if k in ('STRUCT', 'FWD'):
+            return 'struct ' + t['name']
+        if k == 'UNION':
+            return 'union ' + t['name']
+        if k in ('ENUM', 'ENUM64'):
+            return 'enum ' + t['name']
+        return 'fn' if k == 'FUNC_PROTO' else t.get('name', k)
+
+    def size(i):
+        t = ids[i]
+        while t['kind'] in _SKIP:
+            t = ids[t['type_id']]
+        if t['kind'] == 'ARRAY':
+            return size(t['type_id']) * t['nr_elems']
+        return 8 if t['kind'] == 'PTR' else t.get('size', 0)
+
+    def flat(t, base=0):
+        res = []
+        for m in t.get('members', []):
+            off = base + m['bits_offset']
+            tgt = ids[m['type_id']]
+            while tgt['kind'] in _SKIP:
+                tgt = ids[tgt['type_id']]
+            if m['name'] == '(anon)' and tgt['kind'] in ('STRUCT', 'UNION'):
+                res += flat(tgt, off)
+            else:
+                bits = m.get('bitfield_size', 0)
+                res.append([m['name'], off, bits, 0 if bits else size(m['type_id']), tname(m['type_id'])])
+        return res
+
+    lay = {}
+    for t in ts:
+        if t['kind'] in ('STRUCT', 'UNION') and t['name'] != '(anon)':
+            lay.setdefault(t['name'], []).append({'size': t['size'], 'members': flat(t)})
+    return {k: sorted(v, key=lambda x: json.dumps(x)) for k, v in lay.items()}
+
+
+def layout_digest(variants):
+    return hashlib.sha256(json.dumps(variants, separators=(',', ':')).encode()).hexdigest()
+
+
+def member_changes(old, new):
+    a = {m[0]: m for v in old for m in v['members']}
+    b = {m[0]: m for v in new for m in v['members']}
+    rows = []
+    for n in sorted(a.keys() | b.keys(), key=lambda n: (b.get(n) or a.get(n))[1]):
+        if a.get(n) != b.get(n):
+            fmt = lambda m: 'absent' if m is None else '@%d+%s %s' % (
+                m[1] // 8, ('%db' % m[2]) if m[2] else m[3], m[4])
+            rows.append('%s: %s -> %s' % (n, fmt(a.get(n)), fmt(b.get(n))))
+    return rows
+
+
+def guard_slot_overlaps(variants):
+    """Members sharing bytes with the KABI slots the OEM security guard writes."""
+    hits = []
+    for v in variants:
+        ms = v['members']
+        for slot in (m for m in ms if m[0] in GUARD_SLOTS):
+            s, e = slot[1], slot[1] + 64
+            for m in ms:
+                ms_, me = m[1], m[1] + (m[2] or m[3] * 8)
+                if m[0] != slot[0] and ms_ < e and me > s:
+                    hits.append('%s overlaps %s' % (m[0], slot[0]))
+    return sorted(set(hits))
+
+
+def built_btf(image, work):
+    p = Path(work) / 'kernel.btf'
+    p.write_bytes(btf_from_image(Path(image).read_bytes()))
+    return p
+
+
+def layout_gate(image, work, pins):
+    stock = btf_layouts(expand(pins['files']['stock_btf']['path']))
+    built = btf_layouts(built_btf(image, work))
+    approved = json.loads(LAYOUT_APPROVED.read_text())
+    fails = []
+    overlaps = guard_slot_overlaps(built.get('task_struct', []))
+    if overlaps or not built.get('task_struct'):
+        fails.append('task_struct: ' + ('; '.join(overlaps) or 'missing'))
+    same = changed = 0
+    for name in sorted(stock):
+        if name not in built:
+            if name not in approved['removed']:
+                fails.append('%s: present in the stock kernel, missing here' % name)
+            continue
+        if built[name] == stock[name]:
+            same += 1
+            continue
+        changed += 1
+        if approved['changed'].get(name, {}).get('sha256') != layout_digest(built[name]):
+            fails.append('%s: unapproved layout change: %s' % (
+                name, '; '.join(member_changes(stock[name], built[name])[:12]) or 'variant set differs'))
+    return {'stock_structs': len(stock), 'identical': same, 'approved_changes': changed - len(
+        [f for f in fails if 'unapproved' in f]), 'guard_slot_overlaps': overlaps,
+        'failures': fails, 'status': 'PASS' if not fails else 'FAIL'}
+
+
+def cmd_layout(a):
+    pins = load_pins()
+    work = Path(a.work)
+    work.mkdir(parents=True, exist_ok=True)
+    if a.approve:
+        stock = btf_layouts(expand(pins['files']['stock_btf']['path']))
+        built = btf_layouts(built_btf(a.image, work))
+        rec = {'description': 'Struct layouts of the phone-proven kernel that differ from the stock '
+                              'RMX3997 kernel. Regenerate only from a kernel that booted on the phone: '
+                              'rmx_ci.py layout --approve --image <Image>.',
+               'approved_from': a.approve, 'changed': {}, 'removed': sorted(set(stock) - set(built))}
+        for name in sorted(stock.keys() & built.keys()):
+            if stock[name] != built[name]:
+                rec['changed'][name] = {'sha256': layout_digest(built[name]),
+                                        'members': member_changes(stock[name], built[name])[:40]}
+        LAYOUT_APPROVED.write_text(json.dumps(rec, indent=1) + '\n')
+        print('approved %d changed and %d removed structs from %s' % (
+            len(rec['changed']), len(rec['removed']), a.approve))
+        return
+    g = layout_gate(a.image, work, pins)
+    print(json.dumps(g, indent=1))
+    if g['status'] != 'PASS':
+        die('struct layout gate')
+    print('layout: PASS')
+
+
+# ------------------------------------------------------------ config refresh
+def cmd_refresh_config(a):
+    """Accept olddefconfig output when it only adds new symbols (upstream update)."""
+    path = REPO / 'rmx3997/config/production.config'
+    old = path.read_text().splitlines()
+    new = (Path(a.out) / '.config').read_text().splitlines()
+    sym = lambda l: (re.match(r'(?:# )?(CONFIG_[A-Za-z0-9_]+)[= ]', l) or [None, None])[1]
+    oldmap = {sym(l): l for l in old if sym(l)}
+    newmap = {sym(l): l for l in new if sym(l)}
+    changed = sorted(s for s in oldmap if oldmap[s] != newmap.get(s))
+    if changed:
+        die('olddefconfig changes existing options: ' + '; '.join(
+            '%s -> %s' % (oldmap[s], newmap.get(s, 'removed')) for s in changed[:20]))
+    added = sorted(set(newmap) - set(oldmap))
+    path.write_text('\n'.join(new) + '\n')
+    print('config: %d new symbols accepted: %s' % (len(added), ', '.join(added) or 'none'))
 
 
 # --------------------------------------------------------------- boot image
@@ -430,12 +623,19 @@ def main():
     c.add_argument('--commit', required=True)
     c.add_argument('--run-url', required=True)
     c.add_argument('--private-dir', default='~/.cache/rmx3997-ci/private')
+    c = sub.add_parser('layout')
+    c.add_argument('--image', required=True)
+    c.add_argument('--work', required=True)
+    c.add_argument('--approve', metavar='WHAT', help='record this Image as approved')
+    c = sub.add_parser('refresh-config')
+    c.add_argument('--out', required=True)
     c = sub.add_parser('release')
     for flag in ('--api', '--repo', '--tag', '--commit', '--dist', '--run-url'):
         c.add_argument(flag, required=True)
     a = p.parse_args()
     {'preflight': cmd_preflight, 'record-pins': cmd_record_pins, 'config': cmd_config,
-     'accept': cmd_accept, 'package': cmd_package, 'release': cmd_release}[a.cmd](a)
+     'accept': cmd_accept, 'package': cmd_package, 'release': cmd_release,
+     'layout': cmd_layout, 'refresh-config': cmd_refresh_config}[a.cmd](a)
 
 
 if __name__ == '__main__':

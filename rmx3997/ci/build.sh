@@ -65,6 +65,11 @@ MAKEVARS=(-C "$SRC" O="$OUT" ARCH=arm64 LLVM=1 LLVM_IAS=1
 
 cp rmx3997/config/production.config "$OUT/.config"
 make "${MAKEVARS[@]}" olddefconfig > "$STAGE/olddefconfig.log" 2>&1
+if [ "${RMX_REFRESH_CONFIG:-0}" = 1 ]; then
+  # Upstream candidates: accept olddefconfig when it only adds new symbols.
+  python3 -I rmx3997/ci/rmx_ci.py refresh-config --out "$OUT"
+  exit 0
+fi
 python3 -I rmx3997/ci/rmx_ci.py config --out "$OUT"
 
 set +e

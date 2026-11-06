@@ -1,0 +1,117 @@
+{
+  "description": "Every upstream the RMX3997 kernel takes code from, with the exact commit it is at. rmx3997/ci/upstream.py checks them weekly; modes lts-merge, security-backports and subtree are applied automatically on an auto/<date> branch, report and release only notify.",
+  "components": {
+    "aosp-lts": {
+      "mode": "lts-merge",
+      "url": "https://android.googlesource.com/kernel/common",
+      "ref": "android13-5.15-lts",
+      "pin": "2316d138a3c3f2ec12cfb4b2f09ca9c95aa92ce5",
+      "snapshot": "ffbe4bbe066e3e869dae2a9b8b3e87fd58703571"
+    },
+    "aosp-security": {
+      "mode": "security-backports",
+      "url": "https://android.googlesource.com/kernel/common",
+      "ref": "android13-5.15",
+      "pin": "257f970022c5274f7fb59baea8c48212d4e64dad"
+    },
+    "bakasu": {
+      "mode": "subtree",
+      "url": "https://github.com/Baka-SU/BakaSU",
+      "ref": "main",
+      "pin": "516d3e87fbc986ccefdde2c2765f1700612441a9",
+      "paths": {
+        "kernel/": "drivers/kernelsu/"
+      },
+      "local_modified": [
+        "drivers/kernelsu/Kbuild",
+        "drivers/kernelsu/Kconfig",
+        "drivers/kernelsu/feature/sucompat.c",
+        "drivers/kernelsu/hook/setuid_hook.c",
+        "drivers/kernelsu/preinit/preinit.c",
+        "drivers/kernelsu/runtime/ksud_integration.c",
+        "drivers/kernelsu/supercall/dispatch.c",
+        "drivers/kernelsu/supercall/supercall.c"
+      ]
+    },
+    "susfs": {
+      "mode": "subtree",
+      "url": "https://gitlab.com/simonpunk/susfs4ksu.git",
+      "ref": "gki-android13-5.15",
+      "pin": "d5df1d937361530787fafa920dea3a9b6dc8ebef",
+      "paths": {
+        "kernel_patches/": ""
+      },
+      "files": [
+        "kernel_patches/fs/susfs.c",
+        "kernel_patches/include/linux/susfs.h",
+        "kernel_patches/include/linux/susfs_def.h"
+      ],
+      "manual_paths": [
+        "kernel_patches/50_add_susfs_in_gki-android13-5.15.patch",
+        "kernel_patches/KernelSU/"
+      ]
+    },
+    "nomount": {
+      "mode": "subtree",
+      "url": "https://github.com/maxsteeel/nomount",
+      "ref": "dev",
+      "pin": "3f8b5d131bf73b90f1ad249a9c722979db26d4d0",
+      "paths": {
+        "kernel/src/": "fs/nomount/"
+      },
+      "files": [
+        "kernel/src/nomount.c",
+        "kernel/src/nomount.h"
+      ],
+      "local_modified": [
+        "fs/nomount/nomount.c",
+        "fs/nomount/nomount.h"
+      ],
+      "note": "install the matching NoMount metamodule build with this kernel"
+    },
+    "baseband-guard": {
+      "mode": "subtree",
+      "url": "https://github.com/vc-teahouse/Baseband-guard",
+      "ref": "main",
+      "pin": "1c664957da7539de860503940ee73c7447f1dfaf",
+      "paths": {
+        "": "security/baseband-guard/"
+      },
+      "files": [
+        "baseband_guard.c",
+        "baseband_guard.h",
+        "blkdev_helper.c",
+        "blkdev_helper.h",
+        "kernel_compat.h",
+        "Kconfig",
+        "Makefile",
+        "LICENSE",
+        "tracing/"
+      ],
+      "local_modified": [
+        "security/baseband-guard/Makefile",
+        "security/baseband-guard/tracing/tracing.c"
+      ]
+    },
+    "bbrv3": {
+      "mode": "report",
+      "url": "https://github.com/WildKernels/kernel_patches",
+      "ref": "main",
+      "pin": "b61ceb600da12ef1093597d8a4dfc15d0297b3c1",
+      "note": "donor common/bbrv3/0001-net-tcp-backport-BBRv3-to-android13-5.15.patch (last changed 3a75d651); port by hand, the TCP struct changes need the layout review"
+    },
+    "anykernel3": {
+      "mode": "report",
+      "url": "https://github.com/WildKernels/AnyKernel3",
+      "ref": "gki-2.0",
+      "pin": "0b46673ae91aee8d60bd6ee257b4d56d3f6a0114",
+      "note": "installer; port by hand into rmx3997/development/wk-anykernel"
+    },
+    "zyc-clang": {
+      "mode": "release",
+      "github": "ZyCromerZ/Clang",
+      "pin": "14.0.6-20261022-release",
+      "note": "toolchain is a pinned host input; a compiler change needs its own phone-tested candidate"
+    }
+  }
+}

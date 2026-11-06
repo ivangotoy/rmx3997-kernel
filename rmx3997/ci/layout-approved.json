@@ -1,0 +1,886 @@
+{
+ "description": "Struct layouts of the phone-proven kernel that differ from the stock RMX3997 kernel. Regenerate only from a kernel that booted on the phone: rmx_ci.py layout --approve --image <Image>.",
+ "approved_from": "rmx3997-v3",
+ "changed": {
+  "bcm_op": {
+   "sha256": "a5ce55bd57f0fd069bf178ab0cc9c4fee8f8fd2fb18fccae17039a387c459f5c",
+   "members": [
+    "work: absent -> @32+48 struct work_struct",
+    "ifindex: @32+4 int -> @80+4 int",
+    "can_id: @36+4 unsigned int -> @84+4 unsigned int",
+    "flags: @40+4 unsigned int -> @88+4 unsigned int",
+    "frames_abs: @48+8 unsigned long -> @96+8 struct (anon)",
+    "frames_filtered: @56+8 unsigned long -> @104+8 struct (anon)",
+    "ival1: @64+16 struct bcm_timeval -> @112+16 struct bcm_timeval",
+    "ival2: @80+16 struct bcm_timeval -> @128+16 struct bcm_timeval",
+    "timer: @96+72 struct hrtimer -> @144+72 struct hrtimer",
+    "thrtimer: @168+72 struct hrtimer -> @216+72 struct hrtimer",
+    "rx_stamp: @240+8 long long -> @288+8 long long",
+    "kt_ival1: @248+8 long long -> @296+8 long long",
+    "kt_ival2: @256+8 long long -> @304+8 long long",
+    "kt_lastmsg: @264+8 long long -> @312+8 long long",
+    "rx_ifindex: @272+4 int -> @320+4 int",
+    "if_detected: absent -> @324+4 int",
+    "cfsiz: @276+4 int -> @328+4 int",
+    "count: @280+4 unsigned int -> @332+4 unsigned int",
+    "nframes: @284+4 unsigned int -> @336+4 unsigned int",
+    "currframe: @288+4 unsigned int -> @340+4 unsigned int",
+    "frames: @296+8 void* -> @344+8 void*",
+    "last_frames: @304+8 void* -> @352+8 void*",
+    "sframe: @312+72 struct canfd_frame -> @360+72 struct canfd_frame",
+    "last_sframe: @384+72 struct canfd_frame -> @432+72 struct canfd_frame",
+    "sk: @456+8 struct sock* -> @504+8 struct sock*",
+    "rx_reg_dev: @464+8 struct net_device* -> @512+8 struct net_device*",
+    "bcm_tx_lock: @472+4 struct spinlock -> @520+4 struct spinlock",
+    "bcm_rx_update_lock: absent -> @524+4 struct spinlock"
+   ]
+  },
+  "binder_proc_wrap": {
+   "sha256": "79386311c1b4f3b878e0c0270e9bac8a402013ec2544164b9d6f2cbb9184725b",
+   "members": [
+    "dmap: absent -> @608+16 struct dbitmap",
+    "delivered_freeze: @608+16 struct list_head -> @624+16 struct list_head"
+   ]
+  },
+  "bt_sock": {
+   "sha256": "7475361285834edaa1812c87878e1a55ed5f0d5fb078d244393009129932831e",
+   "members": [
+    "accept_q_lock: absent -> @888+4 struct spinlock",
+    "parent: @888+8 struct sock* -> @896+8 struct sock*",
+    "flags: @896+8 unsigned long -> @904+8 unsigned long",
+    "skb_msg_name: @904+8 fn* -> @912+8 fn*",
+    "skb_put_cmsg: @912+8 fn* -> @920+8 fn*"
+   ]
+  },
+  "can_skb_priv": {
+   "sha256": "5f21d2d6244aa48fa88afcbec68b24d91eae6f81151926e20f59ccdd281e6172",
+   "members": [
+    "frame_len: @8+4 unsigned int -> @4+4 unsigned int",
+    "skbcnt: @4+4 int -> absent",
+    "cf: @16+0 struct can_frame[0] -> @8+0 struct can_frame[0]"
+   ]
+  },
+  "channel": {
+   "sha256": "1eb6bc7248a056e2aa50de2e2f02697b71c2b44e3b2061ff9877407644b81697",
+   "members": [
+    "rcu: absent -> @240+16 struct callback_head"
+   ]
+  },
+  "compat_getdents_callback": {
+   "sha256": "93c911abaafbd9552c7fff823c8e8ccc7f0946d35d529eb868429ac47efa020d",
+   "members": [
+    "sb: absent -> @24+8 struct super_block*",
+    "prev_reclen: @24+4 int -> @32+4 int",
+    "count: @28+4 int -> @36+4 int",
+    "error: @32+4 int -> @40+4 int"
+   ]
+  },
+  "compat_readdir_callback": {
+   "sha256": "cddba3d29abf987d4b1cc03b4fe87c526017306fd38f680589bfb64f5498b276",
+   "members": [
+    "sb: absent -> @24+8 struct super_block*",
+    "result: @24+4 int -> @32+4 int"
+   ]
+  },
+  "compress_ctx": {
+   "sha256": "9561f0f4d53b783ec72e34c5e4482eb8ae1e0895ba7f2bb651bd97383e4de072",
+   "members": [
+    "di: @88+32 struct decompress_index[8] -> @88+1024 struct decompress_index[256]",
+    "rofs: @120+4 unsigned int -> @1112+4 unsigned int",
+    "cofs: @124+4 unsigned int -> @1116+4 unsigned int",
+    "private: @128+8 void* -> @1120+8 void*",
+    "private2: @136+8 void* -> @1128+8 void*"
+   ]
+  },
+  "crypto_authenc_ctx": {
+   "sha256": "bf3419e1d0f6541126cef4f76455b02d4ed2a502944a1043813473e3215f104a",
+   "members": [
+    "null: @16+8 struct crypto_sync_skcipher* -> absent"
+   ]
+  },
+  "crypto_authenc_esn_ctx": {
+   "sha256": "77df9a299a83930cee6028c8e6444dd7f8e5ec7f9e84de42d2497d85a78a3de5",
+   "members": [
+    "null: @24+8 struct crypto_sync_skcipher* -> absent"
+   ]
+  },
+  "dbs_governor": {
+   "sha256": "c055ba29dd49c9222f8195050af5d604a11b9e34e1d7dc87cf413f32823be3a9",
+   "members": [
+    "limits: absent -> @248+8 fn*"
+   ]
+  },
+  "decompress_io_ctx": {
+   "sha256": "04f84dc5b7b71383cc29e048347340a9c022648ac5c743393834d805ad255243",
+   "members": [
+    "sbi: absent -> @16+8 struct f2fs_sb_info*",
+    "cluster_idx: @16+8 unsigned long -> @24+8 unsigned long",
+    "cluster_size: @24+4 unsigned int -> @32+4 unsigned int",
+    "log_cluster_size: @28+4 unsigned int -> @36+4 unsigned int",
+    "rpages: @32+64 struct page*[8] -> @40+8 struct page**",
+    "nr_rpages: @96+4 unsigned int -> @48+4 unsigned int",
+    "cpages: @104+64 struct page*[8] -> @56+8 struct page**",
+    "nr_cpages: @168+4 unsigned int -> @64+4 unsigned int",
+    "tpages: @176+64 struct page*[8] -> @72+8 struct page**",
+    "rbuf: @240+8 void* -> @80+8 void*",
+    "cbuf: @248+8 struct compress_data* -> @88+8 struct compress_data*",
+    "rlen: @256+8 unsigned long -> @96+8 unsigned long",
+    "clen: @264+8 unsigned long -> @104+8 unsigned long",
+    "remaining_pages: @280+4 struct (anon) -> @112+4 struct (anon)",
+    "refcnt: @284+4 struct refcount_struct -> @116+4 struct refcount_struct",
+    "failed: @288+1 _Bool -> @120+1 _Bool",
+    "need_verity: @289+1 _Bool -> @121+1 _Bool",
+    "compress_algorithm: absent -> @122+1 unsigned char",
+    "private: @296+8 void* -> @128+8 void*",
+    "private2: @304+8 void* -> @136+8 void*",
+    "verity_work: @312+48 struct work_struct -> @144+48 struct work_struct",
+    "free_work: @360+48 struct work_struct -> @192+48 struct work_struct",
+    "rofs: @272+4 unsigned int -> @240+4 unsigned int",
+    "cofs: @276+4 unsigned int -> @244+4 unsigned int",
+    "current_blk: @408+4 int -> @248+4 int",
+    "di: @412+32 struct decompress_index[8] -> @252+1024 struct decompress_index[256]",
+    "inplace_io: @444+8 char[8] -> @1276+256 char[256]"
+   ]
+  },
+  "discard_cmd_control": {
+   "sha256": "dbeb0c0b76c4cddc2ca1c8fc2ab6b7cd600fd3116c5d16b66c7bd46ed555ecf0",
+   "members": [
+    "discard_io_aware: @8356+4 unsigned int -> absent",
+    "undiscard_blks: @8360+4 unsigned int -> @8356+4 unsigned int",
+    "next_pos: @8364+4 unsigned int -> @8360+4 unsigned int",
+    "issued_discard: @8368+4 struct (anon) -> @8364+4 struct (anon)",
+    "queued_discard: @8372+4 struct (anon) -> @8368+4 struct (anon)",
+    "discard_cmd_cnt: @8376+4 struct (anon) -> @8372+4 struct (anon)",
+    "root: @8384+16 struct rb_root_cached -> @8376+16 struct rb_root_cached",
+    "rbtree_check: @8400+1 _Bool -> @8392+1 _Bool"
+   ]
+  },
+  "dm_verity": {
+   "sha256": "729bba27c739b71ff53ce2a65a8211942b85039ecf8c6af6a472b3337ab245fe",
+   "members": [
+    "corrupted_errs: @136+4 unsigned int -> @136+4 struct (anon)"
+   ]
+  },
+  "drm_mode_rmfb_work": {
+   "sha256": "173e4f935907ff1be95c1e2b4a4109d384c7a7f203a603ec36114dc48ae1eca9",
+   "members": [
+    "rmfb_work: @64+40 struct kthread_work -> absent"
+   ]
+  },
+  "epitem": {
+   "sha256": "6467958c7d89886845d3bbbb8888c07362136f0b6de9d965d47ff4222c448724",
+   "members": [
+    "dying: absent -> @60+1 _Bool"
+   ]
+  },
+  "erspan_base_hdr": {
+   "sha256": "d0071a487ac55d92bc47c82ccad764117a0d5c1463561f1a424bf9a683050c8c",
+   "members": [
+    "vlan: @1+1 unsigned char -> @1+8b unsigned char",
+    "session_id: @3+1 unsigned char -> @3+8b unsigned char"
+   ]
+  },
+  "eventpoll": {
+   "sha256": "0b06c01f01dbf9be514b519f1fa8232287e100e899c8472dc81f2de464bf65bf",
+   "members": [
+    "refcount: absent -> @188+4 struct refcount_struct",
+    "rcu: absent -> @192+16 struct callback_head",
+    "napi_id: @188+4 unsigned int -> @208+4 unsigned int"
+   ]
+  },
+  "ext4_sb_info": {
+   "sha256": "7bcea2bd5bd176060254a206501339a4658713e31432fbee36e3aca5fe5d5076",
+   "members": [
+    "s_error_notify_mutex: absent -> @568+48 struct mutex",
+    "s_sb: @568+8 struct super_block* -> @616+8 struct super_block*",
+    "s_mmp_bh: @576+8 struct buffer_head* -> @624+8 struct buffer_head*",
+    "s_journal: @584+8 struct journal_s* -> @632+8 struct journal_s*",
+    "s_ext4_flags: @592+8 unsigned long -> @640+8 unsigned long",
+    "s_orphan_lock: @600+48 struct mutex -> @648+48 struct mutex",
+    "s_orphan: @648+16 struct list_head -> @696+16 struct list_head",
+    "s_orphan_info: @664+16 struct ext4_orphan_info -> @712+16 struct ext4_orphan_info",
+    "s_commit_interval: @680+8 unsigned long -> @728+8 unsigned long",
+    "s_max_batch_time: @688+4 unsigned int -> @736+4 unsigned int",
+    "s_min_batch_time: @692+4 unsigned int -> @740+4 unsigned int",
+    "s_journal_bdev: @696+8 struct block_device* -> @744+8 struct block_device*",
+    "s_qf_names: @704+24 char*[3] -> @752+24 char*[3]",
+    "s_jquota_fmt: @728+4 int -> @776+4 int",
+    "s_want_extra_isize: @732+4 unsigned int -> @780+4 unsigned int",
+    "s_system_blks: @736+8 struct ext4_system_blocks* -> @784+8 struct ext4_system_blocks*",
+    "s_group_info: @744+8 struct ext4_group_info*** -> @792+8 struct ext4_group_info***",
+    "s_buddy_cache: @752+8 struct inode* -> @800+8 struct inode*",
+    "s_md_lock: @760+4 struct spinlock -> @808+4 struct spinlock",
+    "s_mb_offsets: @768+8 unsigned short* -> @816+8 unsigned short*",
+    "s_mb_maxs: @776+8 unsigned int* -> @824+8 unsigned int*",
+    "s_group_info_size: @784+4 unsigned int -> @832+4 unsigned int",
+    "s_mb_free_pending: @788+4 unsigned int -> @836+4 unsigned int",
+    "s_freed_data_list: @792+16 struct list_head -> @840+16 struct list_head",
+    "s_discard_list: @808+16 struct list_head -> @856+16 struct list_head",
+    "s_discard_work: @824+48 struct work_struct -> @872+48 struct work_struct",
+    "s_retry_alloc_pending: @872+4 struct (anon) -> @920+4 struct (anon)",
+    "s_mb_avg_fragment_size_root: @880+8 struct rb_root -> @928+8 struct rb_root",
+    "s_mb_rb_lock: @888+8 struct (anon) -> @936+8 struct (anon)",
+    "s_mb_largest_free_orders: @896+8 struct list_head* -> @944+8 struct list_head*",
+    "s_mb_largest_free_orders_locks: @904+8 struct (anon)* -> @952+8 struct (anon)*",
+    "s_stripe: @912+8 unsigned long -> @960+8 unsigned long",
+    "s_mb_max_linear_groups: @920+4 unsigned int -> @968+4 unsigned int",
+    "s_mb_stream_request: @924+4 unsigned int -> @972+4 unsigned int",
+    "s_mb_max_to_scan: @928+4 unsigned int -> @976+4 unsigned int",
+    "s_mb_min_to_scan: @932+4 unsigned int -> @980+4 unsigned int",
+    "s_mb_stats: @936+4 unsigned int -> @984+4 unsigned int",
+    "s_mb_order2_reqs: @940+4 unsigned int -> @988+4 unsigned int",
+    "s_mb_group_prealloc: @944+4 unsigned int -> @992+4 unsigned int",
+    "s_mb_max_inode_prealloc: @948+4 unsigned int -> @996+4 unsigned int"
+   ]
+  },
+  "f2fs_attr": {
+   "sha256": "e431c991520e5a748712d0402d173dcd3ff35db1897b38228a6f4c7de26d39c9",
+   "members": [
+    "size: absent -> @40+4 int",
+    "id: @40+4 int -> @44+4 int"
+   ]
+  },
+  "f2fs_io_info": {
+   "sha256": "13068db45fc8a87f3affd21f522b0edfe43858b632987b1e502694fb569c6735",
+   "members": [
+    "post_read: absent -> @98+1 _Bool"
+   ]
+  },
+  "f2fs_sb_info": {
+   "sha256": "074a619e69990c22aa06a537fc82ecbefb0d052a61ef67f874d1972fc6f0822e",
+   "members": [
+    "inline_xattr_slab: @3224+8 struct kmem_cache* -> absent",
+    "gc_segment_mode: @3236+4 unsigned int -> @3224+4 unsigned int",
+    "gc_reclaimed_segs: @3240+28 unsigned int[7] -> @3228+28 unsigned int[7]",
+    "inline_xattr_slab_size: @3232+4 unsigned int -> absent",
+    "seq_file_ra_mul: @3272+8 unsigned long -> @3256+8 unsigned long",
+    "max_fragment_chunk: @3280+4 int -> @3264+4 int",
+    "max_fragment_hole: @3284+4 int -> @3268+4 int",
+    "current_atomic_write: @3288+8 struct (anon) -> @3272+8 struct (anon)",
+    "peak_atomic_write: @3296+8 long long -> @3280+8 long long",
+    "committed_atomic_block: @3304+8 unsigned long long -> @3288+8 unsigned long long",
+    "revoked_atomic_block: @3312+8 unsigned long long -> @3296+8 unsigned long long",
+    "page_array_slab: @3320+8 struct kmem_cache* -> @3304+8 struct kmem_cache*",
+    "page_array_slab_size: @3328+4 unsigned int -> @3312+4 unsigned int",
+    "compr_written_block: @3336+8 unsigned long long -> @3320+8 unsigned long long",
+    "compr_saved_block: @3344+8 unsigned long long -> @3328+8 unsigned long long",
+    "compr_new_inode: @3352+4 unsigned int -> @3336+4 unsigned int",
+    "compress_inode: @3360+8 struct inode* -> @3344+8 struct inode*",
+    "compress_percent: @3368+4 unsigned int -> @3352+4 unsigned int",
+    "compress_watermark: @3372+4 unsigned int -> @3356+4 unsigned int",
+    "compress_page_hit: @3376+4 struct (anon) -> @3360+4 struct (anon)",
+    "iostat_lock: @3380+4 struct spinlock -> @3364+4 struct spinlock",
+    "rw_iostat: @3384+176 unsigned long long[22] -> @3368+176 unsigned long long[22]",
+    "prev_rw_iostat: @3560+176 unsigned long long[22] -> @3544+176 unsigned long long[22]",
+    "iostat_enable: @3736+1 _Bool -> @3720+1 _Bool",
+    "iostat_next_period: @3744+8 unsigned long -> @3728+8 unsigned long",
+    "iostat_period_ms: @3752+4 unsigned int -> @3736+4 unsigned int",
+    "iostat_lat_lock: @3756+4 struct spinlock -> @3740+4 struct spinlock",
+    "iostat_io_lat: @3760+8 struct iostat_lat_info* -> @3744+8 struct iostat_lat_info*",
+    "oplus_feats: @3768+4 unsigned int -> @3752+4 unsigned int",
+    "appboost: @3772+4 int -> @3756+4 int",
+    "appboost_max_blocks: @3776+4 unsigned int -> @3760+4 unsigned int"
+   ]
+  },
+  "fq_sched_data": {
+   "sha256": "bb77ca418233d77aaa85e4e2352965d9ab1028b589ee8ac767cfd57b42f469e7",
+   "members": [
+    "timer_slack: @336+4 unsigned int -> @252+4 unsigned int",
+    "flows: @252+4 unsigned int -> @256+4 unsigned int",
+    "inactive_flows: @256+4 unsigned int -> @260+4 unsigned int",
+    "throttled_flows: @260+4 unsigned int -> @264+4 unsigned int",
+    "stat_throttled: @280+8 unsigned long long -> @272+8 unsigned long long",
+    "watchdog: @344+88 struct qdisc_watchdog -> @280+88 struct qdisc_watchdog",
+    "stat_gc_flows: @264+8 unsigned long long -> @368+8 unsigned long long",
+    "stat_internal_packets: @272+8 unsigned long long -> @376+8 unsigned long long",
+    "stat_ce_mark: @288+8 unsigned long long -> @384+8 unsigned long long",
+    "stat_horizon_drops: @296+8 unsigned long long -> @392+8 unsigned long long",
+    "stat_horizon_caps: @304+8 unsigned long long -> @400+8 unsigned long long",
+    "stat_flows_plimit: @312+8 unsigned long long -> @408+8 unsigned long long",
+    "stat_pkts_too_long: @320+8 unsigned long long -> @416+8 unsigned long long",
+    "stat_allocation_errors: @328+8 unsigned long long -> @424+8 unsigned long long"
+   ]
+  },
+  "getdents_callback": {
+   "sha256": "84af2caa3a5ffb17ad321c8f9836f9e543cdfeeb2ebbd645d6654f6c1f38bdad",
+   "members": [
+    "sb: absent -> @24+8 struct super_block*",
+    "prev_reclen: @24+4 int -> @32+4 int",
+    "count: @28+4 int -> @36+4 int",
+    "error: @32+4 int -> @40+4 int"
+   ]
+  },
+  "getdents_callback64": {
+   "sha256": "fb05995338ec77f5c39407e53883a23ff56aa801caa3f48d83ff2944887e717f",
+   "members": [
+    "sb: absent -> @24+8 struct super_block*",
+    "prev_reclen: @24+4 int -> @32+4 int",
+    "count: @28+4 int -> @36+4 int",
+    "error: @32+4 int -> @40+4 int"
+   ]
+  },
+  "hci_pinfo": {
+   "sha256": "a8872a3843fc87f1b16d1b4a807975f003d4ae070f9e4f3327816229bd2b2833",
+   "members": [
+    "bt: @0+920 struct bt_sock -> @0+928 struct bt_sock",
+    "hdev: @920+8 struct hci_dev* -> @928+8 struct hci_dev*",
+    "filter: @928+32 struct hci_filter -> @936+32 struct hci_filter",
+    "cmsg_mask: @960+1 unsigned char -> @968+1 unsigned char",
+    "channel: @962+2 unsigned short -> @970+2 unsigned short",
+    "flags: @968+8 unsigned long -> @976+8 unsigned long",
+    "cookie: @976+4 unsigned int -> @984+4 unsigned int",
+    "comm: @980+16 char[16] -> @988+16 char[16]"
+   ]
+  },
+  "hid_data": {
+   "sha256": "33a23f0f6182eca90340ddbbcd4435be6da78e6e41e740b41df30a112bbb0eb4",
+   "members": [
+    "inputmode_field_index: absent -> @4+2 short",
+    "sense_state: @4+1 _Bool -> @6+1 _Bool",
+    "inrange_state: @5+1 _Bool -> @7+1 _Bool",
+    "invert_state: @6+1 _Bool -> @8+1 _Bool",
+    "tipswitch: @7+1 _Bool -> @9+1 _Bool",
+    "barrelswitch: @8+1 _Bool -> @10+1 _Bool",
+    "barrelswitch2: @9+1 _Bool -> @11+1 _Bool",
+    "serialhi: @10+1 _Bool -> @12+1 _Bool",
+    "confidence: @11+1 _Bool -> @13+1 _Bool",
+    "x: @12+4 int -> @16+4 int",
+    "y: @16+4 int -> @20+4 int",
+    "pressure: @20+4 int -> @24+4 int",
+    "width: @24+4 int -> @28+4 int",
+    "height: @28+4 int -> @32+4 int",
+    "id: @32+4 int -> @36+4 int",
+    "cc_report: @36+4 int -> @40+4 int",
+    "cc_index: @40+4 int -> @44+4 int",
+    "cc_value_index: @44+4 int -> @48+4 int",
+    "last_slot_field: @48+4 int -> @52+4 int",
+    "num_expected: @52+4 int -> @56+4 int",
+    "num_received: @56+4 int -> @60+4 int",
+    "bat_status: @60+4 int -> @64+4 int",
+    "battery_capacity: @64+4 int -> @68+4 int",
+    "bat_charging: @68+4 int -> @72+4 int",
+    "bat_connected: @72+4 int -> @76+4 int",
+    "ps_connected: @76+4 int -> @80+4 int",
+    "pad_input_event_flag: @80+1 _Bool -> @84+1 _Bool"
+   ]
+  },
+  "ib_device": {
+   "sha256": "d9b93d43e7c962d4ce375d26876f8ed3db12a1117a5bc95e9b256f90fc658e3c",
+   "members": [
+    "ops: @8+1032 struct ib_device_ops -> @8+1048 struct ib_device_ops",
+    "name: @1040+64 char[64] -> @1056+64 char[64]",
+    "callback_head: @1104+16 struct callback_head -> @1120+16 struct callback_head",
+    "event_handler_list: @1120+16 struct list_head -> @1136+16 struct list_head",
+    "event_handler_rwsem: @1136+64 struct rw_semaphore -> @1152+64 struct rw_semaphore",
+    "qp_open_list_lock: @1200+4 struct spinlock -> @1216+4 struct spinlock",
+    "client_data_rwsem: @1208+64 struct rw_semaphore -> @1224+64 struct rw_semaphore",
+    "client_data: @1272+16 struct xarray -> @1288+16 struct xarray",
+    "unregistration_lock: @1288+48 struct mutex -> @1304+48 struct mutex",
+    "cache_lock: @1336+8 struct (anon) -> @1352+8 struct (anon)",
+    "port_data: @1344+8 struct ib_port_data* -> @1360+8 struct ib_port_data*",
+    "num_comp_vectors: @1352+4 int -> @1368+4 int",
+    "dev: @1360+912 struct device -> @1376+912 struct device",
+    "coredev: @1360+952 struct ib_core_device -> @1376+952 struct ib_core_device",
+    "groups: @2312+32 struct attribute_group*[4] -> @2328+32 struct attribute_group*[4]",
+    "hw_stats_attr_index: @2344+1 unsigned char -> @2360+1 unsigned char",
+    "uverbs_cmd_mask: @2352+8 unsigned long long -> @2368+8 unsigned long long",
+    "node_desc: @2360+64 char[64] -> @2376+64 char[64]",
+    "node_guid: @2424+8 unsigned long long -> @2440+8 unsigned long long",
+    "local_dma_lkey: @2432+4 unsigned int -> @2448+4 unsigned int",
+    "is_switch: @2436+1b unsigned short -> @2452+1b unsigned short",
+    "kverbs_provider: @2436+1b unsigned short -> @2452+1b unsigned short",
+    "use_cq_dim: @2436+1b unsigned short -> @2452+1b unsigned short",
+    "node_type: @2437+1 unsigned char -> @2453+1 unsigned char",
+    "phys_port_cnt: @2440+4 unsigned int -> @2456+4 unsigned int",
+    "attrs: @2448+296 struct ib_device_attr -> @2464+296 struct ib_device_attr",
+    "hw_stats_data: @2744+8 struct hw_stats_device_data* -> @2760+8 struct hw_stats_device_data*",
+    "index: @2752+4 unsigned int -> @2768+4 unsigned int",
+    "cq_pools_lock: @2756+4 struct spinlock -> @2772+4 struct spinlock",
+    "cq_pools: @2760+48 struct list_head[3] -> @2776+48 struct list_head[3]",
+    "res: @2808+8 struct rdma_restrack_root* -> @2824+8 struct rdma_restrack_root*",
+    "driver_def: @2816+8 struct uapi_definition* -> @2832+8 struct uapi_definition*",
+    "refcount: @2824+4 struct refcount_struct -> @2840+4 struct refcount_struct",
+    "unreg_completion: @2832+32 struct completion -> @2848+32 struct completion",
+    "unregistration_work: @2864+48 struct work_struct -> @2880+48 struct work_struct",
+    "link_ops: @2912+8 struct rdma_link_ops* -> @2928+8 struct rdma_link_ops*",
+    "compat_devs_mutex: @2920+48 struct mutex -> @2936+48 struct mutex",
+    "compat_devs: @2968+16 struct xarray -> @2984+16 struct xarray",
+    "iw_ifname: @2984+16 char[16] -> @3000+16 char[16]",
+    "iw_driver_flags: @3000+4 unsigned int -> @3016+4 unsigned int"
+   ]
+  },
+  "ib_device_ops": {
+   "sha256": "de5e0360494577b01b40343a7f2d646675bf25e2362d4165650c1c528d75dac9",
+   "members": [
+    "pre_destroy_cq: absent -> @424+8 fn*",
+    "post_destroy_cq: absent -> @432+8 fn*",
+    "get_dma_mr: @424+8 fn* -> @440+8 fn*",
+    "reg_user_mr: @432+8 fn* -> @448+8 fn*",
+    "reg_user_mr_dmabuf: @440+8 fn* -> @456+8 fn*",
+    "rereg_user_mr: @448+8 fn* -> @464+8 fn*",
+    "dereg_mr: @456+8 fn* -> @472+8 fn*",
+    "alloc_mr: @464+8 fn* -> @480+8 fn*",
+    "alloc_mr_integrity: @472+8 fn* -> @488+8 fn*",
+    "advise_mr: @480+8 fn* -> @496+8 fn*",
+    "map_mr_sg: @488+8 fn* -> @504+8 fn*",
+    "check_mr_status: @496+8 fn* -> @512+8 fn*",
+    "alloc_mw: @504+8 fn* -> @520+8 fn*",
+    "dealloc_mw: @512+8 fn* -> @528+8 fn*",
+    "attach_mcast: @520+8 fn* -> @536+8 fn*",
+    "detach_mcast: @528+8 fn* -> @544+8 fn*",
+    "alloc_xrcd: @536+8 fn* -> @552+8 fn*",
+    "dealloc_xrcd: @544+8 fn* -> @560+8 fn*",
+    "create_flow: @552+8 fn* -> @568+8 fn*",
+    "destroy_flow: @560+8 fn* -> @576+8 fn*",
+    "create_flow_action_esp: @568+8 fn* -> @584+8 fn*",
+    "destroy_flow_action: @576+8 fn* -> @592+8 fn*",
+    "modify_flow_action_esp: @584+8 fn* -> @600+8 fn*",
+    "set_vf_link_state: @592+8 fn* -> @608+8 fn*",
+    "get_vf_config: @600+8 fn* -> @616+8 fn*",
+    "get_vf_stats: @608+8 fn* -> @624+8 fn*",
+    "get_vf_guid: @616+8 fn* -> @632+8 fn*",
+    "set_vf_guid: @624+8 fn* -> @640+8 fn*",
+    "create_wq: @632+8 fn* -> @648+8 fn*",
+    "destroy_wq: @640+8 fn* -> @656+8 fn*",
+    "modify_wq: @648+8 fn* -> @664+8 fn*",
+    "create_rwq_ind_table: @656+8 fn* -> @672+8 fn*",
+    "destroy_rwq_ind_table: @664+8 fn* -> @680+8 fn*",
+    "alloc_dm: @672+8 fn* -> @688+8 fn*",
+    "dealloc_dm: @680+8 fn* -> @696+8 fn*",
+    "reg_dm_mr: @688+8 fn* -> @704+8 fn*",
+    "create_counters: @696+8 fn* -> @712+8 fn*",
+    "destroy_counters: @704+8 fn* -> @720+8 fn*",
+    "read_counters: @712+8 fn* -> @728+8 fn*",
+    "map_mr_sg_pi: @720+8 fn* -> @736+8 fn*"
+   ]
+  },
+  "ipvl_dev": {
+   "sha256": "02eb8af9109de5f134adb9abd36e0e020a99af0d71e2e4bb9618f454171a62d0",
+   "members": [
+    "addrs_lock: @108+4 struct spinlock -> absent"
+   ]
+  },
+  "ipvl_port": {
+   "sha256": "626b77a401ae7c01933769108641b513ee46321778c59704b5255a0511ca244f",
+   "members": [
+    "addrs_lock: absent -> @2064+4 struct spinlock",
+    "ipvlans: @2064+16 struct list_head -> @2072+16 struct list_head",
+    "mode: @2080+2 unsigned short -> @2088+2 unsigned short",
+    "flags: @2082+2 unsigned short -> @2090+2 unsigned short",
+    "dev_id_start: @2084+2 unsigned short -> @2092+2 unsigned short",
+    "wq: @2088+48 struct work_struct -> @2096+48 struct work_struct",
+    "backlog: @2136+24 struct sk_buff_head -> @2144+24 struct sk_buff_head",
+    "count: @2160+4 int -> @2168+4 int",
+    "ida: @2168+16 struct ida -> @2176+16 struct ida"
+   ]
+  },
+  "kprobe_ctlblk": {
+   "sha256": "56058dc51830989362f7571008ae587d260002f844a7de0305754dd185176073",
+   "members": [
+    "prev_kprobe: @16+16 struct prev_kprobe -> @16+24 struct prev_kprobe"
+   ]
+  },
+  "kvm": {
+   "sha256": "bd18bf24bd0eda0c2d7214e11e48669eee4f0086366944387e59a4d02a6475c8",
+   "members": [
+    "mmu_invalidate_seq: absent -> @5144+8 unsigned long",
+    "mmu_notifier_seq: @5144+8 unsigned long -> absent",
+    "mmu_invalidate_in_progress: absent -> @5152+8 long",
+    "mmu_notifier_count: @5152+8 long -> absent",
+    "mmu_notifier_range_start: @5160+8 unsigned long -> absent",
+    "mmu_invalidate_range_start: absent -> @5160+8 unsigned long",
+    "mmu_notifier_range_end: @5168+8 unsigned long -> absent",
+    "mmu_invalidate_range_end: absent -> @5168+8 unsigned long"
+   ]
+  },
+  "kvm_mmio_fragment": {
+   "sha256": "b06bdd4baa656ed4e8087121c7b36990f302abf85f9fe123fb8f42fac2fdc3fd",
+   "members": [
+    "val: absent -> @16+8 unsigned long long",
+    "len: @16+4 unsigned int -> @24+4 unsigned int"
+   ]
+  },
+  "kvm_vcpu": {
+   "sha256": "171052db61c6e834c1699864d7510e627f8b8bd640b25a5deb88c9ec15ad5c9d",
+   "members": [
+    "mmio_fragments: @216+48 struct kvm_mmio_fragment[2] -> @216+64 struct kvm_mmio_fragment[2]",
+    "spin_loop: @264+2 struct (anon) -> @280+2 struct (anon)",
+    "preempted: @266+1 _Bool -> @282+1 _Bool",
+    "ready: @267+1 _Bool -> @283+1 _Bool",
+    "arch: @272+8784 struct kvm_vcpu_arch -> @288+8784 struct kvm_vcpu_arch",
+    "stat: @9056+880 struct kvm_vcpu_stat -> @9072+880 struct kvm_vcpu_stat",
+    "stats_id: @9936+48 char[48] -> @9952+48 char[48]",
+    "dirty_ring: @9984+32 struct kvm_dirty_ring -> @10000+32 struct kvm_dirty_ring",
+    "last_used_slot: @10016+4 int -> @10032+4 int"
+   ]
+  },
+  "l2cap_conn": {
+   "sha256": "51745a048c54e414db75d514e59d671198f036f34649f24fa7062866ec3fd929",
+   "members": [
+    "ident_lock: @184+48 struct mutex -> absent",
+    "tx_ida: absent -> @184+16 struct ida",
+    "tx_ident: @180+1 unsigned char -> @200+1 unsigned char",
+    "pending_rx: @232+24 struct sk_buff_head -> @208+24 struct sk_buff_head",
+    "pending_rx_work: @256+48 struct work_struct -> @232+48 struct work_struct",
+    "id_addr_update_work: @304+48 struct work_struct -> @280+48 struct work_struct",
+    "disc_reason: @352+1 unsigned char -> @328+1 unsigned char",
+    "smp: @360+8 struct l2cap_chan* -> @336+8 struct l2cap_chan*",
+    "chan_l: @368+16 struct list_head -> @344+16 struct list_head",
+    "chan_lock: @384+48 struct mutex -> @360+48 struct mutex",
+    "ref: @432+4 struct kref -> @408+4 struct kref",
+    "users: @440+16 struct list_head -> @416+16 struct list_head",
+    "android_kabi_reserved1: @456+8 unsigned long long -> @432+8 unsigned long long",
+    "android_kabi_reserved2: @464+8 unsigned long long -> @440+8 unsigned long long"
+   ]
+  },
+  "l2cap_pinfo": {
+   "sha256": "25b8b52a1a7b1f943cb5eb66e003e23ac9591499a7169634d80991181f6f6b8e",
+   "members": [
+    "bt: @0+920 struct bt_sock -> @0+928 struct bt_sock",
+    "chan: @920+8 struct l2cap_chan* -> @928+8 struct l2cap_chan*",
+    "rx_busy_skb: @928+8 struct sk_buff* -> @936+8 struct sk_buff*"
+   ]
+  },
+  "mt_device": {
+   "sha256": "3d957c6f11a7eaf4e15b627b2d0897f85699e844b49c05ffb022f8dc73a43e1d",
+   "members": [
+    "active_slots: absent -> @104+8 unsigned long*",
+    "inputmode_value: @104+1 unsigned char -> @112+1 unsigned char",
+    "maxcontacts: @105+1 unsigned char -> @113+1 unsigned char",
+    "is_buttonpad: @106+1 _Bool -> @114+1 _Bool",
+    "serial_maybe: @107+1 _Bool -> @115+1 _Bool",
+    "applications: @112+16 struct list_head -> @120+16 struct list_head",
+    "reports: @128+16 struct list_head -> @136+16 struct list_head"
+   ]
+  },
+  "netlink_sock": {
+   "sha256": "63eaaa10c3ca666a46043cfa66e18f755fae36e548e96115a92de24d6b32a86b",
+   "members": [
+    "nl_cb_mutex: absent -> @1080+48 struct mutex",
+    "cb_mutex: @1080+8 struct mutex* -> absent",
+    "cb_def_mutex: @1088+48 struct mutex -> absent",
+    "dump_cb_mutex: absent -> @1128+8 struct mutex*"
+   ]
+  },
+  "nf_conncount_list": {
+   "sha256": "84077f4b396fc1d437d03640e0729e6808f60e731f5ce4bc10a7fb45f43bef0a",
+   "members": [
+    "last_gc: absent -> @4+4 unsigned int",
+    "last_gc_count: absent -> @28+4 unsigned int"
+   ]
+  },
+  "nf_ct_timeout": {
+   "sha256": "20af31c6b8ba8545006c0b80300989185564ac454b3a349730a1019a2b495342",
+   "members": [
+    "rcu: absent -> @16+16 struct callback_head",
+    "data: @16+0 char[0] -> @32+0 char[0]"
+   ]
+  },
+  "nf_queue_entry": {
+   "sha256": "2de44bfa5127853e27641fbce1b92f8032a9dc9b8fb884366d3afffd59c04096",
+   "members": [
+    "skb_dev: absent -> @24+8 struct net_device*",
+    "id: @24+4 unsigned int -> @32+4 unsigned int",
+    "hook_index: @28+4 unsigned int -> @36+4 unsigned int",
+    "state: @32+48 struct nf_hook_state -> @40+48 struct nf_hook_state",
+    "size: @80+2 unsigned short -> @88+2 unsigned short"
+   ]
+  },
+  "nfc_llcp_local": {
+   "sha256": "67aff677f40493e3de976ed18980c580d45424f5cff2cd759b30033f402995c1",
+   "members": [
+    "release_work: absent -> @688+48 struct work_struct",
+    "sdreq_next_tid: @688+1 unsigned char -> @736+1 unsigned char",
+    "sockets: @696+16 struct llcp_sock_list -> @744+16 struct llcp_sock_list",
+    "connecting_sockets: @712+16 struct llcp_sock_list -> @760+16 struct llcp_sock_list",
+    "raw_sockets: @728+16 struct llcp_sock_list -> @776+16 struct llcp_sock_list"
+   ]
+  },
+  "packet_ring_buffer": {
+   "sha256": "211288da4b09f58dfd1dbfbd29b11a0d8e2519bff0c48490b3863bf0df5350da",
+   "members": [
+    "prb_bdqc: @48+168 struct tpacket_kbdq_core -> @48+176 struct tpacket_kbdq_core"
+   ]
+  },
+  "packet_sock": {
+   "sha256": "8eb9fc142bcafe99634cff02a66fa8d0209f94e9c539cc31e7152609095b9e2a",
+   "members": [
+    "rx_ring: @896+216 struct packet_ring_buffer -> @896+224 struct packet_ring_buffer",
+    "tx_ring: @1112+216 struct packet_ring_buffer -> @1120+224 struct packet_ring_buffer",
+    "copy_thresh: @1328+4 int -> @1344+4 int",
+    "bind_lock: @1332+4 struct spinlock -> @1348+4 struct spinlock",
+    "pg_vec_lock: @1336+48 struct mutex -> @1352+48 struct mutex",
+    "flags: @1384+8 unsigned long -> @1400+8 unsigned long",
+    "running: @1392+4 unsigned int -> @1408+4 unsigned int",
+    "has_vnet_hdr: @1396+1b unsigned int -> @1412+1b unsigned int",
+    "tp_loss: @1396+1b unsigned int -> @1412+1b unsigned int",
+    "tp_tx_has_off: @1396+1b unsigned int -> @1412+1b unsigned int",
+    "pressure: @1400+4 int -> @1416+4 int",
+    "ifindex: @1404+4 int -> @1420+4 int",
+    "num: @1408+2 unsigned short -> @1424+2 unsigned short",
+    "rollover: @1416+8 struct packet_rollover* -> @1432+8 struct packet_rollover*",
+    "mclist: @1424+8 struct packet_mclist* -> @1440+8 struct packet_mclist*",
+    "mapped: @1432+8 struct (anon) -> @1448+8 struct (anon)",
+    "tp_version: @1440+4 enum tpacket_versions -> @1456+4 enum tpacket_versions",
+    "tp_hdrlen: @1444+4 unsigned int -> @1460+4 unsigned int",
+    "tp_reserve: @1448+4 unsigned int -> @1464+4 unsigned int",
+    "tp_tstamp: @1452+4 unsigned int -> @1468+4 unsigned int",
+    "skb_completion: @1456+32 struct completion -> @1472+32 struct completion",
+    "cached_dev: @1488+8 struct net_device* -> @1504+8 struct net_device*",
+    "xmit: @1496+8 fn* -> @1512+8 fn*"
+   ]
+  },
+  "prev_kprobe": {
+   "sha256": "d0bae3e9aa5293c9cc0f5715a154fc6fcda62458d8254d768e248fcdc455608e",
+   "members": [
+    "saved_irqflag: absent -> @16+8 unsigned long"
+   ]
+  },
+  "rate_sample": {
+   "sha256": "a179d74adbdc882db3b5e6b8145996327cd3bbc9a61825b56dd9646cbdc3b2f2",
+   "members": [
+    "is_acking_tlp_retrans_seq: absent -> @59+1 _Bool",
+    "is_ece: absent -> @60+1 _Bool",
+    "tx_in_flight: absent -> @64+4 unsigned int",
+    "lost: absent -> @68+4 int",
+    "delivered_ce: absent -> @72+4 int",
+    "prior_delivered_ce: absent -> @76+4 unsigned int",
+    "prior_lost: absent -> @80+4 unsigned int"
+   ]
+  },
+  "receiver": {
+   "sha256": "ec6f7a820c22cec900e9b52a22124b93a7c5dc6e97a5197422e59841ac5481b9",
+   "members": [
+    "matches: @24+8 unsigned long -> @24+8 struct (anon)"
+   ]
+  },
+  "request_key_auth": {
+   "sha256": "4913ddb50928cf229685ae5846f60f619e8af2fa5181bfe5477378a3667b8fc9",
+   "members": [
+    "usage: absent -> @16+4 struct refcount_struct",
+    "target_key: @16+8 struct key* -> @24+8 struct key*",
+    "dest_keyring: @24+8 struct key* -> @32+8 struct key*",
+    "cred: @32+8 struct cred* -> @40+8 struct cred*",
+    "callout_info: @40+8 void* -> @48+8 void*",
+    "callout_len: @48+8 unsigned long -> @56+8 unsigned long",
+    "pid: @56+4 int -> @64+8 struct pid*",
+    "op: @60+8 char[8] -> @72+8 char[8]"
+   ]
+  },
+  "rfcomm_pinfo": {
+   "sha256": "c7cacf637252a31496a6e91dea114481452f7e4580c9680dad997298c41c5892",
+   "members": [
+    "bt: @0+920 struct bt_sock -> @0+928 struct bt_sock",
+    "src: @920+6 struct (anon) -> @928+6 struct (anon)",
+    "dst: @926+6 struct (anon) -> @934+6 struct (anon)",
+    "dlc: @936+8 struct rfcomm_dlc* -> @944+8 struct rfcomm_dlc*",
+    "channel: @944+1 unsigned char -> @952+1 unsigned char",
+    "sec_level: @945+1 unsigned char -> @953+1 unsigned char",
+    "role_switch: @946+1 unsigned char -> @954+1 unsigned char"
+   ]
+  },
+  "rfkill_data": {
+   "sha256": "fc58c377a750ab4728c88cf2c8c7ca0c7c7fd9349766428927dcb163c675b52f",
+   "members": [
+    "event_count: absent -> @104+4 unsigned int",
+    "input_handler: @104+1 _Bool -> @108+1 _Bool",
+    "max_size: @105+1 unsigned char -> @109+1 unsigned char"
+   ]
+  },
+  "sco_pinfo": {
+   "sha256": "434ec642e55369976022f918aca6f5f338a928253e47e551506c4f43491976de",
+   "members": [
+    "bt: @0+920 struct bt_sock -> @0+928 struct bt_sock",
+    "src: @920+6 struct (anon) -> @928+6 struct (anon)",
+    "dst: @926+6 struct (anon) -> @934+6 struct (anon)",
+    "flags: @932+4 unsigned int -> @940+4 unsigned int",
+    "setting: @936+2 unsigned short -> @944+2 unsigned short",
+    "cmsg_mask: @938+1 unsigned char -> @946+1 unsigned char",
+    "conn: @944+8 struct sco_conn* -> @952+8 struct sco_conn*"
+   ]
+  },
+  "sctp_cookie": {
+   "sha256": "cea87e78d6abbbfe3dee6584cd3f9ce209ebad7913c43c9116d450c8593a166c",
+   "members": [
+    "auth_hmacs: @104+10 unsigned char[10] -> @104+12 unsigned char[12]",
+    "auth_chunks: @114+20 unsigned char[20] -> @116+20 unsigned char[20]"
+   ]
+  },
+  "shadow_vcpu_state": {
+   "sha256": "817315fa0643238d39cae92f4b740db0eac477e488d2787e2b1899803c88ee0d",
+   "members": [
+    "vcpu: @16+10032 struct kvm_vcpu -> @16+10048 struct kvm_vcpu"
+   ]
+  },
+  "task_struct": {
+   "sha256": "10a4ed0972ec906f44683994470e5d9de9bfd4bcb9a36a5484bdd3326830a496",
+   "members": [
+    "user_dumpable: absent -> @1425+1b unsigned int",
+    "sysvsem: absent -> @3448+8 struct sysv_sem",
+    "sysvshm: absent -> @3456+16 struct sysv_shm"
+   ]
+  },
+  "tcf_pedit_parms": {
+   "sha256": "ddaa765cfff4a7ed169f56277272bdfae29fe53f32fbd421a18d6d24820ec39d",
+   "members": [
+    "tcfp_nkeys: @20+1 unsigned char -> @16+1 unsigned char",
+    "tcfp_off_max_hint: @16+4 unsigned int -> absent",
+    "tcfp_flags: @21+1 unsigned char -> @17+1 unsigned char"
+   ]
+  },
+  "tcp_bbr_info": {
+   "sha256": "a015e7d00ba91c7b23f78e6cc14a55b5dfa85d944b3159ad0de546b0b992bdfa",
+   "members": [
+    "bbr_bw_hi_lsb: absent -> @20+4 unsigned int",
+    "bbr_bw_hi_msb: absent -> @24+4 unsigned int",
+    "bbr_bw_lo_lsb: absent -> @28+4 unsigned int",
+    "bbr_bw_lo_msb: absent -> @32+4 unsigned int",
+    "bbr_mode: absent -> @36+1 unsigned char",
+    "bbr_phase: absent -> @37+1 unsigned char",
+    "unused1: absent -> @38+1 unsigned char",
+    "bbr_version: absent -> @39+1 unsigned char",
+    "bbr_inflight_lo: absent -> @40+4 unsigned int",
+    "bbr_inflight_hi: absent -> @44+4 unsigned int",
+    "bbr_extra_acked: absent -> @48+4 unsigned int"
+   ]
+  },
+  "tcp_cc_info": {
+   "sha256": "1347ba280036cb054a4978ed3a14bb0474fc666995a7d088757f5951cc4842c1",
+   "members": [
+    "bbr: @0+20 struct tcp_bbr_info -> @0+52 struct tcp_bbr_info"
+   ]
+  },
+  "tcp_sock": {
+   "sha256": "713118a55855b177cfbd5b2ca63cfb68fe746d94b95a288581a42af0e98e9eb0",
+   "members": [
+    "fast_ack_mode: absent -> @1707+2b unsigned char",
+    "tlp_orig_data_app_limited: absent -> @1707+1b unsigned char",
+    "unused: @1707+5b unsigned char -> @1707+2b unsigned char"
+   ]
+  },
+  "tipc_discoverer": {
+   "sha256": "b2938d2a552008440af66c0aaeaa504b313e645e4e6a8763b90351b408cd4799",
+   "members": [
+    "rcu: absent -> @136+16 struct callback_head"
+   ]
+  },
+  "tpacket_kbdq_core": {
+   "sha256": "35dbb53b6f735d36dddd7b1afcd5136f5687f5b75c260ed8cf14d2c83e7678c4",
+   "members": [
+    "blk_sizeof_priv: @20+2 unsigned short -> @20+4 unsigned int",
+    "last_kactive_blk_num: @22+2 unsigned short -> @24+2 unsigned short",
+    "pkblk_start: @24+8 char* -> @32+8 char*",
+    "pkblk_end: @32+8 char* -> @40+8 char*",
+    "kblk_size: @40+4 int -> @48+4 int",
+    "max_frame_len: @44+4 unsigned int -> @52+4 unsigned int",
+    "knum_blocks: @48+4 unsigned int -> @56+4 unsigned int",
+    "knxt_seq_num: @56+8 unsigned long long -> @64+8 unsigned long long",
+    "prev: @64+8 char* -> @72+8 char*",
+    "nxt_offset: @72+8 char* -> @80+8 char*",
+    "skb: @80+8 struct sk_buff* -> @88+8 struct sk_buff*",
+    "blk_fill_in_prog_lock: @88+8 struct (anon) -> @96+8 struct (anon)",
+    "retire_blk_tov: @96+2 unsigned short -> @104+2 unsigned short",
+    "version: @98+2 unsigned short -> @106+2 unsigned short",
+    "tov_in_jiffies: @104+8 unsigned long -> @112+8 unsigned long",
+    "retire_blk_timer: @112+56 struct timer_list -> @120+56 struct timer_list"
+   ]
+  },
+  "trace_event_raw_sched_blocked_reason": {
+   "sha256": "97132b70173ef3ae2fb155d2511106f1d668c18a2903b1f807a179d09df5f456",
+   "members": [
+    "__data: @64+0 char[0] -> @25+0 char[0]",
+    "layer1: @32+8 void* -> absent",
+    "layer2: @40+8 void* -> absent",
+    "layer3: @48+8 void* -> absent",
+    "layer4: @56+8 void* -> absent"
+   ]
+  },
+  "trace_probe_event": {
+   "sha256": "0eb7ee8920a311806ad70bbc52dd43ede7a83997b9c29f8995eaa68d341c979b",
+   "members": [
+    "field_strings: absent -> @256+8 char**",
+    "nr_field_strings: absent -> @264+4 int",
+    "filter: @256+0 struct trace_uprobe_filter[0] -> @272+0 struct trace_uprobe_filter[0]"
+   ]
+  },
+  "uinput_device": {
+   "sha256": "9b56460f5f81afe04013f8637a6b17d32ebac4c059c4a04e3919387a02a3ac58",
+   "members": [
+    "state_lock: absent -> @60+4 struct spinlock"
+   ]
+  },
+  "uniqframe": {
+   "sha256": "7727f7faa806a54d9e57f22af4d05eb6fba499fb757638e212e26d98036a83eb",
+   "members": [
+    "skb: @8+8 struct sk_buff* -> @0+8 struct sk_buff*",
+    "skbcnt: @0+4 int -> absent",
+    "hash: absent -> @8+4 unsigned int",
+    "join_rx_count: @16+4 unsigned int -> @12+4 unsigned int"
+   ]
+  },
+  "usb_udc": {
+   "sha256": "8df18dff2964f28e3fb5836a45c2b2be114c896d5d84a82b1a7dbee11e40df59",
+   "members": [
+    "gadget_release: absent -> @16+8 fn*",
+    "dev: @16+912 struct device -> @24+912 struct device",
+    "list: @928+16 struct list_head -> @936+16 struct list_head",
+    "vbus: @944+1 _Bool -> @952+1 _Bool",
+    "started: @945+1 _Bool -> @953+1 _Bool",
+    "teardown: absent -> @954+1 _Bool"
+   ]
+  },
+  "uvc_device": {
+   "sha256": "340e5c8ebcc1360c72760fa21467d3ca6f8017366f1ff7e9cea8548f1e2d80cc",
+   "members": [
+    "vdev_release_done: absent -> @3056+8 struct completion*",
+    "lock: @72+48 struct mutex -> @3064+48 struct mutex",
+    "func_unbound: absent -> @3112+1 _Bool",
+    "func_connected: @3056+1 _Bool -> @3113+1 _Bool",
+    "func_connected_queue: @3064+24 struct wait_queue_head -> @3120+24 struct wait_queue_head",
+    "header: @3088+8 struct uvcg_streaming_header* -> @3144+8 struct uvcg_streaming_header*",
+    "desc: @3096+40 struct (anon) -> @3152+40 struct (anon)",
+    "control_intf: @3136+4 unsigned int -> @3192+4 unsigned int",
+    "interrupt_ep: @3144+8 struct usb_ep* -> @3200+8 struct usb_ep*",
+    "control_req: @3152+8 struct usb_request* -> @3208+8 struct usb_request*",
+    "control_buf: @3160+8 void* -> @3216+8 void*",
+    "enable_interrupt_ep: @3168+1 _Bool -> @3224+1 _Bool",
+    "streaming_intf: @3172+4 unsigned int -> @3228+4 unsigned int",
+    "event_length: @3176+4 unsigned int -> @3232+4 unsigned int",
+    "event_setup_out: @3180+1b unsigned int -> @3236+1b unsigned int"
+   ]
+  },
+  "uvcg_frame": {
+   "sha256": "9ef6543e0b9f0c888642e9cf25626d711d8b4d28790c158a139fb83310bd9b07",
+   "members": [
+    "frame: @84+26 struct (anon) -> @84+30 struct (anon)",
+    "dw_frame_interval: @112+8 unsigned int* -> @120+8 unsigned int*"
+   ]
+  },
+  "xt_hashlimit_htable": {
+   "sha256": "9cb3f3704ec984eb236f913fc34abfcee7a826e1a21ec09f9028fade1715a463",
+   "members": [
+    "ratematch: absent -> @22+1 _Bool"
+   ]
+  }
+ },
+ "removed": [
+  "acpi_pld_info",
+  "avg_latency_bucket",
+  "blk_metrics_struct",
+  "boost_groups",
+  "entry_head_t",
+  "entry_t",
+  "latency_bucket",
+  "oplus_rmfb_work",
+  "ring_buffer_t",
+  "ring_buffer_tail",
+  "sample_cycle",
+  "schedtune",
+  "throtl_data",
+  "throtl_grp",
+  "throtl_qnode",
+  "throtl_service_queue",
+  "trace_event_data_offsets_filemap_map_pages",
+  "trace_event_raw_filemap_map_pages"
+ ]
+}
