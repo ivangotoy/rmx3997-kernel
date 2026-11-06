@@ -3,8 +3,8 @@
 Custom GKI-compatible kernel source for the **realme 12x 5G**, model RMX3997,
 EU variant (build RMX3997_16.0.5.1300(EX01)), MediaTek Dimensity 6100+
 (MT6835). The kernel is built from the Android13-5.15 branch, which is the GKI
-base this device ships. Every delivery listed here was flashed and verified on
-hardware, not only built.
+base this device ships. Builds and releases come from Forgejo Actions; see
+Releases for downloads.
 
 ## Status
 
@@ -12,24 +12,10 @@ hardware, not only built.
 | --- | --- |
 | Device | realme 12x 5G, RMX3997, EU variant (EX01), Dimensity 6100+ (MT6835) |
 | Device ROM | RMX3997_16.0.5.1300(EX01) |
-| Kernel | Linux 5.15.197, Android13-5.15 GKI KMI8 (`5.15.197-android13-8-g7bdd6d06fa9d-dirty`) |
+| Kernel | Linux 5.15.197, Android13-5.15 GKI KMI8 |
 | Compiler | ZyC Clang 18.0.0git (LLVM `3dea0aa8`), Full LTO, strict CFI |
 | Default TCP congestion control | `bbr3` (BBRv3 backport); upstream `bbr` still available |
 | Metamodule support | NoMount protocol 22 (metamodule versionCode 647) |
-| Phone status | Booted on slot B, full partition image flashed and read back identical |
-
-Current delivery:
-
-| Artifact | SHA-256 |
-| --- | --- |
-| `RMX3997-5.15.197-E-ZYC-BBRV3.zip` | `85079edee98ee7e25c7a2d6fe2479f749528eb6bdc985b127ca489ad686260a1` |
-| Raw ARM64 `Image` | `c3ff239ac2e96b9e90b8ee41c5afc83415d380c1e5263d329bac51467b419dbd` |
-| Effective config | `1156a9cbaf11bd605baa7b6965e38b9408b8540090a4043099ce688da26c07e7` |
-| `boot_b` partition image (64 MiB) | `585515f7e96989adedce0e1e6c16e9305912528d080fa850ad61559a221ecf49` |
-
-The previous delivery (D2, identical source without BBRv3, stock-CTF-safe and
-phone-confirmed) stays usable as a fallback:
-`boot_b` image `df8e83eaec4542dfa590a47b7bf2a3c8b732a10b6d422465150103ab37735f51`.
 
 ## Features
 
@@ -99,28 +85,7 @@ shipped binary identity.
 
 ## Installing
 
-Two paths, both verified on the phone.
-
-**fastbootd (fast, needs a bootable kernel)**
-
-```sh
-adb reboot fastboot
-fastboot flash boot_b boot_b-E-ZYC-BBRV3.img
-fastboot reboot
-```
-
-Userspace fastboot runs from the recovery ramdisk, so it only exists while the
-boot partition it would replace still boots. It cannot rescue a broken kernel.
-
-**Preloader mode (kernel independent)**
-
-Write the same 64 MiB `boot_b` partition image with a MediaTek download tool in
-preloader mode, `Download Only`, selecting `boot_b`. This is the recovery path
-when a kernel does not boot. Slot A still carries the stock kernel.
-
-**AnyKernel ZIP**
-
-The ZIP remains installable from a rooted, booted Android through its own
+The release ZIP is installable from a rooted, booted Android through its own
 installer: it splits the active boot partition, preserves ramdisk/DT/header,
 repacks with the new `Image`, verifies the original AVB metadata and writes
 truthful unsigned AVB `NONE` metadata, keeping a backup under
