@@ -1,144 +1,181 @@
-# RMX3997 phone-confirmed kernel source
+# RMX3997 kernel - Android 13 / Linux 5.15.197
 
-The current delivery is Linux 5.15.197 / Android13 KMI8 built with ZyC Clang
-18.0.0git (LLVM `3dea0aa8`) and Full LTO with strict CFI. It carries built-in
-BakaSU/SUSFS, NTSync, SYSVIPC, POSIX_MQUEUE, IPC_NS and PID_NS, upstream
-NoMount (maxsteeel `dev` `3f8b5d1`, protocol 22, metamodule versionCode 647),
-NP3/diting configuration parity (USER_NS, DEVTMPFS not auto-mounted, TMPFS
-xattr/ACL, IPv6 NAT/MASQUERADE/HL, ipset, xt set/LOG/recent, CAKE, CIFS,
-Baseband Guard `028ff7fd`), the applicable WildKernels parity items (MACVLAN,
-Westwood/HTCP, TTL/HL, CONNMARK, PIE/FQ-PIE, KSU toolkit, WildKernels tuning
-patches) and the BBRv3 TCP congestion-control backport, which is the default
-congestion control (`bbr3`; upstream BBR remains available). IPC uses
-task_struct reserve slots 1-3; the original OEM guard keeps slots 4-8. OEM F2FS
-and the original Realme ZRAM/HybridSwap modules are preserved.
-CFS_BANDWIDTH and CGROUP_PIDS remain disabled; MGLRU is compiled but
-default-off. The stock Oplus vendor modules (built with Clang 14) load unchanged
-under this kernel.
+Custom GKI-compatible kernel source for the Realme RMX3997 (MediaTek MT6835),
+built from the Android13-5.15 branch. Every delivery listed here was flashed and
+verified on hardware, not only built.
 
-The delivery was flashed as a full boot_b partition image and verified over ADB
-on the phone, including the NoMount metamodule and a DroidSpaces Ubuntu 24.04
-container:
+## Status
+
+| | |
+| --- | --- |
+| Kernel | Linux 5.15.197, Android13 KMI8 (`5.15.197-android13-8-g7bdd6d06fa9d-dirty`) |
+| Compiler | ZyC Clang 18.0.0git (LLVM `3dea0aa8`), Full LTO, strict CFI |
+| Default TCP congestion control | `bbr3` (BBRv3 backport); upstream `bbr` still available |
+| Metamodule support | NoMount protocol 22 (metamodule versionCode 647) |
+| Phone status | Booted on slot B, full partition image flashed and read back identical |
+
+Current delivery:
 
 | Artifact | SHA-256 |
 | --- | --- |
 | `RMX3997-5.15.197-E-ZYC-BBRV3.zip` | `85079edee98ee7e25c7a2d6fe2479f749528eb6bdc985b127ca489ad686260a1` |
-| Raw ARM64 Image | `c3ff239ac2e96b9e90b8ee41c5afc83415d380c1e5263d329bac51467b419dbd` |
+| Raw ARM64 `Image` | `c3ff239ac2e96b9e90b8ee41c5afc83415d380c1e5263d329bac51467b419dbd` |
 | Effective config | `1156a9cbaf11bd605baa7b6965e38b9408b8540090a4043099ce688da26c07e7` |
-| `boot_b-E-ZYC-BBRV3.img` (64 MiB partition image) | `585515f7e96989adedce0e1e6c16e9305912528d080fa850ad61559a221ecf49` |
+| `boot_b` partition image (64 MiB) | `585515f7e96989adedce0e1e6c16e9305912528d080fa850ad61559a221ecf49` |
 
-`build-argv.json` and `build-environment.json` record the E build. These
-artifact hashes are not live partition-byte hashes, except the boot_b image
-whose read-back from the device was verified. The phone-confirmed D2 and D1
-builds, the PARITY-B delivery and earlier records are kept in
-[artifact and evidence provenance](delivery-provenance.json).
+The previous delivery (D2, identical source without BBRv3, stock-CTF-safe and
+phone-confirmed) stays usable as a fallback:
+`boot_b` image `df8e83eaec4542dfa590a47b7bf2a3c8b732a10b6d422465150103ab37735f51`.
 
-## Canonical configuration and build
+## Features
 
-`config/production.config` is the current canonical seed. It preserves the
-frozen effective config byte-for-byte except for one documented path relocation:
-`CONFIG_UNUSED_KSYMS_WHITELIST="rmx3997/config/abi-symbol-list.txt"` is relative to
-the source root. `development/prepare-stage.py` selects this seed and runs the
-tracked upstream flattener through `prepare-kmi-whitelist.py`, then binds
-`stage/out/abi_symbollist.raw` before real `olddefconfig`. Restoring only the
-original whitelist pathname recovers the exact frozen config hash above.
-The generated raw whitelist is byte-identical to the original, not merely an
-equivalent symbol set. Both relative and bound paths were exercised through
-the real `scripts/gen_autoksyms.sh` consumer.
+**Root and security tooling**
 
-Build prerequisites are external: the retained OEM-F2FS workspace's
-`kernel/build`, `kernel/prebuilts` (Clang r450784e / 14.0.7, kernel build tools
-and NDK r23), ABI baselines, runner/checker files and `tests/check_f2fs_btf.py`.
-The preparation script explicitly lists the copied names in its source.
-The Git checkout alone is not a complete toolchain or validation corpus.
-`build-argv.json` and `build-environment.json` are historical invocation
-templates; their old host paths are not portable build commands. Preparation
-relocates the prebuilt paths from the supplied ancestor and writes the actual
-argv/environment under the new stage, retaining the flags, timestamp, user,
-host, epoch and KMI generation. No old absolute whitelist file is required.
+- BakaSU (KernelSU fork) built in, SUSFS `d5df1d93`
+- NoMount on the upstream track (maxsteeel `dev`), protocol 22
+- Baseband Guard built in
+- CFI enforced for both kernel and OEM modules, stack protector strong
+- MGLRU compiled but left disabled by default
 
-From the repository root, with `ANCESTOR` set to that retained workspace and
-`STAGE` to a new directory on disk under the existing task scratch root:
+**Namespaces and containers**
+
+- USER_NS, IPC_NS, PID_NS, CGROUP_NS, UTS_NS
+- SYSVIPC, POSIX_MQUEUE, NTSync
+- DEVTMPFS built in and deliberately not auto-mounted
+- CFS_BANDWIDTH and CGROUP_PIDS stay disabled by design
+
+**Filesystems and storage**
+
+- CIFS/SMB3, F2FS with OEM module compatibility preserved
+- TMPFS xattr and POSIX ACLs
+- Original Realme ZRAM and HybridSwap modules untouched
+
+**Networking**
+
+- IPv6 NAT, MASQUERADE and hop-limit matching, ipset, xt set/LOG/recent, TTL target
+- CAKE, PIE, FQ-PIE, CONNMARK
+- BBRv3 (default), BBR, Westwood, HTCP, Cubic, Reno
+- MACVLAN
+
+**Compatibility constraints that are deliberate**
+
+- `task_struct` IPC state uses reserve slots 1-3 only; the OEM guard keeps
+  slots 4-8, which is what keeps the stock vendor modules loading
+- The Oplus guard modules (`oplus_security_guard` and companions) and
+  `oplus_bsp_sched_assist` are retained and load unchanged under a Clang 18
+  kernel built for them
+- MGLRU, CFS bandwidth control and cgroup PIDs are off; enabling them is not a
+  supported configuration
+
+## Building
+
+`config/production.config` is the canonical seed. It matches the shipped
+effective config byte for byte apart from one documented relocation:
+`CONFIG_UNUSED_KSYMS_WHITELIST="rmx3997/config/abi-symbol-list.txt"`.
+
+Build prerequisites are external: the retained workspace supplies
+`kernel/build`, `kernel/prebuilts` (Clang r450784e for host tools, NDK r23),
+ABI baselines and the checker corpus. A bare clone is not a complete toolchain.
 
 ```sh
 export TMPDIR="$STAGE/scratch" PYTHONPYCACHEPREFIX="$STAGE/pycache"
 python3 rmx3997/development/prepare-stage.py --ancestor "$ANCESTOR" --stage "$STAGE" --config-only
-```
-
-This runs config generation only (including host Kconfig tools); it does not
-build Image/modules. Publication ran this path successfully with the original
-compiler/flags and compared the entire result to the frozen config, allowing
-only the whitelist-path relocation. The whitelist regression is:
-
-```sh
-python3 rmx3997/development/test-kmi-whitelist.py --output "$CHECK_DIR"
-```
-
-`CHECK_DIR` must be a new disk directory. For a future independently validated
-build, use a new stage and omit `--config-only` to run the retained preparation
-targets, then:
-
-```sh
 python3 rmx3997/development/build-stage.py "$STAGE" build
 ```
 
-The launcher waits for at least 22 GiB available memory and no peer LTO linker,
-then invokes the retained hard-abort resource guard with four jobs and
-`ld.lld --threads=1`. Read the execution report to distinguish completion from
-an abort. FullLTO, strict CFI, MODVERSIONS, MODULE_SIG_PROTECT and trim remain
-enabled. Preparation or config checking is not a rebuild. SCM-derived release
-strings and the relocated embedded config can change a new Image's bytes;
-the frozen binary identity is not promised for a new checkout/build.
+`prepare-stage.py` selects the seed, regenerates the KMI whitelist through the
+tracked flattener and binds `stage/out/abi_symbollist.raw` before the real
+`olddefconfig`. `build-stage.py` waits for available memory, then runs the
+retained hard-abort resource guard. Recent builds run at `-j16` under
+`MemoryHigh=12G`, `MemoryMax=16G`, `MemorySwapMax=24G`, with `-j8` as the retry.
 
-Before delivering any new build, validate its actual Image/vmlinux, embedded
-config, OEM module corpus, CRC/protection/import tables and F2FS/task layouts.
-The retained candidate's raw upstream ABI comparison exited **8**, classified
-as compatible reserved-slot reuse using the exact report plus binary/layout
-proof. It is not a raw PASS. The current ZIP was made by the retained
-`ipc-slots123-diagnostic/package.py` wrapper calling
-`development/package-oem-candidate.py`'s `inspect`/`package` functions after
-those explicit checks and actual-Image guest acceptance. Its wrapper and
-evidence hashes are in the provenance record. The generic packager CLI's
-raw-PASS gate is an earlier interface and cannot package this classified
-candidate directly. Do not relabel its ABI result to satisfy that gate.
-New packaging also needs stock Android installer/AVB/full-payload validation
-and separate phone acceptance. No new Image or ZIP was made for publication.
+Regenerating a config is not a rebuild, and SCM-derived release strings and the
+embedded config can change Image bytes: a new checkout does not reproduce the
+shipped binary identity.
 
-## Current installer
+## Installing
 
-The current installer sources are `development/wk-anykernel/`, adapted from
-pinned WildKernels AnyKernel3. All 12 installer/license/tool files exactly
-match the confirmed ZIP. Three bundled executable inputs (BusyBox, magiskboot,
-avbroot) are pinned vendor tools, with origin/license records; they are not
-generated kernel outputs.
+Two paths, both verified on the phone.
 
-Installation requires booted Android on RMX3997, root, disk-backed `/data`, and
-the installer's explicit `0/unlocked/orange` verified-boot state. First verify
-the complete ZIP against the SHA-256 above. Extract its `install-on-device.sh`
-to disk at `/data/local/install-on-device.sh`, then run from a root Android shell:
+**fastbootd (fast, needs a bootable kernel)**
 
 ```sh
-/system/bin/sh /data/local/install-on-device.sh /sdcard/RMX3997-5.15.197-IPC-SLOTS123-GUARD-PRESERVED-DIAGNOSTIC.zip
+adb reboot fastboot
+fastboot flash boot_b boot_b-E-ZYC-BBRV3.img
+fastboot reboot
 ```
 
-The launcher checks package SHA256SUMS and runs the real WK backend. It splits
-the active boot partition, preserves ramdisk/DT/header, repacks with the Image
-and writes boot only with fsync. It verifies the original AVB metadata and
-creates truthful custom-unsigned AVB NONE metadata using pinned avbroot;
-it does not write init_boot or vbmeta. The original boot is retained in the
-private `/data/adb/rmx3997-ak3/work.*` directory. There is no automatic reboot
-or automatic rollback. After a failed write, retain that backup and repair
-the boot partition before rebooting. These are instructions only: publication
-performed no phone operations; the verified existing ZIP is already on `/sdcard`.
+Userspace fastboot runs from the recovery ramdisk, so it only exists while the
+boot partition it would replace still boots. It cannot rescue a broken kernel.
 
-## Historical interfaces
+**Preloader mode (kernel independent)**
 
-`approved-baseline.json`, `installer/`, provider replacement/transaction tools,
-`development/delivery-core/`, old config seeds/fragments and broad feature
-inventories describe earlier baselines or experiments. They are not the
-current production entry points or current acceptance records. In particular,
-`bakasu-susfs.config`, `features.config` and the locally retained
-`full-feature-oem.config` must not be layered onto the canonical seed.
-See the [development interface map](development/README.md). Original shallow
-history is retained; this publication adds the confirmed integration and its
-config/build/installer provenance without changing kernel semantics further.
+Write the same 64 MiB `boot_b` partition image with a MediaTek download tool in
+preloader mode, `Download Only`, selecting `boot_b`. This is the recovery path
+when a kernel does not boot. Slot A still carries the stock kernel.
+
+**AnyKernel ZIP**
+
+The ZIP remains installable from a rooted, booted Android through its own
+installer: it splits the active boot partition, preserves ramdisk/DT/header,
+repacks with the new `Image`, verifies the original AVB metadata and writes
+truthful unsigned AVB `NONE` metadata, keeping a backup under
+`/data/adb/rmx3997-ak3/work.*`. It does not touch `init_boot`, `vendor_boot` or
+`vbmeta`, and it does not reboot or roll back on its own.
+
+## Verification
+
+Every delivery is checked before it reaches the phone:
+
+- Build under the retained memory guard, with the effective config compared to
+  the seed
+- 463 stock OEM binaries and modules checked for imported symbol CRCs;
+  `Module.symvers` compared against the previous delivery
+- Required public struct layouts, plus BTF layout comparison where applicable
+- CFI runtime interface compared against the Clang 14-built OEM modules
+- QEMU guest run of the actual `Image`: CFI negative test, OEM module loads,
+  NoMount runtime, networking and container features
+- Installer, AVB footer and full payload verification
+- After flashing: boot completion, live config hash, CFI failure count, OEM
+  guard modules, NoMount protocol, and a container workload with networking
+
+Capability claims are limited to what was measured. Static equivalence of a
+struct is not a performance or power claim, and a guest run is not hardware.
+
+## Known limits
+
+- Bootloader fastboot is not available on retail firmware; access is gated by
+  OEM-signed authorization, so flashing uses fastbootd or preloader mode
+- BBRv3 changes TCP structure layouts that kernel symbol versioning does not
+  advertise. OEM accesses were classified statically (all flagged reads
+  reviewed, none unsafe), but the change is not certified for every binary
+- `TCP_CC_INFO` now reports the larger BBRv3 structure
+- MGLRU, CFS bandwidth control and cgroup PIDs remain off
+- No performance or battery certification is claimed for the scheduling,
+  filesystem, cache or logging defaults
+
+## Repository layout
+
+`rmx3997/config/` seed configuration and KMI symbol list.
+`rmx3997/build-argv.json`, `build-environment.json` recorded build invocation.
+`rmx3997/delivery-provenance.json` machine-readable history of every delivery,
+including superseded ones.
+`rmx3997/development/` staged build, packaging and acceptance tooling, including
+the WildKernels-derived installer sources in `wk-anykernel/`.
+`rmx3997/installer/`, `rmx3997/provider/`, `approved-baseline.json` and the
+config fragments are earlier interfaces kept for provenance; they are not
+current entry points.
+
+## History
+
+| Delivery | Change | Result |
+| --- | --- | --- |
+| Baseline | BakaSU, SUSFS, NTSync on the stock configuration | Booted |
+| Networking | xt addrtype and the container networking set | Booted |
+| PARITY-B | NP3/diting configuration parity, upstream NoMount | Booted |
+| D1 | NoMount `dev` `3f8b5d1`, WildKernels parity items | Booted |
+| D2 | Same source on ZyC Clang 18 | Booted |
+| E | BBRv3 backport, `bbr3` default | Booted, current |
+
+IPC slot and guard-module experiments that came before this are recorded in the
+provenance file together with their outcomes.
