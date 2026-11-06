@@ -949,7 +949,7 @@ static int f2fs_fixed_output_compress_pages(struct compress_ctx *cc)
 		goto destroy_compress_ctx;
 	}
 
-	cc->cpages = page_array_alloc(cc->inode, cc->nr_cpages);
+	cc->cpages = page_array_alloc(F2FS_I_SB(cc->inode), cc->nr_cpages);
 	if (!cc->cpages) {
 		ret = -ENOMEM;
 		goto destroy_compress_ctx;
@@ -1107,7 +1107,7 @@ out_free_cpages:
 		if (cc->cpages[i])
 			f2fs_compress_free_page(cc->cpages[i]);
 	}
-	page_array_free(cc->inode, cc->cpages, cc->nr_cpages);
+	page_array_free(F2FS_I_SB(cc->inode), cc->cpages, cc->nr_cpages);
 	cc->cpages = NULL;
 destroy_compress_ctx:
 	if (cops->destroy_compress_ctx)
@@ -2227,11 +2227,11 @@ static int f2fs_prepare_decomp_mem(struct decompress_io_ctx *dic,
 			return -ENOMEM;
 	}
 
-	dic->rbuf = f2fs_vmap(sbi, dic->tpages, dic->cluster_size);
+	dic->rbuf = f2fs_vmap(dic->sbi, dic->tpages, dic->cluster_size);
 	if (!dic->rbuf)
 		return -ENOMEM;
 
-	dic->cbuf = f2fs_vmap(sbi, dic->cpages, dic->nr_cpages);
+	dic->cbuf = f2fs_vmap(dic->sbi, dic->cpages, dic->nr_cpages);
 	if (!dic->cbuf)
 		return -ENOMEM;
 
@@ -2364,7 +2364,7 @@ struct decompress_io_ctx *f2fs_alloc_dic(struct compress_ctx *cc)
 		int prev_blkidx = -1, blkidx;
 		int cnt = 0;
 
-		dic->tpages = page_array_alloc(dic->inode, dic->cluster_size);
+		dic->tpages = page_array_alloc(dic->sbi, dic->cluster_size);
 		if (!dic->tpages) {
 			ret = -ENOMEM;
 			goto out_free;
