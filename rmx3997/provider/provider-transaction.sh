@@ -70,10 +70,7 @@ provider_finish() {
 }
 
 provider_install() {
-    provider_preflight || {
-        platform_log 'PROVIDER PREFLIGHT DENIED: firmware, slot, payload, metadata or asset validation failed'
-        return 10
-    }
+    provider_preflight || return 10
     PROVIDER_PENDING_SIGNAL=0
     PROVIDER_TRANSACTION_ACTIVE=1
     INSTALLER_LOCK_HELD=0
@@ -87,7 +84,6 @@ provider_install() {
     unset PROVIDER_RESULT
     trap 'PROVIDER_PENDING_SIGNAL=1' INT TERM HUP
     if ! provider_lock; then
-        platform_log 'PROVIDER PREFLIGHT DENIED: metadata installation lock unavailable'
         PROVIDER_TRANSACTION_ACTIVE=0
         trap - INT TERM HUP
         return 10

@@ -11,9 +11,9 @@ for mutation in ['changed','missing']:
  try:m.verify_sources(record,out)
  except ValueError:failures+=1
  else:raise AssertionError(mutation+' accepted')
-actual=m.parse_config(pathlib.Path('/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/out/.config').read_text());expected={'CONFIG_BPF_STREAM_PARSER':'n'};actual.update(expected)
+actual=m.parse_config(pathlib.Path('/home/build/.cache/codex-work/rmx3997-full-features-20261104/components197/out/.config').read_text());expected={'CONFIG_BPF_STREAM_PARSER':'y'};actual.update(expected)
 m.verify_config(expected,actual)
-for key,value in [('CONFIG_KSU','m'),('CONFIG_CFI_CLANG','n'),('CONFIG_LTO_CLANG_FULL','n'),('CONFIG_ZRAM','y'),('CONFIG_F2FS_FS_DEDUP','n'),('CONFIG_ARM64_4K_PAGES','n'),('CONFIG_BPF_STREAM_PARSER','y')]:
+for key,value in [('CONFIG_KSU','m'),('CONFIG_CFI_CLANG','n'),('CONFIG_LTO_CLANG_FULL','n'),('CONFIG_ZRAM','y'),('CONFIG_F2FS_FS_DEDUP','n'),('CONFIG_ARM64_4K_PAGES','n'),('CONFIG_BPF_STREAM_PARSER','n')]:
  mutated=dict(actual);mutated[key]=value
  try:m.verify_config(expected,mutated)
  except ValueError:failures+=1

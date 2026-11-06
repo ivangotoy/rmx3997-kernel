@@ -14,6 +14,6 @@ argv = json.loads((stage / 'build-argv.json').read_text())[:-2] + sys.argv[3:]
 log = stage / (label + '.log')
 if log.exists():
     raise FileExistsError(log)
-sys.exit(subprocess.call(['/usr/bin/python3', str(Path(__file__).resolve().with_name('resource-guard.py')),
+sys.exit(subprocess.call(['/usr/bin/python3', str(stage / 'resource_guard.py'),
                          '--log', str(log), '--result', str(stage / (label + '.json')),
                          '--'] + argv, env=env))
