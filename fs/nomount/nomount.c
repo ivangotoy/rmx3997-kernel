@@ -230,7 +230,8 @@ static inline void nm_emit_virtual_children(struct dir_context *ctx, struct nm_d
 				if (likely(name_len <= NAME_MAX)) {
 					memcpy(name_buf, nm_get_child_name(leaf), name_len);
 					v_ino = leaf->v_ino;
-					d_type = (rule->flags & NM_FLAG_IS_DIR) ? DT_DIR : DT_REG;
+					d_type = (rule->flags & NM_FLAG_IS_DIR) ? DT_DIR :
+					         S_DT(d_backing_inode(rule->r_path.dentry)->i_mode);
 					do_emit = true;
 				}
 			}
@@ -570,30 +571,42 @@ static int nm_mmap_prepare(struct vm_area_desc *desc)
 
 static long nm_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-    /* Outside the diagnostic contract; never bypass backing VFS security. */
-    return -EOPNOTSUPP;
+    struct file *real_file = file->private_data;
+    if (!real_file || !real_file->f_op->unlocked_ioctl) return -ENOTTY;
+    int err = security_file_ioctl(real_file, cmd, arg);
+    if (err) return err;
+    return real_file->f_op->unlocked_ioctl(real_file, cmd, arg);
 }
 
 #ifdef CONFIG_COMPAT
 static long nm_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-    /* Outside the diagnostic contract; never bypass backing VFS security. */
-    return -EOPNOTSUPP;
+    struct file *real_file = file->private_data;
+    if (!real_file || !real_file->f_op->compat_ioctl) return -ENOTTY;
+    int err = security_file_ioctl(real_file, cmd, arg);
+    if (err) return err;
+    return real_file->f_op->compat_ioctl(real_file, cmd, arg);
 }
 #endif
 
 static ssize_t nm_splice_read(struct file *in, loff_t *ppos, struct pipe_inode_info *pipe,
                               size_t len, unsigned int flags)
 {
-    /* Outside the diagnostic contract; never bypass backing VFS security. */
-    return -EOPNOTSUPP;
+    struct file *real_file = in->private_data;
+    if (!real_file || !real_file->f_op->splice_read) return -EINVAL;
+    int err = security_file_permission(real_file, MAY_READ);
+    if (err) return err;
+    return real_file->f_op->splice_read(real_file, ppos, pipe, len, flags);
 }
 
 static ssize_t nm_splice_write(struct pipe_inode_info *pipe, struct file *out,
                                loff_t *ppos, size_t len, unsigned int flags)
 {
-    /* Outside the diagnostic contract; never bypass backing VFS security. */
-    return -EOPNOTSUPP;
+    struct file *real_file = out->private_data;
+    if (!real_file || !real_file->f_op->splice_write) return -EINVAL;
+    int err = security_file_permission(real_file, MAY_WRITE);
+    if (err) return err;
+    return real_file->f_op->splice_write(pipe, real_file, ppos, len, flags);
 }
 
 static int nm_fsync(struct file *file, loff_t start, loff_t end, int datasync)
@@ -1107,8 +1120,6 @@ static void nm_hijack_dentry_ops(struct inode *dir, struct dentry *dentry, bool 
     spin_unlock(&dentry->d_lock);
 }
 
-/* Built-in wrappers remain owned by their superblock until shutdown. No live
- * operation table is restored/freed by CLEAR_RULES while open files use it. */
 static void nm_hijacked_put_super(struct super_block *sb)
 {
     struct nm_sop *ops = nm_get_nm_sop(sb->s_op);
@@ -1249,6 +1260,31 @@ static struct nm_rule_array *nm_alloc_rule_array(int count, size_t heap_size)
     return arr;
 }
 
+static int nm_prepare_rule(const char *r_path, u16 r_len, u32 flags, unsigned int uid, unsigned int uid_end,
+                           unsigned int deny_start, unsigned int deny_end, struct nm_rule *out)
+{
+    bool backed = !(flags & (NM_FLAG_WHITEOUT | NM_FLAG_VIRTUAL_DIR));
+    if (backed && !r_path) return -EINVAL;
+    if (backed) while (r_len > 1 && r_path[r_len - 1] == '/') r_len--;
+    else r_len = 0;
+
+    memset(out, 0, sizeof(*out));
+    out->r_len = r_len;
+    out->flags = flags;
+    out->target_uid = uid;
+    out->uid_end = uid_end;
+    out->deny_start = deny_start;
+    out->deny_end = deny_end;
+    if (backed) {
+        /* Preserve final symlinks, including dangling module links. */
+        int err = kern_path(r_path, 0, &out->r_path);
+        if (err) { memset(out, 0, sizeof(*out)); return err; }
+        struct inode *inode = d_backing_inode(out->r_path.dentry);
+        if (S_ISDIR(inode->i_mode)) out->flags |= NM_FLAG_IS_DIR;
+    }
+    return 0;
+}
+
 static inline char *nm_copy_rule(struct nm_rule *dst, const struct nm_rule *src, char *dst_h, const char *src_h)
 {
     *dst = *src;
@@ -1385,32 +1421,127 @@ static void nm_retire_leaf_locked(struct nm_leaf *leaf)
     else schedule_work(&nm_reclaim_work);
 }
 
-static int nm_generate_virtual_topology(struct nm_leaf *leaf, struct path *parent)
+static void nm_prepare_native_file(struct nm_leaf *leaf, struct nm_dir_node *dir_node, struct dentry *parent)
 {
-    struct inode *inode = d_inode(parent->dentry);
-    struct nm_dir_ops *ops;
-    struct nm_dir_node *dir;
-    const char *name = strrchr(leaf->paths, '/') + 1;
-    int err;
-
-    /* No path is resolved again after admission. No implicit virtual parent. */
-    inode_lock(inode);
-    ops = nm_get_nm_iop(inode->i_op);
-    dir = ops ? ops->dir_node : NULL;
-    if (dir) atomic_inc(&dir->refs);
-    else dir = nm_alloc_dir_node();
-    if (!dir) { err = -ENOMEM; goto unlock; }
-    err = nm_hijack_dir_ops(dir, inode);
-    if (!err) err = nm_inject_child_locked(dir, leaf, name, strlen(name));
-    if (!err) {
-        struct dentry *child;
-        if (!dir->pinned_dentry) dir->pinned_dentry = dget(parent->dentry);
-        child = nm_hash_and_lookup(parent->dentry, &(struct qstr)QSTR_INIT(name, strlen(name)));
-        if (child) { d_drop(child); dput(child); }
+    switch (parent->d_sb->s_magic) {
+#if defined(EROFS_SUPER_MAGIC_V1) && BITS_PER_LONG == 64
+    case EROFS_SUPER_MAGIC_V1:
+#endif
+    case SQUASHFS_MAGIC:
+        break;
+    default:
+        return;
     }
-    nm_dir_put(dir);
-unlock:
-    inode_unlock(inode);
+    struct nm_rule_array *rules = rcu_dereference_protected(leaf->rules, lockdep_is_held(&nm_mutex));
+    struct nm_rule *rule = &rules->rules[0];
+    struct path path;
+
+    if (dir_node->owner || rule->flags || !S_ISREG(d_backing_inode(rule->r_path.dentry)->i_mode)) return;
+    if (kern_path(leaf->paths, 0, &path)) return;
+    struct inode *inode = d_backing_inode(path.dentry);
+    if (path.dentry->d_parent == parent && S_ISREG(inode->i_mode) && inode->i_nlink == 1) {
+        leaf->v_ino = inode->i_ino;
+        leaf->native_file = true;
+    }
+    path_put(&path);
+}
+
+static int nm_generate_virtual_topology(struct nm_leaf *target, unsigned int uid)
+{
+    struct nm_leaf *child = target, *parent;
+    struct hlist_node *h_tmp;
+    int len = target->v_len, err = 0;
+    HLIST_HEAD(pending);
+
+    while (len > 1) {
+        int slash = len - 1;
+        while (slash > 0 && target->paths[slash] != '/') slash--;
+        int parent_len = slash ? slash : 1;
+        const char *name = target->paths + slash + 1;
+        int name_len = len - slash - 1;
+
+        if ((parent = nm_find_leaf(target->paths, parent_len))) {
+            struct nm_rule *rule = nm_select_rule(parent, uid);
+            if ((rule && !(rule->flags & NM_FLAG_IS_DIR)) || !parent->this_dir) { err = -ENOTDIR; break; }
+            if (parent->anchor.dentry && (err = nm_hijack_dir_ops(parent->this_dir, d_backing_inode(parent->anchor.dentry)))) break;
+            err = nm_inject_child_locked(parent->this_dir, child, name, name_len);
+            if (!err && parent->anchor.dentry) {
+                struct dentry *dentry = nm_hash_and_lookup(parent->anchor.dentry, &(struct qstr)QSTR_INIT(name, name_len));
+                if (dentry) { d_drop(dentry); dput(dentry); }
+            }
+            break;
+        }
+
+        char saved = target->paths[parent_len];
+        target->paths[parent_len] = '\0';
+        struct path path;
+        int found = kern_path(target->paths, LOOKUP_FOLLOW, &path);
+        target->paths[parent_len] = saved;
+        if (!found) {
+            struct inode *inode = d_backing_inode(path.dentry);
+            struct nm_dir_node *dir = NULL;
+            bool virtual = inode->i_op == &nm_dir_iops;
+            if (!S_ISDIR(inode->i_mode)) {
+                err = -ENOTDIR;
+            } else if (virtual) {
+                dir = ((struct nm_inode_info *)inode->i_private)->dir_node;
+                atomic_inc(&dir->refs);
+            } else {
+                struct nm_dir_ops *iop = nm_get_nm_iop(smp_load_acquire(&inode->i_op));
+                struct nm_dir_ops *fop = nm_get_nm_fop(smp_load_acquire(&inode->i_fop));
+                dir = iop ? iop->dir_node : (fop ? fop->dir_node : NULL);
+                if (dir) atomic_inc(&dir->refs);
+                else dir = nm_alloc_dir_node();
+                if (!dir) err = -ENOMEM;
+            }
+            if (!err && !virtual) {
+                nm_prepare_native_file(child, dir, path.dentry);
+                err = nm_hijack_dir_ops(dir, inode);
+            }
+            if (!err && !(err = nm_inject_child_locked(dir, child, name, name_len))) {
+                if (!virtual && !dir->owner && !dir->pinned_dentry) dir->pinned_dentry = dget(path.dentry);
+                struct dentry *child = nm_hash_and_lookup(path.dentry, &(struct qstr)QSTR_INIT(name, name_len));
+                if (child) { d_drop(child); dput(child); }
+            }
+            nm_dir_put(dir);
+            path_put(&path);
+            break;
+        }
+
+        parent = nm_alloc_leaf(target->paths, parent_len);
+        if (IS_ERR(parent)) { err = PTR_ERR(parent); break; }
+
+        if (!(parent->this_dir = nm_alloc_dir_node())) {
+            nm_free_leaf(parent);
+            err = -ENOMEM;
+            break;
+        }
+        parent->this_dir->owner = parent;
+        struct nm_rule_array *rules = nm_alloc_rule_array(1, 0);
+        if (!rules) {
+            err = -ENOMEM;
+            nm_free_leaf(parent);
+            break;
+        }
+        memset(&rules->rules[0], 0, sizeof(struct nm_rule));
+        rules->rules[0].flags = NM_FLAG_IS_DIR | NM_FLAG_VIRTUAL_DIR;
+        RCU_INIT_POINTER(parent->rules, rules);
+
+        hlist_add_head(&parent->ht_node, &pending);
+        err = nm_inject_child_locked(parent->this_dir, child, name, name_len);
+        if (err) break;
+        child = parent;
+        len = parent_len;
+    }
+
+    hlist_for_each_entry_safe(parent, h_tmp, &pending, ht_node) {
+        hlist_del(&parent->ht_node);
+        if (!err) hash_add_rcu(nm_leaves_ht, &parent->ht_node, parent->v_hash);
+        else {
+            kfree(rcu_access_pointer(parent->rules));
+            nm_free_leaf(parent);
+        }
+    }
     return err;
 }
 
@@ -1438,85 +1569,16 @@ static int nm_prune_empty_virtual_dirs_locked(struct nm_dir_node *dir)
 
 /*** Rule Operations ***/
 
-static bool nm_diagnostic_path(const char *path, u16 len)
-{
-    u16 start = 1;
-    if (len < 2 || path[0] != '/' || path[len - 1] == '/' ||
-        memchr(path, '\0', len)) return false;
-    for (u16 i = 1; i <= len; i++) {
-        if (i != len && path[i] != '/') continue;
-        if (i == start || (i - start == 1 && path[start] == '.') ||
-            (i - start == 2 && path[start] == '.' && path[start + 1] == '.'))
-            return false;
-        start = i + 1;
-    }
-    return true;
-}
-
-static int nm_diagnostic_rule(const char *v, const char *r, u16 vl, u16 rl, u32 flags,
-                              struct path *admitted_parent, struct path *admitted_backing)
-{
-    struct path parent, backing, native;
-    struct inode *inode;
-    char *vp, *rp, *slash;
-    int err;
-
-    if (flags) return -EOPNOTSUPP;
-    if (!nm_diagnostic_path(v, vl) || !nm_diagnostic_path(r, rl)) return -EINVAL;
-    vp = kmemdup_nul(v, vl, GFP_KERNEL);
-    rp = kmemdup_nul(r, rl, GFP_KERNEL);
-    if (!vp || !rp) { err = -ENOMEM; goto free; }
-    slash = strrchr(vp, '/');
-    if (strlen(slash + 1) > NAME_MAX) { err = -ENAMETOOLONG; goto free; }
-    if (slash == vp) slash[1] = '\0'; else *slash = '\0';
-    err = kern_path(vp, LOOKUP_FOLLOW | LOOKUP_DIRECTORY, &parent);
-    if (err) goto free;
-    err = -EOPNOTSUPP;
-    if (parent.dentry->d_sb->s_magic != EXT4_SUPER_MAGIC ||
-        parent.dentry->d_op || sb_rdonly(parent.dentry->d_sb) ||
-        IS_ENCRYPTED(d_inode(parent.dentry))) goto put_parent;
-    err = kern_path(rp, 0, &backing);
-    if (err) goto put_parent;
-    inode = d_inode(backing.dentry);
-    err = -EOPNOTSUPP;
-    if (backing.dentry->d_sb != parent.dentry->d_sb ||
-        !S_ISREG(inode->i_mode) || nm_inode_is_virtual(inode) ||
-        inode->i_nlink != 1 || IS_ENCRYPTED(inode) || IS_VERITY(inode)) goto put_backing;
-    memcpy(vp, v, vl); vp[vl] = '\0';
-    err = kern_path(vp, 0, &native);
-    if (!err) {
-        inode = d_inode(native.dentry);
-        err = (!S_ISREG(inode->i_mode) || inode->i_nlink != 1 ||
-               path_equal(&native, &backing)) ? -EOPNOTSUPP : 0;
-        path_put(&native);
-    } else if (err == -ENOENT) err = 0;
-put_backing:
-    if (!err) {
-        *admitted_backing = backing;
-        *admitted_parent = parent;
-        goto free;
-    }
-    path_put(&backing);
-put_parent:
-    path_put(&parent);
-free:
-    kfree(vp); kfree(rp);
-    return err;
-}
-
 static int nm_add_rule_locked(const char *v_path, const char *r_path, u16 v_len, u16 r_len, u32 flags,
                               unsigned int uid, unsigned int uid_end, unsigned int deny_start, unsigned int deny_end)
 {
-    struct nm_rule new_rule = {0};
-    struct path parent = {0};
+    struct nm_rule new_rule;
     struct nm_leaf *leaf;
     struct nm_rule_array *old, *array;
     struct nm_dir_node *new_dir = NULL;
     int pos = 0, count, new_count, err = 0, j = 0;
     size_t heap_size = 0;
     bool fresh, replace = false;
-
-    if (uid > uid_end) return -EINVAL;
 
     if (deny_start || deny_end) {
         if (!deny_start || !deny_end) return -EINVAL;
@@ -1531,13 +1593,7 @@ static int nm_add_rule_locked(const char *v_path, const char *r_path, u16 v_len,
         r_buf[r_len] = '\0';
     }
 
-    err = nm_diagnostic_rule(v_path, r_path, v_len, r_len, flags, &parent, &new_rule.r_path);
-    new_rule.r_len = r_len;
-    new_rule.flags = flags;
-    new_rule.target_uid = uid;
-    new_rule.uid_end = uid_end;
-    new_rule.deny_start = deny_start;
-    new_rule.deny_end = deny_end;
+    err = nm_prepare_rule(r_buf, r_len, flags, uid, uid_end, deny_start, deny_end, &new_rule);
     if (err) { kfree(r_buf); return err; }
 
     while (v_len > 1 && v_path[v_len - 1] == '/') v_len--;
@@ -1548,10 +1604,6 @@ static int nm_add_rule_locked(const char *v_path, const char *r_path, u16 v_len,
         goto out_rule;
     }
 
-    if (!fresh && leaf->parent_dir && leaf->parent_dir->pinned_dentry != parent.dentry) {
-        err = -EOPNOTSUPP;
-        goto out_rule;
-    }
     if (fresh && (new_rule.flags & NM_FLAG_IS_DIR)) {
         if ((err = nm_resolve_anchor_locked(leaf, new_rule.flags))) {
             nm_free_leaf(leaf);
@@ -1627,10 +1679,9 @@ static int nm_add_rule_locked(const char *v_path, const char *r_path, u16 v_len,
 
     if (fresh) {
         RCU_INIT_POINTER(leaf->rules, array);
-        if ((err = nm_generate_virtual_topology(leaf, &parent))) {
+        if ((err = nm_generate_virtual_topology(leaf, uid))) {
             nm_rule_array_free(array);
             nm_free_leaf(leaf);
-            path_put(&parent);
             return err;
         }
         hash_add_rcu(nm_leaves_ht, &leaf->ht_node, leaf->v_hash);
@@ -1639,13 +1690,11 @@ static int nm_add_rule_locked(const char *v_path, const char *r_path, u16 v_len,
         nm_publish_rules_locked(leaf, array, old);
     }
 
-    path_put(&parent);
     return 0;
 
 out_dir:  nm_dir_put(new_dir);
 out_leaf: if (fresh) nm_free_leaf(leaf);
-out_rule: if (parent.dentry) path_put(&parent);
-          if (new_rule.r_path.dentry) path_put(&new_rule.r_path);
+out_rule: if (new_rule.r_path.dentry) path_put(&new_rule.r_path);
           kfree(r_buf);
           return err;
 }
@@ -1729,7 +1778,7 @@ static void nm_clear_state(int clear_flags)
             nm_retire_leaf_locked(leaf);
         }
     }
-    /* Superblock-owned callbacks survive rule removal, including open fds. */
+    /* Built-in wrappers remain owned by their superblock until shutdown. */
     mutex_unlock(&nm_mutex);
 }
 
@@ -1924,6 +1973,8 @@ static int __init nomount_init(void)
         nm_info("Loaded successfully\n");
     return ret;
 }
+
+
 
 MODULE_LICENSE("GPL");
 MODULE_VERSION(NOMOUNT_VERSION);
