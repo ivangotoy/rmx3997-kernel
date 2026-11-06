@@ -354,6 +354,15 @@ def api(method, url, token, data=None, ctype='application/json'):
         return e.code, e.read()
 
 
+def release_body(tag, commit, dist):
+    zips = [p.name for p in dist.iterdir() if p.name.endswith('-%s.zip' % tag)]
+    if len(zips) != 1:
+        die('expected one release ZIP in dist')
+    kernel = zips[0][len('RMX3997-'):-len('-%s.zip' % tag)]
+    text = (REPO / 'rmx3997/ci/release-notes.md').read_text()
+    return text.format(kernel=kernel, version=kernel.split('-')[0], commit=commit[:12])
+
+
 def cmd_release(a):
     token = os.environ.get('RELEASE_TOKEN', '')
     if not token:
@@ -367,9 +376,7 @@ def cmd_release(a):
         die('release lookup returned HTTP %d' % st)
     payload = {'tag_name': tag, 'target_commitish': a.commit, 'name': tag, 'draft': True,
                'prerelease': False,
-               'body': ('RMX3997 kernel %s, built by Forgejo Actions from commit %s.\n\n'
-                        'AnyKernel3 ZIP for the realme 12x 5G (RMX3997, EU), with its SHA-256 checksum.\n'
-                        % (tag, a.commit))}
+               'body': release_body(tag, a.commit, Path(a.dist))}
     st, body = api('POST', base + '/releases', token, json.dumps(payload).encode())
     if st not in (200, 201):
         die('draft release creation returned HTTP %d: %s' % (st, body[:300]))

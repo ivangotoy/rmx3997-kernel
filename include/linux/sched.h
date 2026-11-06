@@ -949,6 +949,10 @@ struct task_struct {
 	/* Recursion prevention for eventfd_signal() */
 	unsigned			in_eventfd_signal:1;
 #endif
+#ifndef __GENKSYMS__
+	/* Save user-dumpable when mm goes away (AOSP keeps it in KABI slot 1) */
+	unsigned			user_dumpable:1;
+#endif
 
 	unsigned long			atomic_flags; /* Flags requiring atomic access. */
 
@@ -1512,19 +1516,20 @@ struct task_struct {
 	struct callback_head		l1d_flush_kill;
 #endif
 
-	ANDROID_KABI_USE(1, struct {
-		/* Save user-dumpable when mm goes away */
-		unsigned	user_dumpable:1;
-		});
-
+	/*
+	 * RMX3997: reserve slots 1-3 hold SysV IPC state. The OEM
+	 * oplus_security_guard writes slots 4-8 on every syscall, so they
+	 * stay untouched. AOSP's user_dumpable lives in the bitfield above.
+	 */
 #ifdef CONFIG_SYSVIPC
-	ANDROID_KABI_USE(2, struct sysv_sem sysvsem);
-	_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(3); ANDROID_KABI_RESERVE(4), struct sysv_shm sysvshm);
+	ANDROID_KABI_USE(1, struct sysv_sem sysvsem);
+	_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(2); ANDROID_KABI_RESERVE(3), struct sysv_shm sysvshm);
 #else
+	ANDROID_KABI_RESERVE(1);
 	ANDROID_KABI_RESERVE(2);
 	ANDROID_KABI_RESERVE(3);
-	ANDROID_KABI_RESERVE(4);
 #endif
+	ANDROID_KABI_RESERVE(4);
 	ANDROID_KABI_RESERVE(5);
 	ANDROID_KABI_RESERVE(6);
 	ANDROID_KABI_RESERVE(7);

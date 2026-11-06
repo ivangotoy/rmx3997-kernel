@@ -2,9 +2,9 @@
 
 Custom GKI-compatible kernel source for the **realme 12x 5G**, model RMX3997,
 EU variant (build RMX3997_16.0.5.1300(EX01)), MediaTek Dimensity 6100+
-(MT6835). The kernel is built from the Android13-5.15 branch, which is the GKI
-base this device ships. Builds and releases come from Forgejo Actions; see
-Releases for downloads.
+(MT6835). The kernel follows AOSP `android13-5.15-lts`, the GKI branch this
+device ships, with the stock vendor modules kept loadable. Builds and releases
+come from Forgejo Actions; see Releases for downloads.
 
 ## Status
 
@@ -29,28 +29,36 @@ Releases for downloads.
 
 **Namespaces and containers**
 
-- USER_NS, IPC_NS, PID_NS, CGROUP_NS, UTS_NS
-- SYSVIPC, POSIX_MQUEUE, NTSync
+- User, IPC, PID, UTS, network and cgroup namespaces
+- SYSVIPC, POSIX_MQUEUE, OverlayFS, FUSE, NTSync
 - DEVTMPFS built in and deliberately not auto-mounted
 - CFS_BANDWIDTH and CGROUP_PIDS stay disabled by design
 
 **Filesystems and storage**
 
-- CIFS/SMB3, F2FS with OEM module compatibility preserved
+- F2FS (OEM appboost and compression kept), ext4, EROFS, CIFS/SMB3
 - TMPFS xattr and POSIX ACLs
-- Original Realme ZRAM and HybridSwap modules untouched
+- Original realme ZRAM and HybridSwap modules untouched
+- memfd ashmem compatibility shim
 
 **Networking**
 
 - IPv6 NAT, MASQUERADE and hop-limit matching, ipset, xt set/LOG/recent, TTL target
 - CAKE, PIE, FQ-PIE, CONNMARK
 - BBRv3 (default), BBR, Westwood, HTCP, Cubic, Reno
-- MACVLAN
+- WireGuard (built in), TUN, MACVLAN
 
 **Compatibility constraints that are deliberate**
 
-- `task_struct` IPC state uses reserve slots 1-3 only; the OEM guard keeps
-  slots 4-8, which is what keeps the stock vendor modules loading
+- `task_struct` SysV IPC state uses KABI reserve slots 1-3 only. The OEM
+  security guard writes slots 4-8 on every syscall, so they stay untouched.
+  AOSP's `user_dumpable` flag, which upstream keeps in slot 1, lives in the
+  task bitfield instead; layout and symbol CRCs are unchanged
+- Binder descriptors are allocated as on the shipped kernel: the OEM
+  `oplus_binder_strategy` hooks stay in charge and the upstream descriptor
+  bitmap is not used, because it cannot see OEM-allocated descriptors
+- The memfd ashmem shim, dropped upstream, is kept because the shipped
+  configuration enables it
 - The Oplus guard modules (`oplus_security_guard` and companions) and
   `oplus_bsp_sched_assist` are retained and load unchanged under a Clang 18
   kernel built for them
@@ -59,29 +67,15 @@ Releases for downloads.
 
 ## Building
 
-`config/production.config` is the canonical seed. It matches the shipped
-effective config byte for byte apart from one documented relocation:
-`CONFIG_UNUSED_KSYMS_WHITELIST="rmx3997/config/abi-symbol-list.txt"`.
+`rmx3997/config/production.config` is the configuration; `olddefconfig` must
+reproduce it byte for byte. `rmx3997/ci/build.sh STAGE` is the build: ZyC Clang
+18 with LLD, Full LTO, `-j16` inside a systemd scope (MemoryHigh 12G,
+MemoryMax 16G) under a resource guard that aborts before host memory runs out.
 
-Build prerequisites are external: the retained workspace supplies
-`kernel/build`, `kernel/prebuilts` (Clang r450784e for host tools, NDK r23),
-ABI baselines and the checker corpus. A bare clone is not a complete toolchain.
-
-```sh
-export TMPDIR="$STAGE/scratch" PYTHONPYCACHEPREFIX="$STAGE/pycache"
-python3 rmx3997/development/prepare-stage.py --ancestor "$ANCESTOR" --stage "$STAGE" --config-only
-python3 rmx3997/development/build-stage.py "$STAGE" build
-```
-
-`prepare-stage.py` selects the seed, regenerates the KMI whitelist through the
-tracked flattener and binds `stage/out/abi_symbollist.raw` before the real
-`olddefconfig`. `build-stage.py` waits for available memory, then runs the
-retained hard-abort resource guard. Recent builds run at `-j16` under
-`MemoryHigh=12G`, `MemoryMax=16G`, `MemorySwapMax=24G`, with `-j8` as the retry.
-
-Regenerating a config is not a rebuild, and SCM-derived release strings and the
-embedded config can change Image bytes: a new checkout does not reproduce the
-shipped binary identity.
+The toolchain, the host Clang/pahole and the stock OEM module corpus used for
+the ABI checks are host-local inputs pinned in `rmx3997/ci/host-inputs.json`;
+they are not in the repository, so a bare clone is not a complete build
+environment.
 
 ## Installing
 
@@ -94,20 +88,10 @@ truthful unsigned AVB `NONE` metadata, keeping a backup under
 
 ## Verification
 
-Every build is checked:
-
-- Build under the retained memory guard, with the effective config compared to
-  the seed
-- 463 stock OEM binaries and modules checked for imported symbol CRCs;
-  `Module.symvers` compared against the previous delivery
-- Required public struct layouts, plus BTF layout comparison where applicable
-- CFI runtime interface compared against the Clang 14-built OEM modules
-- QEMU guest run of the actual `Image`: CFI negative test, OEM module loads,
-  NoMount runtime, networking and container features
-- Installer and full payload verification
-
-Capability claims are limited to what was measured. Static equivalence of a
-struct is not a performance or power claim, and a guest run is not hardware.
+Every CI build checks the effective config, the CFI/LTO/MODVERSIONS and root
+contract, and every imported symbol CRC of all 489 stock OEM modules against the
+built `Module.symvers`; see CI builds below. Static ABI equivalence is not a
+performance or power claim.
 
 ## Known limits
 
@@ -165,12 +149,6 @@ GPL-2.0 as well, to match the kernel they operate on.
 Nothing here is affiliated with or endorsed by realme, Oplus or MediaTek. No
 vendor firmware, proprietary module or signing material is redistributed.
 
-## Publication notes
-
-Records under `rmx3997/` were normalized for publication: absolute builder home
-paths were rewritten to `/home/build`. Artifact hashes, sizes and invocation
-flags are unchanged. Earlier Git history still contains the original paths.
-
 ## Repository layout
 
 `rmx3997/config/` seed configuration and KMI symbol list.
@@ -185,19 +163,10 @@ current entry points.
 
 ## History
 
-| Delivery | Change | Result |
+| Release | Kernel | Change |
 | --- | --- | --- |
-| Baseline | BakaSU, SUSFS, NTSync on the stock configuration | Booted |
-| Networking | xt addrtype and the container networking set | Booted |
-| PARITY-B | NP3/diting configuration parity, upstream NoMount | Booted |
-| D1 | NoMount `dev` `3f8b5d1`, WildKernels parity items | Booted |
-| D2 | Same source on ZyC Clang 18 | Booted |
-| E | BBRv3 backport, `bbr3` default | Booted, current |
+| `rmx3997-v1` | 5.15.197 | First CI release |
+| `rmx3997-v2` | 5.15.223 | Merge of AOSP `android13-5.15-lts` |
 
-A parked `5.15.223` upstream merge checkpoint (single unbuilt commit, superseded
-by the parity work that followed) was examined and scrapped on 2026-11-06;
-upstreaming to the current LTS is a fresh merge from `android13-5.15-lts`, not
-a revival of that branch.
-
-IPC slot and guard-module experiments that came before this are recorded in the
-provenance file together with their outcomes.
+Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
+recorded in `rmx3997/delivery-provenance.json`.
