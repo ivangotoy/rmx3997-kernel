@@ -177,5 +177,10 @@ current entry points.
 | D2 | Same source on ZyC Clang 18 | Booted |
 | E | BBRv3 backport, `bbr3` default | Booted, current |
 
+A parked `5.15.223` upstream merge checkpoint (single unbuilt commit, superseded
+by the parity work that followed) was examined and scrapped on 2026-11-06;
+upstreaming to the current LTS is a fresh merge from `android13-5.15-lts`, not
+a revival of that branch.
+
 IPC slot and guard-module experiments that came before this are recorded in the
 provenance file together with their outcomes.
