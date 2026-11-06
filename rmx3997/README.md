@@ -1,28 +1,29 @@
 # RMX3997 phone-confirmed kernel source
 
 The current delivery is Linux 5.15.197 / Android13 KMI8 with built-in
-BakaSU/SUSFS, NTSync, the retained networking integration and SYSVIPC,
-POSIX_MQUEUE, IPC_NS and PID_NS. IPC uses task_struct reserve slots1–3;
-the original OEM guard keeps slots4–8. OEM F2FS and the original Realme
-ZRAM/HybridSwap modules are preserved. USER_NS, DEVTMPFS, CFS_BANDWIDTH and
-CGROUP_PIDS remain disabled; the default TCP congestion control is cubic.
+BakaSU/SUSFS, NTSync, the retained networking integration, SYSVIPC,
+POSIX_MQUEUE, IPC_NS and PID_NS, full upstream NoMount (maxsteeel `bf1847f`,
+v2.2.0, protocol 22) and NP3/diting configuration parity: USER_NS, DEVTMPFS
+(not auto-mounted), TMPFS xattr/ACL, IPv6 NAT/MASQUERADE/HL, ipset, xt
+set/LOG/recent, CAKE, CIFS and Baseband Guard `028ff7fd`. The default TCP
+congestion control is upstream BBR; BBRv3 is not included because its TCP
+layout changes are not proven safe for every OEM module. IPC uses task_struct
+reserve slots 1-3; the original OEM guard keeps slots 4-8. OEM F2FS and the
+original Realme ZRAM/HybridSwap modules are preserved. CFS_BANDWIDTH and
+CGROUP_PIDS remain disabled; MGLRU is compiled but default-off.
 
-The already-built delivery was subsequently confirmed to boot on the phone.
-Its identities are:
+The delivery was flashed and verified over ADB on the phone, including the
+NoMount metamodule and a DroidSpaces Ubuntu 24.04 container:
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `RMX3997-5.15.197-IPC-SLOTS123-GUARD-PRESERVED-DIAGNOSTIC.zip` | `b0fe0a27b43725770843216fb11ddbc6032b88a2baee363b6dcf4e2296345084` |
-| Raw ARM64 Image | `927db11b449ebba5fdd8d808fdae55a39fe6b0726aa9f6ff4efc61a77f621b36` |
-| Frozen effective config | `789f557486f3f02cd029716720d2bc9befa9c871af75450792a560371f1204c3` |
-| ABI whitelist, 8656 symbols | `1b6652e1e38f09e3c30102cefbb4253d57606c4afd3b02f6c7a61db8e246f5cb` |
+| `RMX3997-5.15.197-PARITY-B.zip` | `dd1e45182dde74db85fa52adc749b14774731ff34e561d7270c3781a620f9651` |
+| Raw ARM64 Image | `76d399a2180c80e068e9b8124376cf18a070cc20c726239964e6f6982d569239` |
+| Effective config | `7fc0ddc8302c359bce5745c8916e587627a2eb621a6de2bdce6c595d4162e4a9` |
 
-The ZIP's historical DIAGNOSTIC filename and embedded phone-unknown manifest
-describe its creation time. Later bounded postboot evidence records user
-confirmation, boot_completed=1, matching live config and the original guard
-and its providers. These artifact hashes are not live partition-byte hashes.
-Full DroidSpaces/rootfs behavior and physical-phone container lifecycle remain
-untested. See [artifact and evidence provenance](delivery-provenance.json).
+These artifact hashes are not live partition-byte hashes. The previous IPC
+slots 1-3 delivery and the NoMount-only intermediate are recorded in
+[artifact and evidence provenance](delivery-provenance.json).
 
 ## Canonical configuration and build
 
