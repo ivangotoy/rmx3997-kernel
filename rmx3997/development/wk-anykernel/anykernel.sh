@@ -1,6 +1,6 @@
 ### RMX3997 adaptation of WildKernels AnyKernel3
 properties() { '
-kernel.string=RMX3997 OEM-preserving 5.15.197 BakaSU/SUSFS
+kernel.string=RMX3997 OEM-preserving BakaSU/SUSFS
 do.devicecheck=0
 do.modules=0
 do.systemless=0
@@ -32,7 +32,7 @@ case "$SLOT:$BLOCK" in
 esac
 [ -b "$BLOCK" ] || abort "Boot is not a block device"
 [ "$(blockdev --getsize64 "$BLOCK")" = 67108864 ] || abort "Unexpected boot partition size"
-[ "$(extract_kernel_version "$AKHOME/Image")" = 5.15.197-android13 ] || abort "Wrong Image family"
+case "$(extract_kernel_version "$AKHOME/Image")" in 5.15.*-android13) ;; *) abort "Wrong Image family";; esac
 [ "$(dd if=Image bs=1 skip=56 count=4 2>/dev/null | od -An -tx1 | tr -d ' \n')" = 41524d64 ] || abort "Invalid ARM64 Image"
 
 split_boot

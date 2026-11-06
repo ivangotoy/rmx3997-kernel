@@ -34,7 +34,7 @@ def inspect(stage):
     if not all(line in config.splitlines() for line in required):
         raise ValueError('Root/OEM ABI/protection configuration differs')
     release = (out / 'include/config/kernel.release').read_text().strip()
-    if not release.startswith('5.15.197-android13-8-'):
+    if not re.match(r'5\.15\.\d+-android13-8-', release):
         raise ValueError('Wrong base/KMI family')
     image = out / 'arch/arm64/boot/Image'
     embedded = subprocess.check_output([str(REPO / 'scripts/extract-ikconfig'), str(image)])
