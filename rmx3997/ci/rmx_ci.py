@@ -44,7 +44,9 @@ def die(msg):
 
 def host_markers():
     home = os.path.expanduser('~').encode()
-    return sorted({home + b'/', b'/home/', b'forgejo-runners', REPO.as_posix().encode()})
+    # Paths of this build host only. Third-party binaries legitimately carry
+    # their own upstream build paths (e.g. /home/runner/.cargo in avbroot).
+    return sorted({home + b'/', b'forgejo-runners', REPO.as_posix().encode()})
 
 
 def load_pins():
