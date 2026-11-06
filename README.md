@@ -1,14 +1,18 @@
-# RMX3997 kernel - Android 13 / Linux 5.15.197
+# realme 12x 5G (RMX3997, EU) kernel - Linux 5.15.197
 
-Custom GKI-compatible kernel source for the Realme RMX3997 (MediaTek MT6835),
-built from the Android13-5.15 branch. Every delivery listed here was flashed and
-verified on hardware, not only built.
+Custom GKI-compatible kernel source for the **realme 12x 5G**, model RMX3997,
+EU variant (build RMX3997_16.0.5.1300(EX01)), MediaTek Dimensity 6100+
+(MT6835). The kernel is built from the Android13-5.15 branch, which is the GKI
+base this device ships. Every delivery listed here was flashed and verified on
+hardware, not only built.
 
 ## Status
 
 | | |
 | --- | --- |
-| Kernel | Linux 5.15.197, Android13 KMI8 (`5.15.197-android13-8-g7bdd6d06fa9d-dirty`) |
+| Device | realme 12x 5G, RMX3997, EU variant (EX01), Dimensity 6100+ (MT6835) |
+| Device ROM | RMX3997_16.0.5.1300(EX01) |
+| Kernel | Linux 5.15.197, Android13-5.15 GKI KMI8 (`5.15.197-android13-8-g7bdd6d06fa9d-dirty`) |
 | Compiler | ZyC Clang 18.0.0git (LLVM `3dea0aa8`), Full LTO, strict CFI |
 | Default TCP congestion control | `bbr3` (BBRv3 backport); upstream `bbr` still available |
 | Metamodule support | NoMount protocol 22 (metamodule versionCode 647) |
