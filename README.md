@@ -3,7 +3,8 @@
 Custom GKI-compatible kernel source for the **realme 12x 5G**, model RMX3997,
 EU variant (build RMX3997_16.0.5.1300(EX01)), MediaTek Dimensity 6100+
 (MT6835). The kernel follows AOSP `android13-5.15-lts`, the GKI branch this
-device ships, with the stock vendor modules kept loadable. Builds and releases
+device ships, plus the security fixes of `android13-5.15` that have not
+reached the LTS branch yet, with the stock vendor modules kept loadable. Builds and releases
 come from Forgejo Actions; see Releases for downloads.
 
 ## Status
@@ -43,6 +44,8 @@ come from Forgejo Actions; see Releases for downloads.
 
 **Networking**
 
+- nftables built in (inet, IPv4, IPv6, ARP, bridge, netdev families, NAT,
+  conntrack, FIB, TPROXY, `nft_compat` for iptables-nft)
 - IPv6 NAT, MASQUERADE and hop-limit matching, ipset, xt set/LOG/recent, TTL target
 - CAKE, PIE, FQ-PIE, CONNMARK
 - BBRv3 (default), BBR, Westwood, HTCP, Cubic, Reno
@@ -57,6 +60,8 @@ come from Forgejo Actions; see Releases for downloads.
 - Binder descriptors are allocated as on the shipped kernel: the OEM
   `oplus_binder_strategy` hooks stay in charge and the upstream descriptor
   bitmap is not used, because it cannot see OEM-allocated descriptors
+- `struct net` keeps the stock layout with nftables enabled: the nf_tables
+  generation cursor lives in per-netns nf_tables data instead of `struct net`
 - The memfd ashmem shim, dropped upstream, is kept because the shipped
   configuration enables it
 - The Oplus guard modules (`oplus_security_guard` and companions) and
@@ -167,6 +172,7 @@ current entry points.
 | --- | --- | --- |
 | `rmx3997-v1` | 5.15.197 | First CI release |
 | `rmx3997-v2` | 5.15.223 | Merge of AOSP `android13-5.15-lts` |
+| `rmx3997-v3` | 5.15.223 | `android13-5.15` security fixes (November 2026), nftables |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.
