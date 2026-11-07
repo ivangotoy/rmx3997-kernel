@@ -37,7 +37,9 @@ come from Forgejo Actions; see Releases for downloads.
 
 **Namespaces and containers**
 
-- User, IPC, PID, UTS, network and cgroup namespaces
+- User, IPC, PID, UTS, network and cgroup namespaces; creating a user
+  namespace requires CAP_SYS_ADMIN, so root container launchers keep
+  working while unprivileged processes cannot create one
 - SYSVIPC, POSIX_MQUEUE, OverlayFS, FUSE, NTSync
 - DEVTMPFS built in and deliberately not auto-mounted
 - CFS_BANDWIDTH and CGROUP_PIDS stay disabled by design
@@ -56,6 +58,9 @@ come from Forgejo Actions; see Releases for downloads.
 - IPv6 NAT, MASQUERADE and hop-limit matching, ipset, xt set/LOG/recent, TTL target
 - CAKE, PIE, FQ-PIE, CONNMARK
 - BBRv3 (default), BBR, Westwood, HTCP, Cubic, Reno
+- BBRv3 per-socket context ownership: a cloned socket never uses or frees
+  its parent's BBRv3 state, and the BBRv3 loss hook is dispatched by a
+  congestion-control flag instead of a name compare
 - WireGuard (built in), TUN, MACVLAN
 
 **Compatibility constraints that are deliberate**

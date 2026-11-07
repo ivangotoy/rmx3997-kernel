@@ -95,10 +95,10 @@
     },
     "bbrv3": {
       "mode": "report",
-      "url": "https://github.com/WildKernels/kernel_patches",
+      "url": "https://github.com/Bouteillepleine/kernel_patches",
       "ref": "main",
-      "pin": "b61ceb600da12ef1093597d8a4dfc15d0297b3c1",
-      "note": "donor common/bbrv3/0001-net-tcp-backport-BBRv3-to-android13-5.15.patch (last changed 3a75d651); port by hand, the TCP struct changes need the layout review"
+      "pin": "16094d643204806375412548a4f2766b653a1cb9",
+      "note": "donor common/bbrv3/0001-net-tcp-backport-BBRv3-to-android13-5.15.patch (hardened) plus 0003-net-tcp-bbr3-own-the-private-ctx-per-socket-5.10-6.6.patch; 0002 (debugfs, tunables) not taken; port by hand, the TCP struct changes need the layout review"
     },
     "anykernel3": {
       "mode": "report",
