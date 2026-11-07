@@ -1098,11 +1098,15 @@ static void tcp_notify_skb_loss_event(struct tcp_sock *tp, const struct sk_buff 
 	struct bbr3 *bbr3 = NULL;
 
 	tp->lost += tcp_skb_pcount(skb);
-	if(ca_ops && strncmp(ca_ops->name, "bbr3", 4) == 0)
-	{
+	if (ca_ops && (ca_ops->flags & TCP_CONG_HAS_LOSS_HOOK)) {
+		void (*hook)(struct sock *, const struct sk_buff *);
+
 		bbr3 = *(struct bbr3 **)inet_csk_ca(sk);
-		if (bbr3 && bbr3->skb_marked_lost)
-			bbr3->skb_marked_lost(sk, skb);
+		if (bbr3 && bbr3->owner != sk)
+			bbr3 = NULL;
+		hook = bbr3 ? READ_ONCE(bbr3->skb_marked_lost) : NULL;
+		if (hook)
+			hook(sk, skb);
 	}
 }
 
@@ -1484,7 +1488,9 @@ static bool tcp_shifted_skb(struct sock *sk, struct sk_buff *prev,
 		TCP_SKB_CB(skb)->tx.in_flight = 0;
 	else
 		TCP_SKB_CB(skb)->tx.in_flight -= pcount;
-	TCP_SKB_CB(prev)->tx.in_flight += pcount;
+	TCP_SKB_CB(prev)->tx.in_flight =
+		min_t(u32, TCP_SKB_CB(prev)->tx.in_flight + pcount,
+		      TCPCB_IN_FLIGHT_MAX);
 
 	/* When we're adding to gso_segs == 1, gso_size will be zero,
 	 * in theory this shouldn't be necessary but as long as DSACK
@@ -3798,7 +3804,11 @@ static void tcp_process_tlp_ack(struct sock *sk, u32 ack, int flag,
 		/* ACK advances: there was a loss, so reduce cwnd. Reset
 		 * tlp_high_seq in tcp_init_cwnd_reduction()
 		 */
-		tcp_ca_event(sk, CA_EVENT_TLP_RECOVERY);
+		/* CA_EVENT_TLP_RECOVERY is a BBRv3-specific standalone value; only
+		 * deliver it to CCs that opt into the private loss hook. */
+		if (inet_csk(sk)->icsk_ca_ops &&
+		    (inet_csk(sk)->icsk_ca_ops->flags & TCP_CONG_HAS_LOSS_HOOK))
+			tcp_ca_event(sk, CA_EVENT_TLP_RECOVERY);
 		tcp_init_cwnd_reduction(sk);
 		tcp_set_ca_state(sk, TCP_CA_CWR);
 		tcp_end_cwnd_reduction(sk);

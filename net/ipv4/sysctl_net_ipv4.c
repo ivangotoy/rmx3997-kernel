@@ -56,7 +56,7 @@ static u32 u32_max_div_HZ = UINT_MAX / HZ;
 static int one_day_secs = 24 * 3600;
 static u32 fib_multipath_hash_fields_all_mask __maybe_unused =
 	FIB_MULTIPATH_HASH_FIELD_ALL_MASK;
-static u8 tcp_plb_max_rounds = 31;
+static int tcp_plb_max_rounds = 31;
 static int tcp_plb_max_cong_thresh = 256;
 
 static int tcp_min_rcvbuf = 4096;
@@ -123,10 +123,10 @@ static int __net_init plb_net_init(struct net *net)
 		return -ENOMEM;
 	
 	ctx->params.sysctl_tcp_plb_enabled = 0;
-	ctx->params.sysctl_tcp_plb_idle_rehash_rounds = tcp_plb_max_rounds;
-	ctx->params.sysctl_tcp_plb_rehash_rounds = tcp_plb_max_rounds;
-	ctx->params.sysctl_tcp_plb_suspend_rto_sec = 0;
-	ctx->params.sysctl_tcp_plb_cong_thresh = tcp_plb_max_cong_thresh;
+	ctx->params.sysctl_tcp_plb_idle_rehash_rounds = 3;
+	ctx->params.sysctl_tcp_plb_rehash_rounds = 12;
+	ctx->params.sysctl_tcp_plb_suspend_rto_sec = 60;
+	ctx->params.sysctl_tcp_plb_cong_thresh = (1 << TCP_PLB_SCALE) / 2;
 
 	table = kmemdup(plb_ctl_table_template, sizeof(plb_ctl_table_template), GFP_KERNEL);
 	if (!table) {

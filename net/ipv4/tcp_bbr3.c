@@ -288,7 +288,9 @@ static void bbr3_skb_marked_lost(struct sock *sk, const struct sk_buff *skb);
 static inline struct bbr3 *bbr3_get_priv(const struct sock *sk)
 {
 	/* Read the address value out of slot 0 of the 104-byte array space */
-	return *(struct bbr3 **)inet_csk_ca(sk);
+	struct bbr3 *bbr = *(struct bbr3 **)inet_csk_ca(sk);
+
+	return (bbr && bbr->owner == sk) ? bbr : NULL;
 }
 
 /* This connection can use ECN if both endpoints have signaled ECN support in
@@ -470,6 +472,9 @@ static void bbr3_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct bbr3 *bbr = bbr3_get_priv(sk);
+
+	if (!bbr || !bbr->initialized)
+		return;
 
 	if (event == CA_EVENT_TX_START) {
 		if (!tp->app_limited)
@@ -1984,8 +1989,13 @@ static void bbr3_main(struct sock *sk, const struct rate_sample *rs)
 	u32 bw, round_delivered;
 	int ce_ratio = -1;
 
-	if(!bbr || !bbr->initialized)
+	if (!bbr || !bbr->initialized) {
+		/* Fail closed: ctx alloc failed in bbr3_init(); behave as Reno
+		 * instead of freezing cwnd. ssthresh/undo fall back to Reno too.
+		 */
+		tcp_reno_cong_avoid(sk, 0, rs->acked_sacked);
 		return;
+	}
 
 	round_delivered = bbr_update_round_start(sk, rs, &ctx);
 	if (bbr->round_start) {
@@ -2019,23 +2029,24 @@ out:
 	bbr->ecn_in_cycle  |= rs->delivered_ce > 0;
 }
 
+static struct kmem_cache *bbr3_cache __read_mostly;
+
 static void bbr3_init(struct sock *sk)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct bbr3 **bbr3_ptr = (struct bbr3 **)inet_csk_ca(sk);
 	struct bbr3 *bbr;
 
-	bbr = kmalloc(sizeof(struct bbr3), GFP_ATOMIC);
-	if (unlikely(!bbr))
+	bbr = kmem_cache_zalloc(bbr3_cache, GFP_ATOMIC | __GFP_NOWARN);
+	if (unlikely(!bbr)) {
+		net_warn_ratelimited("bbr3: ctx alloc failed; flow falls back to Reno behavior\n");
 		return;
+	}
 
-	memset(bbr, 0, sizeof(struct bbr3));
-
+	bbr->owner = sk;
 	*bbr3_ptr = bbr;
 
-	bbr->skb_marked_lost = bbr3_skb_marked_lost;
-	
-	bbr->initialized = 1;
+	WRITE_ONCE(bbr->skb_marked_lost, bbr3_skb_marked_lost);
 
 	bbr->init_cwnd = min(0x7FU, tcp_snd_cwnd(tp));
 	bbr->prior_cwnd = tp->prior_cwnd;
@@ -2110,16 +2121,23 @@ static void bbr3_init(struct sock *sk)
 
 	if (bbr_can_use_ecn(sk))
 		tp->ecn_flags |= TCP_ECN_ECT_PERMANENT;
+
+	/* Publish last: mark the context ready only after every field it
+	 * exposes has been set.
+	 */
+	bbr->initialized = 1;
 }
 
 __used noinline static void bbr3_release(struct sock *sk)
 {
 	struct bbr3 **bbr3_ptr = (struct bbr3 **)inet_csk_ca(sk);
+	struct bbr3 *bbr = *bbr3_ptr;
 
-	if (*bbr3_ptr) {
-		kfree(*bbr3_ptr);
-		*bbr3_ptr = NULL;
-	}
+	tcp_sk(sk)->ecn_flags &= ~TCP_ECN_ECT_PERMANENT;
+	*bbr3_ptr = NULL;
+
+	if (bbr && bbr->owner == sk)
+		kmem_cache_free(bbr3_cache, bbr);
 }
 
 /* BBR marks the current round trip as a loss round. */
@@ -2191,8 +2209,8 @@ static u32 bbr3_undo_cwnd(struct sock *sk)
 {
 	struct bbr3 *bbr = bbr3_get_priv(sk);
 
-	if(!bbr || !bbr->initialized)
-		return tcp_sk(sk)->snd_cwnd;
+	if (!bbr || !bbr->initialized)
+		return tcp_reno_undo_cwnd(sk);	/* fail closed: Reno undo */
 
 	bbr_reset_full_bw(sk); /* spurious slow-down; reset full bw detector */
 	bbr->loss_in_round = 0;
@@ -2210,8 +2228,8 @@ static u32 bbr3_ssthresh(struct sock *sk)
 {
 	struct bbr3 *bbr = bbr3_get_priv(sk);
 
-	if(!bbr || !bbr->initialized)
-		return tcp_sk(sk)->snd_ssthresh;
+	if (!bbr || !bbr->initialized)
+		return tcp_reno_ssthresh(sk);	/* fail closed: Reno loss reaction */
 
 	bbr_save_cwnd(sk);
 	/* For undo, save state that adapts based on loss signal. */
@@ -2321,7 +2339,8 @@ static void bbr3_set_state(struct sock *sk, u8 new_state)
 
 
 static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
-	.flags		= TCP_CONG_NON_RESTRICTED | TCP_CONG_WANTS_CE_EVENTS,
+	.flags		= TCP_CONG_NON_RESTRICTED | TCP_CONG_WANTS_CE_EVENTS |
+			  TCP_CONG_HAS_LOSS_HOOK,
 	.name		= "bbr3",
 	.owner		= THIS_MODULE,
 	.init		= bbr3_init,
@@ -2338,12 +2357,22 @@ static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
 
 static int __init bbr3_register(void)
 {
-	return tcp_register_congestion_control(&tcp_bbr_cong_ops);
+	int ret;
+
+	bbr3_cache = KMEM_CACHE(bbr3, SLAB_HWCACHE_ALIGN | SLAB_ACCOUNT);
+	if (!bbr3_cache)
+		return -ENOMEM;
+
+	ret = tcp_register_congestion_control(&tcp_bbr_cong_ops);
+	if (ret)
+		kmem_cache_destroy(bbr3_cache);
+	return ret;
 }
 
 static void __exit bbr3_unregister(void)
 {
 	tcp_unregister_congestion_control(&tcp_bbr_cong_ops);
+	kmem_cache_destroy(bbr3_cache);
 }
 
 module_init(bbr3_register);

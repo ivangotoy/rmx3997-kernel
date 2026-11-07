@@ -1635,12 +1635,13 @@ int tcp_fragment(struct sock *sk, enum tcp_queue tcp_queue,
 			inflight_prev = 0;
 		}
 		/* Set 1st tx.in_flight as if 1st were sent by itself: */
-		TCP_SKB_CB(skb)->tx.in_flight = inflight_prev +
-						 tcp_skb_pcount(skb);
+		TCP_SKB_CB(skb)->tx.in_flight =
+			min_t(u32, inflight_prev + tcp_skb_pcount(skb),
+			      TCPCB_IN_FLIGHT_MAX);
 		/* Set 2nd tx.in_flight with new 1st and 2nd pcounts: */
-		TCP_SKB_CB(buff)->tx.in_flight = inflight_prev +
-						 tcp_skb_pcount(skb) +
-						 tcp_skb_pcount(buff);
+		TCP_SKB_CB(buff)->tx.in_flight =
+			min_t(u32, inflight_prev + tcp_skb_pcount(skb) +
+			      tcp_skb_pcount(buff), TCPCB_IN_FLIGHT_MAX);
 	}
 
 	/* Link BUFF into the send queue. */
