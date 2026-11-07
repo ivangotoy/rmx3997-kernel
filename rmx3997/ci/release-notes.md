@@ -2,6 +2,16 @@ RMX3997 kernel **{kernel}** for the realme 12x 5G (RMX3997, EU), built by Forgej
 
 The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
+## Changes in this release
+
+- BBRv3 per-socket context ownership: a socket cloned from a listener no longer
+  uses or frees its parent's BBRv3 state, and the BBRv3 loss hook is selected by
+  a congestion-control flag instead of a name compare. Includes the hardened
+  backport fixes (in-flight saturation, Reno fallback when the context cannot be
+  allocated). TCP structure layouts are unchanged.
+- Creating a user namespace now requires CAP_SYS_ADMIN. Root container
+  launchers work as before; unprivileged processes can no longer create one.
+
 ## Kernel features
 
 | Area | What is included |

@@ -217,6 +217,7 @@ current entry points.
 | `rmx3997-v1` | 5.15.197 | First CI release |
 | `rmx3997-v2` | 5.15.223 | Merge of AOSP `android13-5.15-lts` |
 | `rmx3997-v3` | 5.15.223 | `android13-5.15` security fixes (November 2026), nftables |
+| `rmx3997-v4` | 5.15.223 | BBRv3 per-socket context ownership, user namespace creation requires CAP_SYS_ADMIN |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.
