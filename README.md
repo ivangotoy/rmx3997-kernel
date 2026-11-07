@@ -11,8 +11,9 @@ come from Forgejo Actions; see Releases for downloads.
 > Development, CI and releases happen there.
 >
 > **GitHub mirror:** https://github.com/ivangotoy/rmx3997-kernel is a read-only copy,
-> synced automatically from the original. Changes pushed there are overwritten;
-> use the original repository for releases.
+> synced automatically from the original. Changes pushed there are overwritten.
+> Releases are copied to GitHub automatically: the same ZIP and checksum files
+> as on Forgejo.
 
 ## Status
 
@@ -152,7 +153,10 @@ One run does the following, and any failed gate fails the run:
 6. Packages the AnyKernel3 ZIP and fails if the kernel or any ZIP member
    contains a host build path.
 7. Uploads only the ZIP and its checksum as a run artifact. A tag build also
-   publishes a release with those two files.
+   publishes a release with those two files, then copies that release to the
+   GitHub mirror: it waits for the mirrored tag to reach GitHub at the same
+   commit, uploads the same two files and checks them byte for byte against
+   the Forgejo release. It never creates or moves a tag on GitHub.
 
 The kernel release string comes from the built commit (`-g<sha12>`).
 

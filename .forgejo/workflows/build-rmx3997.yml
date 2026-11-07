@@ -106,6 +106,17 @@ jobs:
             --repo "$FORGEJO_REPOSITORY" --tag "$FORGEJO_REF_NAME" \
             --commit "$(git rev-parse HEAD)" --dist "$RMX_DIST" --run-url "$RUN_URL"
 
+      # The GitHub mirror gets git refs from the Forgejo push mirror; this copies
+      # the published release (the same ZIP and checksum) onto the mirrored tag.
+      # It never creates or moves a tag and never edits an existing release.
+      - name: Copy release to GitHub (tag builds only)
+        if: forgejo.ref_type == 'tag'
+        env:
+          GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+        run: |
+          python3 -I rmx3997/ci/rmx_ci.py github-release --forgejo-api "$FORGEJO_API_URL" \
+            --repo "$FORGEJO_REPOSITORY" --github-repo ivangotoy/rmx3997-kernel --tag "$FORGEJO_REF_NAME"
+
       - name: Remove build tree
         if: success()
         run: rm -rf "$STAGE/out" "$STAGE/work" "$STAGE/tmp" "$STAGE/pycache"

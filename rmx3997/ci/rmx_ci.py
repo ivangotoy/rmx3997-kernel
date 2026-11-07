@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""RMX3997 CI gates: host-input pins, config, acceptance, packaging, release.
+"""RMX3997 CI gates: host-input pins, config, acceptance, packaging, release,
+GitHub release copy.
 
 Every gate fails closed. Host-local inputs (toolchains, the stock OEM module
 corpus and the boot_b layout template) never enter the repository; they are
@@ -608,6 +609,218 @@ def cmd_release(a):
           % (tag, rel['id'], len(uploaded), ', '.join(uploaded)))
 
 
+# ------------------------------------------------------------ GitHub copy
+# The GitHub mirror receives git refs from the Forgejo push mirror; this copies
+# the published Forgejo release (ZIP and checksum, the same bytes) on top of
+# the mirrored tag. It never creates or moves a tag, never edits an existing
+# release and never deletes anything.
+GH_API = 'https://api.github.com'
+
+
+def fetch(url):
+    """Anonymous GET (redirects followed); no credential can leave the host."""
+    req = urllib.request.Request(url, headers={'User-Agent': 'rmx3997-ci'})
+    try:
+        with urllib.request.urlopen(req, timeout=300) as r:
+            return r.status, r.read()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read()
+    except urllib.error.URLError as e:
+        die('GET %s failed: %s' % (url.split('?', 1)[0], e.reason))
+
+
+def gh(method, url, token, payload=None, raw=None, ctype='application/json'):
+    data = raw if raw is not None else (None if payload is None else json.dumps(payload).encode())
+    req = urllib.request.Request(url, data=data, method=method)
+    req.add_header('User-Agent', 'rmx3997-ci')
+    req.add_header('Accept', 'application/vnd.github+json')
+    req.add_header('X-GitHub-Api-Version', '2022-11-28')
+    if token:
+        req.add_header('Authorization', 'Bearer ' + token)
+    if data is not None:
+        req.add_header('Content-Type', ctype)
+    try:
+        with urllib.request.urlopen(req, timeout=300) as r:
+            return r.status, r.read()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read()
+    except urllib.error.URLError as e:
+        die('%s %s failed: %s' % (method, url.split('?', 1)[0], e.reason))
+
+
+def gh_json(method, url, token, want=(200,), what='GitHub request', **kw):
+    st, body = gh(method, url, token, **kw)
+    if st not in want:
+        die('%s returned HTTP %d' % (what, st))
+    return json.loads(body)
+
+
+def gh_peeled(base, tag, token):
+    """Peeled commit of refs/tags/<tag> on GitHub, or None if the tag is absent."""
+    st, body = gh('GET', '%s/git/ref/tags/%s' % (base, urllib.parse.quote(tag)), token)
+    if st == 404:
+        return None
+    if st != 200:
+        die('GitHub tag lookup returned HTTP %d' % st)
+    ref = json.loads(body)
+    if not isinstance(ref, dict) or ref.get('ref') != 'refs/tags/' + tag:
+        die('GitHub tag lookup did not return exactly refs/tags/%s' % tag)
+    obj = ref['object']
+    for _ in range(8):
+        if obj['type'] == 'commit':
+            return obj['sha']
+        if obj['type'] != 'tag':
+            die('GitHub tag %s points to a %s' % (tag, obj['type']))
+        obj = gh_json('GET', '%s/git/tags/%s' % (base, obj['sha']), token,
+                      what='GitHub tag object lookup')['object']
+    die('GitHub tag %s: tag chain too deep' % tag)
+
+
+def gh_releases_for(base, tag, token):
+    """Every GitHub release (drafts included when authenticated) for the tag."""
+    found, page = [], 1
+    while True:
+        rows = gh_json('GET', '%s/releases?per_page=100&page=%d' % (base, page), token,
+                       what='GitHub release list')
+        found += [r for r in rows if r.get('tag_name') == tag]
+        if len(rows) < 100:
+            return found
+        page += 1
+
+
+def cmd_github_release(a):
+    import time
+    token = os.environ.get('GH_RELEASE_TOKEN', '')
+    if not token and not a.dry_run:
+        die('no GitHub release token in step environment')
+    tag = a.tag
+    if not re.fullmatch(r'rmx3997-[A-Za-z0-9._-]+', tag):
+        die('unexpected tag name')
+    fapi = a.forgejo_api.rstrip('/')
+    fbase = '%s/repos/%s' % (fapi, a.repo)
+    gbase = '%s/repos/%s' % (GH_API, a.github_repo)
+
+    # Forgejo release, read anonymously: exactly the ZIP and its checksum.
+    st, body = fetch('%s/releases/tags/%s' % (fbase, urllib.parse.quote(tag)))
+    if st != 200:
+        die('Forgejo release lookup returned HTTP %d' % st)
+    frel = json.loads(body)
+    if frel.get('draft') or frel.get('tag_name') != tag:
+        die('Forgejo release for %s is not a published release of that tag' % tag)
+    assets = {x['name']: x for x in frel.get('assets', [])}
+    zips = [n for n in assets if re.fullmatch(r'RMX3997-.+-%s\.zip' % re.escape(tag), n)]
+    if len(zips) != 1 or set(assets) != {zips[0], zips[0] + '.sha256'}:
+        die('Forgejo release must hold exactly the ZIP and its .sha256 (has: %s)'
+            % ', '.join(sorted(assets)))
+    zname = zips[0]
+    files = {}
+    for name in sorted(assets):
+        st, data = fetch(assets[name]['browser_download_url'])
+        if st != 200 or len(data) != assets[name]['size']:
+            die('Forgejo asset %s download failed (HTTP %d)' % (name, st))
+        files[name] = data
+    zsum = hashlib.sha256(files[zname]).hexdigest()
+    if files[zname + '.sha256'] != ('%s  %s\n' % (zsum, zname)).encode():
+        die('Forgejo %s.sha256 does not match the ZIP' % zname)
+    sums = {n: hashlib.sha256(d).hexdigest() for n, d in files.items()}
+    st, body = fetch('%s/releases/latest' % fbase)
+    if st != 200:
+        die('Forgejo latest release lookup returned HTTP %d' % st)
+    latest = json.loads(body).get('tag_name') == tag
+
+    # The mirrored tag must exist on GitHub and peel to the Forgejo commit.
+    st, body = fetch('%s/tags/%s' % (fbase, urllib.parse.quote(tag)))
+    if st != 200:
+        die('Forgejo tag lookup returned HTTP %d' % st)
+    commit = json.loads(body)['commit']['sha']
+    if not re.fullmatch(r'[0-9a-f]{40}', commit):
+        die('Forgejo tag %s has no commit' % tag)
+    deadline = time.monotonic() + a.wait_tag
+    while True:
+        peeled = gh_peeled(gbase, tag, token)
+        if peeled is not None and peeled != commit:
+            die('GitHub tag %s is at %s, Forgejo tag is at %s' % (tag, peeled[:12], commit[:12]))
+        if peeled == commit:
+            break
+        if time.monotonic() >= deadline:
+            die('GitHub tag %s did not appear within %d s' % (tag, a.wait_tag))
+        time.sleep(15)
+    print('%s: Forgejo pair verified (%s), GitHub tag peels to %s'
+          % (tag, zname, commit[:12]), flush=True)
+
+    def check_published(rel, names):
+        for x in rel['assets']:
+            st, data = fetch(x['browser_download_url'])
+            if st != 200 or hashlib.sha256(data).hexdigest() != sums[x['name']]:
+                die('GitHub asset %s does not match the Forgejo file (HTTP %d)' % (x['name'], st))
+        if sorted(x['name'] for x in rel['assets']) != sorted(names):
+            die('GitHub release asset list differs from the Forgejo pair')
+
+    def upload(rel, name):
+        url = rel['upload_url'].split('{', 1)[0] + '?name=' + urllib.parse.quote(name)
+        if not url.startswith('https://uploads.github.com/'):
+            die('unexpected GitHub upload host')
+        x = gh_json('POST', url, token, want=(201,), what='asset upload ' + name,
+                    raw=files[name], ctype='application/octet-stream')
+        if x.get('name') != name or x.get('size') != len(files[name]) or x.get('state') != 'uploaded':
+            die('GitHub asset %s: stored name/size/state differs' % name)
+
+    existing = gh_releases_for(gbase, tag, token)
+    if len(existing) > 1:
+        die('GitHub has %d releases for %s' % (len(existing), tag))
+    if existing:
+        rel = existing[0]
+        if rel.get('draft'):
+            die('GitHub has an unpublished draft for %s; inspect it by hand' % tag)
+        have = {x['name']: x for x in rel['assets']}
+        extra = sorted(set(have) - set(files))
+        if extra:
+            die('GitHub release %s has extra assets: %s' % (tag, ', '.join(extra)))
+        for x in have.values():
+            if x.get('state') != 'uploaded' or x.get('size') != len(files[x['name']]):
+                die('GitHub asset %s is incomplete or differs in size' % x['name'])
+        missing = sorted(set(files) - set(have))
+        check_published(rel, have)
+        if a.dry_run:
+            print('dry run: release %s exists on GitHub (id %d); would upload %s'
+                  % (tag, rel['id'], ', '.join(missing) or 'nothing'))
+            return
+        for name in missing:
+            upload(rel, name)
+        rel = gh_json('GET', '%s/releases/%d' % (gbase, rel['id']), token, what='GitHub release read')
+        check_published(rel, files)
+        print('GitHub release %s (id %d) verified, %d assets byte-equal to Forgejo, uploaded: %s'
+              % (tag, rel['id'], len(files), ', '.join(missing) or 'none'))
+        return
+
+    body = (frel.get('body') or '').rstrip() + '\n\n---\nCopied from the original release: %s\n' % (
+        frel['html_url'])
+    if a.dry_run:
+        print('dry run: would create release %s (name %r, prerelease %s, make_latest %s) '
+              'with %s' % (tag, frel['name'], bool(frel.get('prerelease')),
+                           'true' if latest else 'false', ', '.join(sorted(files))))
+        return
+    # No target_commitish: the release attaches to the verified existing tag.
+    rel = gh_json('POST', gbase + '/releases', token, want=(201,), what='GitHub draft creation',
+                  payload={'tag_name': tag, 'name': frel['name'], 'body': body, 'draft': True,
+                           'prerelease': bool(frel.get('prerelease'))})
+    for name in sorted(files):
+        upload(rel, name)
+    rows = gh_json('GET', '%s/releases/%d/assets' % (gbase, rel['id']), token,
+                   what='GitHub asset list')
+    if sorted(x['name'] for x in rows) != sorted(files):
+        die('GitHub draft asset list differs from the Forgejo pair')
+    if gh_peeled(gbase, tag, token) != commit:
+        die('GitHub tag %s moved before publishing' % tag)
+    rel = gh_json('PATCH', '%s/releases/%d' % (gbase, rel['id']), token, what='GitHub publish',
+                  payload={'draft': False, 'make_latest': 'true' if latest else 'false'})
+    if rel.get('draft') or rel.get('tag_name') != tag:
+        die('GitHub release %s did not publish' % tag)
+    check_published(rel, files)
+    print('published GitHub release %s (id %d), %d assets byte-verified: %s'
+          % (tag, rel['id'], len(files), ', '.join(sorted(files))))
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest='cmd', required=True)
@@ -632,9 +845,15 @@ def main():
     c = sub.add_parser('release')
     for flag in ('--api', '--repo', '--tag', '--commit', '--dist', '--run-url'):
         c.add_argument(flag, required=True)
+    c = sub.add_parser('github-release')
+    for flag in ('--forgejo-api', '--repo', '--github-repo', '--tag'):
+        c.add_argument(flag, required=True)
+    c.add_argument('--wait-tag', type=int, default=900, metavar='SECONDS')
+    c.add_argument('--dry-run', action='store_true')
     a = p.parse_args()
     {'preflight': cmd_preflight, 'record-pins': cmd_record_pins, 'config': cmd_config,
      'accept': cmd_accept, 'package': cmd_package, 'release': cmd_release,
+     'github-release': cmd_github_release,
      'layout': cmd_layout, 'refresh-config': cmd_refresh_config}[a.cmd](a)
 
 
