@@ -147,6 +147,14 @@ struct ntsync_device {
 static struct delayed_work ntsync_perm_work;
 
 /*
+ * Without devtmpfs, /dev/ntsync is created by ueventd during coldboot, which
+ * runs well after this built-in driver registers. Retry once a second until
+ * the node exists, for at most NTSYNC_PERM_TRIES seconds.
+ */
+#define NTSYNC_PERM_TRIES	300
+static unsigned int ntsync_perm_tries;
+
+/*
  * Single objects are locked using obj->lock.
  *
  * Multiple objects are 'locked' while holding dev->wait_all_lock.
@@ -1212,20 +1220,33 @@ static void ntsync_fix_perms_worker(struct work_struct *work)
 {
     struct path path;
     char *ctx = "u:object_r:gpu_device:s0";
-    if (!kern_path("/dev/ntsync", LOOKUP_FOLLOW, &path)) {
+    int err;
+
+    if (kern_path("/dev/ntsync", LOOKUP_FOLLOW, &path)) {
+        if (++ntsync_perm_tries < NTSYNC_PERM_TRIES)
+            schedule_delayed_work(&ntsync_perm_work, HZ);
+        else
+            pr_warn("ntsync: /dev/ntsync did not appear, permissions not applied\n");
+        return;
+    }
+    {
         struct inode *inode = d_backing_inode(path.dentry);
         if (inode) {
             inode_lock(inode);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,12,0)
-             __vfs_setxattr_noperm(path.dentry, "security.selinux", ctx, strlen(ctx) + 1, 0);
+            err = __vfs_setxattr_noperm(path.dentry, "security.selinux", ctx, strlen(ctx) + 1, 0);
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(6,3,0)
-            __vfs_setxattr_noperm(&init_user_ns, path.dentry, "security.selinux", ctx, strlen(ctx) + 1, 0);
+            err = __vfs_setxattr_noperm(&init_user_ns, path.dentry, "security.selinux", ctx, strlen(ctx) + 1, 0);
 #else
-            __vfs_setxattr_noperm(&nop_mnt_idmap, path.dentry, "security.selinux", ctx, strlen(ctx) + 1, 0);
+            err = __vfs_setxattr_noperm(&nop_mnt_idmap, path.dentry, "security.selinux", ctx, strlen(ctx) + 1, 0);
 #endif
             inode->i_mode = (inode->i_mode & ~S_IALLUGO) | 0666;
             inode_unlock(inode);
-            pr_info("ntsync: Applied 0666 and gpu_device context\n");
+            if (err)
+                pr_warn("ntsync: Applied 0666, gpu_device context failed (%d)\n", err);
+            else
+                pr_info("ntsync: Applied 0666 and gpu_device context after %u s\n",
+                        2 + ntsync_perm_tries);
         }
         path_put(&path);
     }
