@@ -4,13 +4,10 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 ## Changes in this release
 
-- BBRv3 per-socket context ownership: a socket cloned from a listener no longer
-  uses or frees its parent's BBRv3 state, and the BBRv3 loss hook is selected by
-  a congestion-control flag instead of a name compare. Includes the hardened
-  backport fixes (in-flight saturation, Reno fallback when the context cannot be
-  allocated). TCP structure layouts are unchanged.
-- Creating a user namespace now requires CAP_SYS_ADMIN. Root container
-  launchers work as before; unprivileged processes can no longer create one.
+- `/dev/ntsync` is now usable by apps such as Wine-based launchers. The device
+  node is created late in boot, after the driver's single permission pass, so
+  it stayed root-only. The driver now waits for the node and sets mode 0666
+  and the `gpu_device` SELinux label, which apps may already open.
 
 ## Kernel features
 
@@ -27,7 +24,7 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 | Firewall and NAT | nftables (inet, IPv4, IPv6, ARP, bridge, netdev; NAT, conntrack, FIB, TPROXY, `nft_compat` for iptables-nft), IPv6 NAT and MASQUERADE, hop-limit match, ipset, xt `set`, `LOG`, `recent`, `addrtype`, TTL target, CONNMARK |
 | VPN and virtual networking | WireGuard (built in), TUN, MACVLAN |
 | Containers | User (creation requires CAP_SYS_ADMIN), IPC, PID, UTS, network and cgroup namespaces, SysV IPC, POSIX message queues, OverlayFS, FUSE |
-| Windows compatibility | NTSync |
+| Windows compatibility | NTSync, `/dev/ntsync` usable by apps |
 | Filesystems | F2FS, ext4, EROFS, CIFS/SMB3, tmpfs with xattrs and POSIX ACLs |
 | Memory | memfd ashmem compatibility, MGLRU built in but off by default |
 
