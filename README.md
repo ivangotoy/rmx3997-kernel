@@ -7,6 +7,13 @@ device ships, plus the security fixes of `android13-5.15` that have not
 reached the LTS branch yet, with the stock vendor modules kept loadable. Builds and releases
 come from Forgejo Actions; see Releases for downloads.
 
+> **Original repository:** https://git.digtvbg.com/ivangotoy/rmx3997-kernel (Forgejo).
+> Development, CI and releases happen there.
+>
+> **GitHub mirror:** https://github.com/ivangotoy/rmx3997-kernel is a read-only copy,
+> synced automatically from the original. Changes pushed there are overwritten;
+> use the original repository for releases.
+
 ## Status
 
 | | |
