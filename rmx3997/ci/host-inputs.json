@@ -41,7 +41,9 @@
       ]
     ]
   },
-  "required_config": [],
+  "required_config": [
+    "CONFIG_AMNEZIAWG=y"
+  ],
   "forbidden_config": [
     "CONFIG_LRU_GEN_ENABLED=y",
     "CONFIG_CRYPTO_ZRAM_MULTI=y"
