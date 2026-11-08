@@ -22,3 +22,11 @@ endif
 include $(src)/compat/Kbuild.include
 
 obj-$(if $(KBUILD_EXTMOD),m,$(CONFIG_AMNEZIAWG)) := amneziawg.o
+
+ifeq ($(shell grep -s -F "define DEV_STATS_INC" "$(srctree)/include/linux/netdevice.h"),)
+ccflags-y += -DCOMPAT_NO_DEV_STATS_INC
+endif
+ifeq ($(shell grep -s -F "timer_delete_sync" "$(srctree)/include/linux/timer.h"),)
+ccflags-y += -DCOMPAT_NO_TIMER_DELETE_SYNC
+endif
+ccflags-y += -include $(kbuild-dir)/intree.h -include $(kbuild-dir)/rename.h
