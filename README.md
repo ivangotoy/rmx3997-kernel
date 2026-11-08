@@ -65,7 +65,7 @@ come from Forgejo Actions; see Releases for downloads.
 - BBRv3 per-socket context ownership: a cloned socket never uses or frees
   its parent's BBRv3 state, and the BBRv3 loss hook is dispatched by a
   congestion-control flag instead of a name compare
-- WireGuard (built in), TUN, MACVLAN
+- WireGuard and AmneziaWG (both built in), TUN, MACVLAN
 
 **Compatibility constraints that are deliberate**
 
@@ -227,6 +227,7 @@ current entry points.
 | `rmx3997-v4` | 5.15.223 | BBRv3 per-socket context ownership, user namespace creation requires CAP_SYS_ADMIN |
 | `rmx3997-v5` | 5.15.223 | `/dev/ntsync` usable by apps |
 | `rmx3997-v6` | 5.15.223 | NFSv4 client |
+| `rmx3997-v7` | 5.15.223 | AmneziaWG |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.

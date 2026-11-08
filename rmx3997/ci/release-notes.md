@@ -4,12 +4,13 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 ## Changes in this release
 
-- NFS client built in, NFS versions 4.0, 4.1 and 4.2 over TCP, with kernel DNS
-  resolution for server referrals and the pNFS file and block layouts. There
-  is no NFS server and no NFSv2 or NFSv3 support. The built-in root policy
-  lets the kernel bind the client's reserved source port, so mounts work with
-  SELinux enforcing, for example
-  `mount -t nfs4 -o vers=4.2,addr=<server-ip> <server-ip>:/<export> /mnt/x`.
+- AmneziaWG built in, next to WireGuard. AmneziaWG is a WireGuard fork that
+  adds traffic obfuscation (junk packets, randomized headers and padding)
+  against deep packet inspection. The driver is
+  `amneziawg-linux-kernel-module` v3.1.20260906 (commit `4569c4c67f3a`),
+  using the kernel's own crypto library. Interfaces use the `amneziawg` link
+  type and are configured with `awg` and `awg-quick` from `amneziawg-tools`;
+  plain WireGuard interfaces and `wg` keep working unchanged.
 
 ## Kernel features
 
@@ -24,7 +25,7 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 | TCP congestion control | BBRv3 (`bbr3`, default) with per-socket context ownership, BBR, CUBIC, Westwood, HTCP |
 | Queue disciplines | CAKE, PIE, FQ-PIE |
 | Firewall and NAT | nftables (inet, IPv4, IPv6, ARP, bridge, netdev; NAT, conntrack, FIB, TPROXY, `nft_compat` for iptables-nft), IPv6 NAT and MASQUERADE, hop-limit match, ipset, xt `set`, `LOG`, `recent`, `addrtype`, TTL target, CONNMARK |
-| VPN and virtual networking | WireGuard (built in), TUN, MACVLAN |
+| VPN and virtual networking | WireGuard and AmneziaWG (both built in), TUN, MACVLAN |
 | Containers | User (creation requires CAP_SYS_ADMIN), IPC, PID, UTS, network and cgroup namespaces, SysV IPC, POSIX message queues, OverlayFS, FUSE |
 | Windows compatibility | NTSync, `/dev/ntsync` usable by apps |
 | Filesystems | F2FS, ext4, EROFS, CIFS/SMB3, NFSv4 client (4.0, 4.1, 4.2), tmpfs with xattrs and POSIX ACLs |
