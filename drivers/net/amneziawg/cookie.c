@@ -16,8 +16,8 @@
 
 #include <net/ipv6.h>
 
-void wg_cookie_checker_init(struct cookie_checker *checker,
-			    struct wg_device *wg)
+void wg_cookie_checker_init(struct amn_cookie_checker *checker,
+			    struct amn_wg_device *wg)
 {
 	init_rwsem(&checker->secret_lock);
 	checker->secret_birthdate = ktime_get_coarse_boottime_ns();
@@ -42,7 +42,7 @@ static void precompute_key(u8 key[NOISE_SYMMETRIC_KEY_LEN],
 }
 
 /* Must hold peer->handshake.static_identity->lock */
-void wg_cookie_checker_precompute_device_keys(struct cookie_checker *checker)
+void wg_cookie_checker_precompute_device_keys(struct amn_cookie_checker *checker)
 {
 	if (likely(checker->device->static_identity.has_identity)) {
 		precompute_key(checker->cookie_encryption_key,
@@ -58,7 +58,7 @@ void wg_cookie_checker_precompute_device_keys(struct cookie_checker *checker)
 	}
 }
 
-void wg_cookie_checker_precompute_peer_keys(struct wg_peer *peer)
+void wg_cookie_checker_precompute_peer_keys(struct amn_wg_peer *peer)
 {
 	precompute_key(peer->latest_cookie.cookie_decryption_key,
 		       peer->handshake.remote_static, cookie_key_label);
@@ -66,7 +66,7 @@ void wg_cookie_checker_precompute_peer_keys(struct wg_peer *peer)
 		       peer->handshake.remote_static, mac1_key_label);
 }
 
-void wg_cookie_init(struct cookie *cookie)
+void wg_cookie_init(struct amn_cookie *cookie)
 {
 	memset(cookie, 0, sizeof(*cookie));
 	init_rwsem(&cookie->lock);
@@ -75,21 +75,21 @@ void wg_cookie_init(struct cookie *cookie)
 static void compute_mac1(u8 mac1[COOKIE_LEN], const void *message, size_t len,
 			 const u8 key[NOISE_SYMMETRIC_KEY_LEN])
 {
-	len = len - sizeof(struct message_macs) +
-	      offsetof(struct message_macs, mac1);
+	len = len - sizeof(struct amn_message_macs) +
+	      offsetof(struct amn_message_macs, mac1);
 	blake2s(key, NOISE_SYMMETRIC_KEY_LEN, message, len, mac1, COOKIE_LEN);
 }
 
 static void compute_mac2(u8 mac2[COOKIE_LEN], const void *message, size_t len,
 			 const u8 cookie[COOKIE_LEN])
 {
-	len = len - sizeof(struct message_macs) +
-	      offsetof(struct message_macs, mac2);
+	len = len - sizeof(struct amn_message_macs) +
+	      offsetof(struct amn_message_macs, mac2);
 	blake2s(cookie, COOKIE_LEN, message, len, mac2, COOKIE_LEN);
 }
 
 static void make_cookie(u8 cookie[COOKIE_LEN], struct sk_buff *skb,
-			struct cookie_checker *checker)
+			struct amn_cookie_checker *checker)
 {
 	struct blake2s_ctx state;
 
@@ -116,13 +116,13 @@ static void make_cookie(u8 cookie[COOKIE_LEN], struct sk_buff *skb,
 	up_read(&checker->secret_lock);
 }
 
-enum cookie_mac_state wg_cookie_validate_packet(struct cookie_checker *checker,
+enum amn_cookie_mac_state wg_cookie_validate_packet(struct amn_cookie_checker *checker,
 						struct sk_buff *skb,
 						bool check_cookie)
 {
-	struct message_macs *macs = (struct message_macs *)
+	struct amn_message_macs *macs = (struct amn_message_macs *)
 		(skb->data + skb->len - sizeof(*macs));
-	enum cookie_mac_state ret;
+	enum amn_cookie_mac_state ret;
 	u8 computed_mac[COOKIE_LEN];
 	u8 cookie[COOKIE_LEN];
 
@@ -154,9 +154,9 @@ out:
 }
 
 void wg_cookie_add_mac_to_packet(void *message, size_t len,
-				 struct wg_peer *peer)
+				 struct amn_wg_peer *peer)
 {
-	struct message_macs *macs = (struct message_macs *)
+	struct amn_message_macs *macs = (struct amn_message_macs *)
 		((u8 *)message + len - sizeof(*macs));
 
 	down_write(&peer->latest_cookie.lock);
@@ -177,11 +177,11 @@ void wg_cookie_add_mac_to_packet(void *message, size_t len,
 	up_read(&peer->latest_cookie.lock);
 }
 
-void wg_cookie_message_create(struct message_handshake_cookie *dst,
+void wg_cookie_message_create(struct amn_message_handshake_cookie *dst,
 			      struct sk_buff *skb, __le32 index,
-			      struct cookie_checker *checker, u32 message_type)
+			      struct amn_cookie_checker *checker, u32 message_type)
 {
-	struct message_macs *macs = (struct message_macs *)
+	struct amn_message_macs *macs = (struct amn_message_macs *)
 		((u8 *)skb->data + skb->len - sizeof(*macs));
 	u8 cookie[COOKIE_LEN];
 
@@ -195,10 +195,10 @@ void wg_cookie_message_create(struct message_handshake_cookie *dst,
 				  checker->cookie_encryption_key);
 }
 
-void wg_cookie_message_consume(struct message_handshake_cookie *src,
-			       struct wg_device *wg)
+void wg_cookie_message_consume(struct amn_message_handshake_cookie *src,
+			       struct amn_wg_device *wg)
 {
-	struct wg_peer *peer = NULL;
+	struct amn_wg_peer *peer = NULL;
 	u8 cookie[COOKIE_LEN];
 	bool ret;
 

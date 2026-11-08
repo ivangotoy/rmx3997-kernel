@@ -35,8 +35,8 @@ static int wg_open(struct net_device *dev)
 #ifndef COMPAT_CANNOT_USE_IN6_DEV_GET
 	struct inet6_dev *dev_v6 = __in6_dev_get(dev);
 #endif
-	struct wg_device *wg = netdev_priv(dev);
-	struct wg_peer *peer;
+	struct amn_wg_device *wg = netdev_priv(dev);
+	struct amn_wg_peer *peer;
 	int ret;
 
 	if (dev_v4) {
@@ -72,8 +72,8 @@ out:
 
 static int wg_pm_notification(struct notifier_block *nb, unsigned long action, void *data)
 {
-	struct wg_device *wg;
-	struct wg_peer *peer;
+	struct amn_wg_device *wg;
+	struct amn_wg_peer *peer;
 
 	/* If the machine is constantly suspending and resuming, as part of
 	 * its normal operation rather than as a somewhat rare event, then we
@@ -105,8 +105,8 @@ static struct notifier_block pm_notifier = { .notifier_call = wg_pm_notification
 
 static int wg_vm_notification(struct notifier_block *nb, unsigned long action, void *data)
 {
-	struct wg_device *wg;
-	struct wg_peer *peer;
+	struct amn_wg_device *wg;
+	struct amn_wg_peer *peer;
 
 	rtnl_lock();
 	list_for_each_entry(wg, &device_list, device_list) {
@@ -123,8 +123,8 @@ static struct notifier_block vm_notifier = { .notifier_call = wg_vm_notification
 
 static int wg_stop(struct net_device *dev)
 {
-	struct wg_device *wg = netdev_priv(dev);
-	struct wg_peer *peer;
+	struct amn_wg_device *wg = netdev_priv(dev);
+	struct amn_wg_peer *peer;
 	struct sk_buff *skb;
 
 	mutex_lock(&wg->device_update_lock);
@@ -145,9 +145,9 @@ static int wg_stop(struct net_device *dev)
 
 static netdev_tx_t wg_xmit(struct sk_buff *skb, struct net_device *dev)
 {
-	struct wg_device *wg = netdev_priv(dev);
+	struct amn_wg_device *wg = netdev_priv(dev);
 	struct sk_buff_head packets;
-	struct wg_peer *peer;
+	struct amn_wg_peer *peer;
 	struct sk_buff *next;
 	sa_family_t family;
 	u32 mtu;
@@ -254,7 +254,7 @@ static const struct net_device_ops netdev_ops = {
 
 static void wg_destruct(struct net_device *dev)
 {
-	struct wg_device *wg = netdev_priv(dev);
+	struct amn_wg_device *wg = netdev_priv(dev);
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(wg->ispecs); ++i)
@@ -293,7 +293,7 @@ static const struct device_type device_type = { .name = KBUILD_MODNAME };
 
 static void wg_setup(struct net_device *dev)
 {
-	struct wg_device *wg = netdev_priv(dev);
+	struct amn_wg_device *wg = netdev_priv(dev);
 	enum { WG_NETDEV_FEATURES = NETIF_F_HW_CSUM | NETIF_F_RXCSUM |
 				    NETIF_F_SG | NETIF_F_GSO |
 				    NETIF_F_GSO_SOFTWARE | NETIF_F_HIGHDMA };
@@ -346,11 +346,11 @@ static void wg_setup(struct net_device *dev)
 }
 
 static int wg_newlink(struct net_device *dev,
-		      struct rtnl_newlink_params *params,
+		      struct amn_rtnl_newlink_params *params,
 		      struct netlink_ext_ack *extack)
 {
 	struct net *link_net = rtnl_newlink_link_net(params);
-	struct wg_device *wg = netdev_priv(dev);
+	struct amn_wg_device *wg = netdev_priv(dev);
 	int ret = -ENOMEM, i;
 
 	rcu_assign_pointer(wg->creating_net, link_net);
@@ -458,7 +458,7 @@ static int wg_newlink_old(struct net *src_net, struct net_device *dev,
 		      struct nlattr *tb[], struct nlattr *data[],
 		      struct netlink_ext_ack *extack)
 {
-	struct rtnl_newlink_params params = {
+	struct amn_rtnl_newlink_params params = {
 		.src_net = src_net,
 		.link_net = NULL,
 		.peer_net = NULL,
@@ -471,7 +471,7 @@ static int wg_newlink_old(struct net *src_net, struct net_device *dev,
 
 static struct rtnl_link_ops link_ops __read_mostly = {
 	.kind			= KBUILD_MODNAME,
-	.priv_size		= sizeof(struct wg_device),
+	.priv_size		= sizeof(struct amn_wg_device),
 	.setup			= wg_setup,
 #ifndef COMPAT_CANNOT_USE_RTNL_NEWLINK_PARAMS
 	.newlink		= wg_newlink,
@@ -482,8 +482,8 @@ static struct rtnl_link_ops link_ops __read_mostly = {
 
 static void wg_netns_pre_exit(struct net *net)
 {
-	struct wg_device *wg;
-	struct wg_peer *peer;
+	struct amn_wg_device *wg;
+	struct amn_wg_peer *peer;
 
 	rtnl_lock();
 	list_for_each_entry(wg, &device_list, device_list) {

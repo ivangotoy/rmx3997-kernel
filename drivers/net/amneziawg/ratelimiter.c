@@ -35,7 +35,7 @@ static struct hlist_head *table_v4;
 static struct hlist_head *table_v6;
 #endif
 
-struct ratelimiter_entry {
+struct amn_ratelimiter_entry {
 	u64 last_time_ns, tokens, ip;
 	void *net;
 	spinlock_t lock;
@@ -53,11 +53,11 @@ enum {
 static void entry_free(struct rcu_head *rcu)
 {
 	kmem_cache_free(entry_cache,
-			container_of(rcu, struct ratelimiter_entry, rcu));
+			container_of(rcu, struct amn_ratelimiter_entry, rcu));
 	atomic_dec(&total_entries);
 }
 
-static void entry_uninit(struct ratelimiter_entry *entry)
+static void entry_uninit(struct amn_ratelimiter_entry *entry)
 {
 	hlist_del_rcu(&entry->hash);
 	call_rcu(&entry->rcu, entry_free);
@@ -67,7 +67,7 @@ static void entry_uninit(struct ratelimiter_entry *entry)
 static void wg_ratelimiter_gc_entries(struct work_struct *work)
 {
 	const u64 now = ktime_get_coarse_boottime_ns();
-	struct ratelimiter_entry *entry;
+	struct amn_ratelimiter_entry *entry;
 	struct hlist_node *temp;
 	unsigned int i;
 
@@ -100,7 +100,7 @@ bool wg_ratelimiter_allow(struct sk_buff *skb, struct net *net)
 	 * u32, and we don't incur an extra round.
 	 */
 	const u32 net_word = (unsigned long)net;
-	struct ratelimiter_entry *entry;
+	struct amn_ratelimiter_entry *entry;
 	struct hlist_head *bucket;
 	u64 ip;
 
@@ -173,7 +173,7 @@ int wg_ratelimiter_init(void)
 	if (++init_refcnt != 1)
 		goto out;
 
-	entry_cache = KMEM_CACHE(ratelimiter_entry, 0);
+	entry_cache = KMEM_CACHE(amn_ratelimiter_entry, 0);
 	if (!entry_cache)
 		goto err;
 

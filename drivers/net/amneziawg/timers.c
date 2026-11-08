@@ -29,7 +29,7 @@
  * specified seconds.
  */
 
-static inline void mod_peer_timer(struct wg_peer *peer,
+static inline void mod_peer_timer(struct amn_wg_peer *peer,
 				  struct timer_list *timer,
 				  unsigned long expires)
 {
@@ -42,7 +42,7 @@ static inline void mod_peer_timer(struct wg_peer *peer,
 
 static void wg_expired_retransmit_handshake(struct timer_list *timer)
 {
-	struct wg_peer *peer = timer_container_of(peer, timer,
+	struct amn_wg_peer *peer = timer_container_of(peer, timer,
 						  timer_retransmit_handshake);
 	u16 timeout = !u16_range_is_zero(peer->device->rekey_after_time) ?
 		u16_range_pick_one(peer->device->rekey_after_time) : REJECT_AFTER_TIME;
@@ -82,7 +82,7 @@ static void wg_expired_retransmit_handshake(struct timer_list *timer)
 
 static void wg_expired_send_keepalive(struct timer_list *timer)
 {
-	struct wg_peer *peer = timer_container_of(peer, timer,
+	struct amn_wg_peer *peer = timer_container_of(peer, timer,
 						  timer_send_keepalive);
 	u16 timeout = !u16_range_is_zero(peer->device->keepalive_timeout) ?
 		u16_range_pick_one(peer->device->keepalive_timeout) : KEEPALIVE_TIMEOUT;
@@ -97,7 +97,7 @@ static void wg_expired_send_keepalive(struct timer_list *timer)
 
 static void wg_expired_new_handshake(struct timer_list *timer)
 {
-	struct wg_peer *peer = timer_container_of(peer, timer,
+	struct amn_wg_peer *peer = timer_container_of(peer, timer,
 						  timer_new_handshake);
 
 	pr_debug("%s: Retrying handshake with peer %llu (%pISpfsc) because we stopped hearing back after %d seconds\n",
@@ -112,7 +112,7 @@ static void wg_expired_new_handshake(struct timer_list *timer)
 
 static void wg_expired_zero_key_material(struct timer_list *timer)
 {
-	struct wg_peer *peer = timer_container_of(peer, timer,
+	struct amn_wg_peer *peer = timer_container_of(peer, timer,
 						  timer_zero_key_material);
 
 	rcu_read_lock_bh();
@@ -130,7 +130,7 @@ static void wg_expired_zero_key_material(struct timer_list *timer)
 
 static void wg_queued_expired_zero_key_material(struct work_struct *work)
 {
-	struct wg_peer *peer = container_of(work, struct wg_peer,
+	struct amn_wg_peer *peer = container_of(work, struct amn_wg_peer,
 					    clear_peer_work);
 
 	pr_debug("%s: Zeroing out all keys for peer %llu (%pISpfsc), since we haven't received a new one in %d seconds\n",
@@ -143,7 +143,7 @@ static void wg_queued_expired_zero_key_material(struct work_struct *work)
 
 static void wg_expired_send_persistent_keepalive(struct timer_list *timer)
 {
-	struct wg_peer *peer = timer_container_of(peer, timer,
+	struct amn_wg_peer *peer = timer_container_of(peer, timer,
 						  timer_persistent_keepalive);
 
 	if (likely(peer->persistent_keepalive_interval))
@@ -151,7 +151,7 @@ static void wg_expired_send_persistent_keepalive(struct timer_list *timer)
 }
 
 /* Should be called after an authenticated data packet is sent. */
-void wg_timers_data_sent(struct wg_peer *peer)
+void wg_timers_data_sent(struct amn_wg_peer *peer)
 {
 	u16 keepalive_timeout = !u16_range_is_zero(peer->device->keepalive_timeout) ?
 		u16_range_hi(peer->device->keepalive_timeout) : KEEPALIVE_TIMEOUT,
@@ -165,7 +165,7 @@ void wg_timers_data_sent(struct wg_peer *peer)
 }
 
 /* Should be called after an authenticated data packet is received. */
-void wg_timers_data_received(struct wg_peer *peer)
+void wg_timers_data_received(struct amn_wg_peer *peer)
 {
 	u16 timeout = !u16_range_is_zero(peer->device->keepalive_timeout) ?
 		u16_range_pick_one(peer->device->keepalive_timeout) : KEEPALIVE_TIMEOUT;
@@ -182,7 +182,7 @@ void wg_timers_data_received(struct wg_peer *peer)
 /* Should be called after any type of authenticated packet is sent, whether
  * keepalive, data, or handshake.
  */
-void wg_timers_any_authenticated_packet_sent(struct wg_peer *peer)
+void wg_timers_any_authenticated_packet_sent(struct amn_wg_peer *peer)
 {
 	timer_delete(&peer->timer_send_keepalive);
 }
@@ -190,13 +190,13 @@ void wg_timers_any_authenticated_packet_sent(struct wg_peer *peer)
 /* Should be called after any type of authenticated packet is received, whether
  * keepalive, data, or handshake.
  */
-void wg_timers_any_authenticated_packet_received(struct wg_peer *peer)
+void wg_timers_any_authenticated_packet_received(struct amn_wg_peer *peer)
 {
 	timer_delete(&peer->timer_new_handshake);
 }
 
 /* Should be called after a handshake initiation message is sent. */
-void wg_timers_handshake_initiated(struct wg_peer *peer)
+void wg_timers_handshake_initiated(struct amn_wg_peer *peer)
 {
 	u16 timeout = !u16_range_is_zero(peer->device->rekey_timeout) ?
 		u16_range_pick_one(peer->device->rekey_timeout) : REKEY_TIMEOUT;
@@ -209,7 +209,7 @@ void wg_timers_handshake_initiated(struct wg_peer *peer)
 /* Should be called after a handshake response message is received and processed
  * or when getting key confirmation via the first data message.
  */
-void wg_timers_handshake_complete(struct wg_peer *peer)
+void wg_timers_handshake_complete(struct amn_wg_peer *peer)
 {
 	timer_delete(&peer->timer_retransmit_handshake);
 	peer->timer_handshake_attempts = 0;
@@ -221,7 +221,7 @@ void wg_timers_handshake_complete(struct wg_peer *peer)
 /* Should be called after an ephemeral key is created, which is before sending a
  * handshake response or after receiving a handshake response.
  */
-void wg_timers_session_derived(struct wg_peer *peer)
+void wg_timers_session_derived(struct amn_wg_peer *peer)
 {
 	u16 timeout = !u16_range_is_zero(peer->device->reject_after_time) ?
 		u16_range_pick_one(peer->device->reject_after_time) : REJECT_AFTER_TIME;
@@ -233,14 +233,14 @@ void wg_timers_session_derived(struct wg_peer *peer)
 /* Should be called before a packet with authentication, whether
  * keepalive, data, or handshakem is sent, or after one is received.
  */
-void wg_timers_any_authenticated_packet_traversal(struct wg_peer *peer)
+void wg_timers_any_authenticated_packet_traversal(struct amn_wg_peer *peer)
 {
 	if (!u16_range_is_zero(peer->persistent_keepalive_interval))
 		mod_peer_timer(peer, &peer->timer_persistent_keepalive,
 			jiffies + u16_range_pick_one(peer->persistent_keepalive_interval) * HZ);
 }
 
-void wg_timers_init(struct wg_peer *peer)
+void wg_timers_init(struct amn_wg_peer *peer)
 {
 	timer_setup(&peer->timer_retransmit_handshake,
 		    wg_expired_retransmit_handshake, 0);
@@ -257,7 +257,7 @@ void wg_timers_init(struct wg_peer *peer)
 	peer->timer_need_another_keepalive = false;
 }
 
-void wg_timers_stop(struct wg_peer *peer)
+void wg_timers_stop(struct amn_wg_peer *peer)
 {
 	timer_delete_sync(&peer->timer_retransmit_handshake);
 	timer_delete_sync(&peer->timer_send_keepalive);

@@ -15,24 +15,24 @@
 #include <linux/mutex.h>
 #include <linux/kref.h>
 
-struct noise_replay_counter {
+struct amn_noise_replay_counter {
 	u64 counter;
 	spinlock_t lock;
 	unsigned long backtrack[COUNTER_BITS_TOTAL / BITS_PER_LONG];
 };
 
-struct noise_symmetric_key {
+struct amn_noise_symmetric_key {
 	u8 key[NOISE_SYMMETRIC_KEY_LEN];
 	u64 birthdate;
 	bool is_valid;
 };
 
-struct noise_keypair {
-	struct index_hashtable_entry entry;
-	struct noise_symmetric_key sending;
+struct amn_noise_keypair {
+	struct amn_index_hashtable_entry entry;
+	struct amn_noise_symmetric_key sending;
 	atomic64_t sending_counter;
-	struct noise_symmetric_key receiving;
-	struct noise_replay_counter receiving_counter;
+	struct amn_noise_symmetric_key receiving;
+	struct amn_noise_replay_counter receiving_counter;
 	__le32 remote_index;
 	bool i_am_the_initiator;
 	struct kref refcount;
@@ -40,21 +40,21 @@ struct noise_keypair {
 	u64 internal_id;
 };
 
-struct noise_keypairs {
-	struct noise_keypair __rcu *current_keypair;
-	struct noise_keypair __rcu *previous_keypair;
-	struct noise_keypair __rcu *next_keypair;
+struct amn_noise_keypairs {
+	struct amn_noise_keypair __rcu *current_keypair;
+	struct amn_noise_keypair __rcu *previous_keypair;
+	struct amn_noise_keypair __rcu *next_keypair;
 	spinlock_t keypair_update_lock;
 };
 
-struct noise_static_identity {
+struct amn_noise_static_identity {
 	u8 static_public[NOISE_PUBLIC_KEY_LEN];
 	u8 static_private[NOISE_PUBLIC_KEY_LEN];
 	struct rw_semaphore lock;
 	bool has_identity;
 };
 
-enum noise_handshake_state {
+enum amn_noise_handshake_state {
 	HANDSHAKE_ZEROED,
 	HANDSHAKE_CREATED_INITIATION,
 	HANDSHAKE_CONSUMED_INITIATION,
@@ -62,13 +62,13 @@ enum noise_handshake_state {
 	HANDSHAKE_CONSUMED_RESPONSE
 };
 
-struct noise_handshake {
-	struct index_hashtable_entry entry;
+struct amn_noise_handshake {
+	struct amn_index_hashtable_entry entry;
 
-	enum noise_handshake_state state;
+	enum amn_noise_handshake_state state;
 	u64 last_initiation_consumption;
 
-	struct noise_static_identity *static_identity;
+	struct amn_noise_static_identity *static_identity;
 
 	u8 ephemeral_private[NOISE_PUBLIC_KEY_LEN];
 	u8 remote_static[NOISE_PUBLIC_KEY_LEN];
@@ -89,42 +89,42 @@ struct noise_handshake {
 	struct rw_semaphore lock;
 };
 
-struct wg_device;
+struct amn_wg_device;
 
 void wg_noise_init(void);
-void wg_noise_handshake_init(struct noise_handshake *handshake,
-			     struct noise_static_identity *static_identity,
+void wg_noise_handshake_init(struct amn_noise_handshake *handshake,
+			     struct amn_noise_static_identity *static_identity,
 			     const u8 peer_public_key[NOISE_PUBLIC_KEY_LEN],
 			     const u8 peer_preshared_key[NOISE_SYMMETRIC_KEY_LEN],
-			     struct wg_peer *peer);
-void wg_noise_handshake_clear(struct noise_handshake *handshake);
+			     struct amn_wg_peer *peer);
+void wg_noise_handshake_clear(struct amn_noise_handshake *handshake);
 
-void wg_noise_keypair_put(struct noise_keypair *keypair, bool unreference_now);
-struct noise_keypair *wg_noise_keypair_get(struct noise_keypair *keypair);
-void wg_noise_keypairs_clear(struct noise_keypairs *keypairs);
-bool wg_noise_received_with_keypair(struct noise_keypairs *keypairs,
-				    struct noise_keypair *received_keypair);
-void wg_noise_expire_current_peer_keypairs(struct wg_peer *peer);
+void wg_noise_keypair_put(struct amn_noise_keypair *keypair, bool unreference_now);
+struct amn_noise_keypair *wg_noise_keypair_get(struct amn_noise_keypair *keypair);
+void wg_noise_keypairs_clear(struct amn_noise_keypairs *keypairs);
+bool wg_noise_received_with_keypair(struct amn_noise_keypairs *keypairs,
+				    struct amn_noise_keypair *received_keypair);
+void wg_noise_expire_current_peer_keypairs(struct amn_wg_peer *peer);
 
 void wg_noise_set_static_identity_private_key(
-	struct noise_static_identity *static_identity,
+	struct amn_noise_static_identity *static_identity,
 	const u8 private_key[NOISE_PUBLIC_KEY_LEN]);
-void wg_noise_precompute_static_static(struct wg_peer *peer);
+void wg_noise_precompute_static_static(struct amn_wg_peer *peer);
 
 bool
-wg_noise_handshake_create_initiation(struct message_handshake_initiation *dst,
-				     struct noise_handshake *handshake, u32 message_type);
-struct wg_peer *
-wg_noise_handshake_consume_initiation(struct message_handshake_initiation *src,
-				      struct wg_device *wg, struct sk_buff *skb);
+wg_noise_handshake_create_initiation(struct amn_message_handshake_initiation *dst,
+				     struct amn_noise_handshake *handshake, u32 message_type);
+struct amn_wg_peer *
+wg_noise_handshake_consume_initiation(struct amn_message_handshake_initiation *src,
+				      struct amn_wg_device *wg, struct sk_buff *skb);
 
-bool wg_noise_handshake_create_response(struct message_handshake_response *dst,
-					struct noise_handshake *handshake, u32 message_type);
-struct wg_peer *
-wg_noise_handshake_consume_response(struct message_handshake_response *src,
-				    struct wg_device *wg);
+bool wg_noise_handshake_create_response(struct amn_message_handshake_response *dst,
+					struct amn_noise_handshake *handshake, u32 message_type);
+struct amn_wg_peer *
+wg_noise_handshake_consume_response(struct amn_message_handshake_response *src,
+				    struct amn_wg_device *wg);
 
-bool wg_noise_handshake_begin_session(struct noise_handshake *handshake,
-				      struct noise_keypairs *keypairs);
+bool wg_noise_handshake_begin_session(struct amn_noise_handshake *handshake,
+				      struct amn_noise_keypairs *keypairs);
 
 #endif /* _WG_NOISE_H */

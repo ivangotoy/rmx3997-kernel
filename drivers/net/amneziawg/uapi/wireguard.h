@@ -164,7 +164,7 @@
 
 #define WG_MULTICAST_GROUP_AUTH "auth"
 
-enum wg_cmd {
+enum amn_wg_cmd {
 	WG_CMD_GET_DEVICE,
 	WG_CMD_SET_DEVICE,
 	WG_CMD_UNKNOWN_PEER,
@@ -172,11 +172,11 @@ enum wg_cmd {
 };
 #define WG_CMD_MAX (__WG_CMD_MAX - 1)
 
-enum wgdevice_flag {
+enum amn_wgdevice_flag {
 	WGDEVICE_F_REPLACE_PEERS = 1U << 0,
 	__WGDEVICE_F_ALL = WGDEVICE_F_REPLACE_PEERS
 };
-enum wgdevice_attribute {
+enum amn_wgdevice_attribute {
 	WGDEVICE_A_UNSPEC,
 	WGDEVICE_A_IFINDEX,
 	WGDEVICE_A_IFNAME,
@@ -216,7 +216,7 @@ enum wgdevice_attribute {
 };
 #define WGDEVICE_A_MAX (__WGDEVICE_A_LAST - 1)
 
-enum wgpeer_flag {
+enum amn_wgpeer_flag {
 	WGPEER_F_REMOVE_ME = 1U << 0,
 	WGPEER_F_REPLACE_ALLOWEDIPS = 1U << 1,
 	WGPEER_F_UPDATE_ONLY = 1U << 2,
@@ -224,7 +224,7 @@ enum wgpeer_flag {
 	__WGPEER_F_ALL = WGPEER_F_REMOVE_ME | WGPEER_F_REPLACE_ALLOWEDIPS |
 			 WGPEER_F_UPDATE_ONLY | WGPEER_F_HAS_ADVANCED_SECURITY
 };
-enum wgpeer_attribute {
+enum amn_wgpeer_attribute {
 	WGPEER_A_UNSPEC,
 	WGPEER_A_PUBLIC_KEY,
 	WGPEER_A_PRESHARED_KEY,
@@ -241,11 +241,11 @@ enum wgpeer_attribute {
 };
 #define WGPEER_A_MAX (__WGPEER_A_LAST - 1)
 
-enum wgallowedip_flag {
+enum amn_wgallowedip_flag {
 	WGALLOWEDIP_F_REMOVE_ME = 1U << 0,
 	__WGALLOWEDIP_F_ALL = WGALLOWEDIP_F_REMOVE_ME
 };
-enum wgallowedip_attribute {
+enum amn_wgallowedip_attribute {
 	WGALLOWEDIP_A_UNSPEC,
 	WGALLOWEDIP_A_FAMILY,
 	WGALLOWEDIP_A_IPADDR,

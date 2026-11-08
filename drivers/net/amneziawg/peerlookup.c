@@ -7,7 +7,7 @@
 #include "peer.h"
 #include "noise.h"
 
-static struct hlist_head *pubkey_bucket(struct pubkey_hashtable *table,
+static struct hlist_head *pubkey_bucket(struct amn_pubkey_hashtable *table,
 					const u8 pubkey[NOISE_PUBLIC_KEY_LEN])
 {
 	/* siphash gives us a secure 64bit number based on a random key. Since
@@ -19,9 +19,9 @@ static struct hlist_head *pubkey_bucket(struct pubkey_hashtable *table,
 	return &table->hashtable[hash & (HASH_SIZE(table->hashtable) - 1)];
 }
 
-struct pubkey_hashtable *wg_pubkey_hashtable_alloc(void)
+struct amn_pubkey_hashtable *wg_pubkey_hashtable_alloc(void)
 {
-	struct pubkey_hashtable *table = kvmalloc(sizeof(*table), GFP_KERNEL);
+	struct amn_pubkey_hashtable *table = kvmalloc(sizeof(*table), GFP_KERNEL);
 
 	if (!table)
 		return NULL;
@@ -32,8 +32,8 @@ struct pubkey_hashtable *wg_pubkey_hashtable_alloc(void)
 	return table;
 }
 
-void wg_pubkey_hashtable_add(struct pubkey_hashtable *table,
-			     struct wg_peer *peer)
+void wg_pubkey_hashtable_add(struct amn_pubkey_hashtable *table,
+			     struct amn_wg_peer *peer)
 {
 	mutex_lock(&table->lock);
 	hlist_add_head_rcu(&peer->pubkey_hash,
@@ -41,8 +41,8 @@ void wg_pubkey_hashtable_add(struct pubkey_hashtable *table,
 	mutex_unlock(&table->lock);
 }
 
-void wg_pubkey_hashtable_remove(struct pubkey_hashtable *table,
-				struct wg_peer *peer)
+void wg_pubkey_hashtable_remove(struct amn_pubkey_hashtable *table,
+				struct amn_wg_peer *peer)
 {
 	mutex_lock(&table->lock);
 	hlist_del_init_rcu(&peer->pubkey_hash);
@@ -50,11 +50,11 @@ void wg_pubkey_hashtable_remove(struct pubkey_hashtable *table,
 }
 
 /* Returns a strong reference to a peer */
-struct wg_peer *
-wg_pubkey_hashtable_lookup(struct pubkey_hashtable *table,
+struct amn_wg_peer *
+wg_pubkey_hashtable_lookup(struct amn_pubkey_hashtable *table,
 			   const u8 pubkey[NOISE_PUBLIC_KEY_LEN])
 {
-	struct wg_peer *iter_peer, *peer = NULL;
+	struct amn_wg_peer *iter_peer, *peer = NULL;
 
 	rcu_read_lock_bh();
 	hlist_for_each_entry_rcu_bh(iter_peer, pubkey_bucket(table, pubkey),
@@ -70,7 +70,7 @@ wg_pubkey_hashtable_lookup(struct pubkey_hashtable *table,
 	return peer;
 }
 
-static struct hlist_head *index_bucket(struct index_hashtable *table,
+static struct hlist_head *index_bucket(struct amn_index_hashtable *table,
 				       const __le32 index)
 {
 	/* Since the indices are random and thus all bits are uniformly
@@ -80,9 +80,9 @@ static struct hlist_head *index_bucket(struct index_hashtable *table,
 				 (HASH_SIZE(table->hashtable) - 1)];
 }
 
-struct index_hashtable *wg_index_hashtable_alloc(void)
+struct amn_index_hashtable *wg_index_hashtable_alloc(void)
 {
-	struct index_hashtable *table = kvmalloc(sizeof(*table), GFP_KERNEL);
+	struct amn_index_hashtable *table = kvmalloc(sizeof(*table), GFP_KERNEL);
 
 	if (!table)
 		return NULL;
@@ -116,10 +116,10 @@ struct index_hashtable *wg_index_hashtable_alloc(void)
  * is another thing to consider moving forward.
  */
 
-__le32 wg_index_hashtable_insert(struct index_hashtable *table,
-				 struct index_hashtable_entry *entry)
+__le32 wg_index_hashtable_insert(struct amn_index_hashtable *table,
+				 struct amn_index_hashtable_entry *entry)
 {
-	struct index_hashtable_entry *existing_entry;
+	struct amn_index_hashtable_entry *existing_entry;
 
 	spin_lock_bh(&table->lock);
 	hlist_del_init_rcu(&entry->index_hash);
@@ -163,9 +163,9 @@ search_unused_slot:
 	return entry->index;
 }
 
-bool wg_index_hashtable_replace(struct index_hashtable *table,
-				struct index_hashtable_entry *old,
-				struct index_hashtable_entry *new)
+bool wg_index_hashtable_replace(struct amn_index_hashtable *table,
+				struct amn_index_hashtable_entry *old,
+				struct amn_index_hashtable_entry *new)
 {
 	bool ret;
 
@@ -189,8 +189,8 @@ out:
 	return ret;
 }
 
-void wg_index_hashtable_remove(struct index_hashtable *table,
-			       struct index_hashtable_entry *entry)
+void wg_index_hashtable_remove(struct amn_index_hashtable *table,
+			       struct amn_index_hashtable_entry *entry)
 {
 	spin_lock_bh(&table->lock);
 	hlist_del_init_rcu(&entry->index_hash);
@@ -198,12 +198,12 @@ void wg_index_hashtable_remove(struct index_hashtable *table,
 }
 
 /* Returns a strong reference to a entry->peer */
-struct index_hashtable_entry *
-wg_index_hashtable_lookup(struct index_hashtable *table,
-			  const enum index_hashtable_type type_mask,
-			  const __le32 index, struct wg_peer **peer)
+struct amn_index_hashtable_entry *
+wg_index_hashtable_lookup(struct amn_index_hashtable *table,
+			  const enum amn_index_hashtable_type type_mask,
+			  const __le32 index, struct amn_wg_peer **peer)
 {
-	struct index_hashtable_entry *iter_entry, *entry = NULL;
+	struct amn_index_hashtable_entry *iter_entry, *entry = NULL;
 
 	rcu_read_lock_bh();
 	hlist_for_each_entry_rcu_bh(iter_entry, index_bucket(table, index),

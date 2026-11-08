@@ -6,7 +6,7 @@
 #ifdef DEBUG
 bool __init wg_packet_counter_selftest(void)
 {
-	struct noise_replay_counter *counter;
+	struct amn_noise_replay_counter *counter;
 	unsigned int test_num = 0, i;
 	bool success = true;
 

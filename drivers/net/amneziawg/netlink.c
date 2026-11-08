@@ -92,7 +92,7 @@ static const struct nla_policy allowedip_policy[WGALLOWEDIP_A_MAX + 1] = {
 	[WGALLOWEDIP_A_FLAGS]		= NLA_POLICY_MASK(NLA_U32, __WGALLOWEDIP_F_ALL),
 };
 
-static struct wg_device *lookup_interface(struct nlattr **attrs,
+static struct amn_wg_device *lookup_interface(struct nlattr **attrs,
 					  struct sk_buff *skb)
 {
 	struct net_device *dev = NULL;
@@ -136,26 +136,26 @@ static int get_allowedips(struct sk_buff *skb, const u8 *ip, u8 cidr,
 	return 0;
 }
 
-struct dump_ctx {
-	struct wg_device *wg;
-	struct wg_peer *next_peer;
+struct amn_dump_ctx {
+	struct amn_wg_device *wg;
+	struct amn_wg_peer *next_peer;
 	u64 allowedips_seq;
-	struct allowedips_node *next_allowedip;
+	struct amn_allowedips_node *next_allowedip;
 };
 
-#define DUMP_CTX(cb) ((struct dump_ctx *)(cb)->args)
+#define DUMP_CTX(cb) ((struct amn_dump_ctx *)(cb)->args)
 
-struct ipv4_prefix {
+struct amn_ipv4_prefix {
 	__be32 prefix;
 	int prefix_len;
 };
 
-struct ipv6_prefix {
+struct amn_ipv6_prefix {
 	u8 prefix[16];
 	int prefix_len;
 };
 
-static inline int parse_ipv4_prefix(const char *prefix_str, struct ipv4_prefix *prefix)
+static inline int parse_ipv4_prefix(const char *prefix_str, struct amn_ipv4_prefix *prefix)
 {
 	char addr_str[INET_ADDRSTRLEN];
 	const char *slash;
@@ -191,7 +191,7 @@ static inline int parse_ipv4_prefix(const char *prefix_str, struct ipv4_prefix *
 	return 0;
 }
 
-static inline int generate_ipv4_address_with_prefix(const struct ipv4_prefix *prefix, __be32 *addr)
+static inline int generate_ipv4_address_with_prefix(const struct amn_ipv4_prefix *prefix, __be32 *addr)
 {
 	u32 prefix_host_order, random_suffix, full_addr_host_order;
 	u32 suffix_mask;
@@ -215,7 +215,7 @@ static inline int generate_ipv4_address_with_prefix(const struct ipv4_prefix *pr
 	return 0;
 }
 
-static inline int parse_ipv6_prefix(const char *prefix_str, struct ipv6_prefix *prefix)
+static inline int parse_ipv6_prefix(const char *prefix_str, struct amn_ipv6_prefix *prefix)
 {
 	char addr_str[INET6_ADDRSTRLEN];
 	const char *slash;
@@ -248,7 +248,7 @@ static inline int parse_ipv6_prefix(const char *prefix_str, struct ipv6_prefix *
 	return 0;
 }
 
-static inline int generate_ipv6_address_with_prefix(const struct ipv6_prefix *prefix, u8 *addr)
+static inline int generate_ipv6_address_with_prefix(const struct amn_ipv6_prefix *prefix, u8 *addr)
 {
 	int prefix_bytes, prefix_bits;
 	u8 mask, random_byte;
@@ -276,13 +276,13 @@ static inline int generate_ipv6_address_with_prefix(const struct ipv6_prefix *pr
 }
 
 static int
-get_peer(struct wg_peer *peer, struct sk_buff *skb, struct dump_ctx *ctx)
+get_peer(struct amn_wg_peer *peer, struct sk_buff *skb, struct amn_dump_ctx *ctx)
 {
 
 	struct nlattr *allowedips_nest, *peer_nest = nla_nest_start(skb, 0);
-	struct allowedips_node *allowedips_node = ctx->next_allowedip;
-	struct ipv4_prefix prefix;
-	struct ipv6_prefix prefix6;
+	struct amn_allowedips_node *allowedips_node = ctx->next_allowedip;
+	struct amn_ipv4_prefix prefix;
+	struct amn_ipv6_prefix prefix6;
 	bool fail;
 	int ret;
 
@@ -364,7 +364,7 @@ get_peer(struct wg_peer *peer, struct sk_buff *skb, struct dump_ctx *ctx)
 #endif
 		allowedips_node =
 			list_first_entry_or_null(&peer->allowedips_list,
-					struct allowedips_node, peer_list);
+					struct amn_allowedips_node, peer_list);
 	}
 	if (!allowedips_node)
 		goto no_allowedips;
@@ -403,7 +403,7 @@ err:
 
 static int wg_get_device_start(struct netlink_callback *cb)
 {
-	struct wg_device *wg;
+	struct amn_wg_device *wg;
 
 	wg = lookup_interface(genl_info_dump(cb)->attrs, cb->skb);
 	if (IS_ERR(wg))
@@ -414,9 +414,9 @@ static int wg_get_device_start(struct netlink_callback *cb)
 
 static int wg_get_device_dump(struct sk_buff *skb, struct netlink_callback *cb)
 {
-	struct wg_peer *peer, *next_peer_cursor;
-	struct dump_ctx *ctx = DUMP_CTX(cb);
-	struct wg_device *wg = ctx->wg;
+	struct amn_wg_peer *peer, *next_peer_cursor;
+	struct amn_dump_ctx *ctx = DUMP_CTX(cb);
+	struct amn_wg_device *wg = ctx->wg;
 	struct nlattr *peers_nest;
 	int ret = -EMSGSIZE;
 	bool done = true;
@@ -550,7 +550,7 @@ out:
 
 static int wg_get_device_done(struct netlink_callback *cb)
 {
-	struct dump_ctx *ctx = DUMP_CTX(cb);
+	struct amn_dump_ctx *ctx = DUMP_CTX(cb);
 
 	if (ctx->wg)
 		dev_put(ctx->wg->dev);
@@ -558,9 +558,9 @@ static int wg_get_device_done(struct netlink_callback *cb)
 	return 0;
 }
 
-static int set_port(struct wg_device *wg, u16 port)
+static int set_port(struct amn_wg_device *wg, u16 port)
 {
-	struct wg_peer *peer;
+	struct amn_wg_peer *peer;
 
 	if (wg->incoming_port == port)
 		return 0;
@@ -573,7 +573,7 @@ static int set_port(struct wg_device *wg, u16 port)
 	return wg_socket_init(wg, port);
 }
 
-static int set_allowedip(struct wg_peer *peer, struct nlattr **attrs)
+static int set_allowedip(struct amn_wg_peer *peer, struct nlattr **attrs)
 {
 	int ret = -EINVAL;
 	u32 flags = 0;
@@ -613,10 +613,10 @@ static int set_allowedip(struct wg_peer *peer, struct nlattr **attrs)
 	return ret;
 }
 
-static int set_peer(struct wg_device *wg, struct nlattr **attrs)
+static int set_peer(struct amn_wg_device *wg, struct nlattr **attrs)
 {
 	u8 *public_key = NULL, *preshared_key = NULL;
-	struct wg_peer *peer = NULL;
+	struct amn_wg_peer *peer = NULL;
 	u32 flags = 0;
 	int ret;
 
@@ -692,7 +692,7 @@ static int set_peer(struct wg_device *wg, struct nlattr **attrs)
 	if (attrs[WGPEER_A_ENDPOINT]) {
 		struct sockaddr *addr = nla_data(attrs[WGPEER_A_ENDPOINT]);
 		size_t len = nla_len(attrs[WGPEER_A_ENDPOINT]);
-		struct endpoint endpoint = { { { 0 } } };
+		struct amn_endpoint endpoint = { { { 0 } } };
 
 		if (len == sizeof(struct sockaddr_in) && addr->sa_family == AF_INET) {
 			endpoint.addr4 = *(struct sockaddr_in *)addr;
@@ -723,7 +723,7 @@ static int set_peer(struct wg_device *wg, struct nlattr **attrs)
 	}
 
 	if (attrs[WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL]) {
-		const u16_range_t persistent_keepalive_interval = nla_get_u32(
+		const amn_u16_range_t persistent_keepalive_interval = nla_get_u32(
 				attrs[WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL]);
 		const bool send_keepalive =
 			u16_range_is_zero(peer->persistent_keepalive_interval) &&
@@ -748,8 +748,8 @@ out:
 
 static int wg_set_device(struct sk_buff *skb, struct genl_info *info)
 {
-	struct wg_device *wg = lookup_interface(info->attrs, skb);
-	u32_range_t init_header, resp_header, cookie_header, transport_header;
+	struct amn_wg_device *wg = lookup_interface(info->attrs, skb);
+	amn_u32_range_t init_header, resp_header, cookie_header, transport_header;
 	u32 flags = 0;
 	int ret;
 	u16 val16;
@@ -782,7 +782,7 @@ static int wg_set_device(struct sk_buff *skb, struct genl_info *info)
 	++wg->device_update_gen;
 
 	if (info->attrs[WGDEVICE_A_FWMARK]) {
-		struct wg_peer *peer;
+		struct amn_wg_peer *peer;
 
 		wg->fwmark = nla_get_u32(info->attrs[WGDEVICE_A_FWMARK]);
 		list_for_each_entry(peer, &wg->peer_list, peer_list)
@@ -1013,7 +1013,7 @@ static int wg_set_device(struct sk_buff *skb, struct genl_info *info)
 		    NOISE_PUBLIC_KEY_LEN) {
 		u8 *private_key = nla_data(info->attrs[WGDEVICE_A_PRIVATE_KEY]);
 		u8 public_key[NOISE_PUBLIC_KEY_LEN];
-		struct wg_peer *peer, *temp;
+		struct amn_wg_peer *peer, *temp;
 
 		if (!crypto_memneq(wg->static_identity.static_private,
 				   private_key, NOISE_PUBLIC_KEY_LEN))
@@ -1138,8 +1138,8 @@ void __exit wg_genetlink_uninit(void)
 	genl_unregister_family(&genl_family);
 }
 
-int wg_genl_mcast_peer_unknown(struct wg_device *wg, const u8 pubkey[NOISE_PUBLIC_KEY_LEN],
-	                           struct endpoint *endpoint)
+int wg_genl_mcast_peer_unknown(struct amn_wg_device *wg, const u8 pubkey[NOISE_PUBLIC_KEY_LEN],
+	                           struct amn_endpoint *endpoint)
 {
 	struct sk_buff *skb;
 	struct nlattr *peer_nest;

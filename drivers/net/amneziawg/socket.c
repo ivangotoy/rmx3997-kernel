@@ -18,8 +18,8 @@
 #include <net/udp_tunnel.h>
 #include <net/ipv6.h>
 
-static int send4(struct wg_device *wg, struct sk_buff *skb,
-		 struct endpoint *endpoint, u8 ds, struct dst_cache *cache)
+static int send4(struct amn_wg_device *wg, struct sk_buff *skb,
+		 struct amn_endpoint *endpoint, u8 ds, struct dst_cache *cache)
 {
 	struct flowi4 fl = {
 		.saddr = endpoint->src4.s_addr,
@@ -95,8 +95,8 @@ out:
 	return ret;
 }
 
-static int send6(struct wg_device *wg, struct sk_buff *skb,
-		 struct endpoint *endpoint, u8 ds, struct dst_cache *cache)
+static int send6(struct amn_wg_device *wg, struct sk_buff *skb,
+		 struct amn_endpoint *endpoint, u8 ds, struct dst_cache *cache)
 {
 #if IS_ENABLED(CONFIG_IPV6)
 	struct flowi6 fl = {
@@ -165,7 +165,7 @@ out:
 #endif
 }
 
-int wg_socket_send_skb_to_peer(struct wg_peer *peer, struct sk_buff *skb, u8 ds)
+int wg_socket_send_skb_to_peer(struct amn_wg_peer *peer, struct sk_buff *skb, u8 ds)
 {
 	size_t skb_len = skb->len;
 	int ret = -EAFNOSUPPORT;
@@ -186,13 +186,13 @@ int wg_socket_send_skb_to_peer(struct wg_peer *peer, struct sk_buff *skb, u8 ds)
 	return ret;
 }
 
-int wg_socket_send_buffer_to_peer(struct wg_peer *peer, void *buffer,
+int wg_socket_send_buffer_to_peer(struct amn_wg_peer *peer, void *buffer,
 				  size_t len, u8 ds, size_t padding, bool trailer)
 {
 	struct sk_buff *skb;
 	void *crypto = NULL;
 	size_t trailer_len;
-	struct chacha_state state;
+	struct amn_chacha_state state;
 
 	trailer_len = trailer
 		? wg_peer_skb_random_trailer(peer, peer->device, padding + len)
@@ -222,15 +222,15 @@ int wg_socket_send_buffer_to_peer(struct wg_peer *peer, void *buffer,
 	return wg_socket_send_skb_to_peer(peer, skb, ds);
 }
 
-int wg_socket_send_buffer_as_reply_to_skb(struct wg_device *wg,
+int wg_socket_send_buffer_as_reply_to_skb(struct amn_wg_device *wg,
 					  struct sk_buff *in_skb, void *buffer,
 					  size_t len, size_t padding)
 {
 	int ret = 0;
 	struct sk_buff *skb;
 	void* crypto = NULL;
-	struct chacha_state state;
-	struct endpoint endpoint;
+	struct amn_chacha_state state;
+	struct amn_endpoint endpoint;
 	unsigned int trailer_len;
 
 	if (unlikely(!in_skb))
@@ -272,7 +272,7 @@ int wg_socket_send_buffer_as_reply_to_skb(struct wg_device *wg,
 	return ret;
 }
 
-int wg_socket_endpoint_from_skb(struct endpoint *endpoint,
+int wg_socket_endpoint_from_skb(struct amn_endpoint *endpoint,
 				const struct sk_buff *skb)
 {
 	memset(endpoint, 0, sizeof(*endpoint));
@@ -295,7 +295,7 @@ int wg_socket_endpoint_from_skb(struct endpoint *endpoint,
 	return 0;
 }
 
-static bool endpoint_eq(const struct endpoint *a, const struct endpoint *b)
+static bool endpoint_eq(const struct amn_endpoint *a, const struct amn_endpoint *b)
 {
 	return (a->addr.sa_family == AF_INET && b->addr.sa_family == AF_INET &&
 		a->addr4.sin_port == b->addr4.sin_port &&
@@ -310,8 +310,8 @@ static bool endpoint_eq(const struct endpoint *a, const struct endpoint *b)
 	       unlikely(!a->addr.sa_family && !b->addr.sa_family);
 }
 
-void wg_socket_set_peer_endpoint(struct wg_peer *peer,
-				 const struct endpoint *endpoint)
+void wg_socket_set_peer_endpoint(struct amn_wg_peer *peer,
+				 const struct amn_endpoint *endpoint)
 {
 	/* First we check unlocked, in order to optimize, since it's pretty rare
 	 * that an endpoint will change. If we happen to be mid-write, and two
@@ -337,16 +337,16 @@ out:
 	WRITE_ONCE(peer->udp_window, DEFAULT_UDP_WINDOW);
 }
 
-void wg_socket_set_peer_endpoint_from_skb(struct wg_peer *peer,
+void wg_socket_set_peer_endpoint_from_skb(struct amn_wg_peer *peer,
 					  const struct sk_buff *skb)
 {
-	struct endpoint endpoint;
+	struct amn_endpoint endpoint;
 
 	if (!wg_socket_endpoint_from_skb(&endpoint, skb))
 		wg_socket_set_peer_endpoint(peer, &endpoint);
 }
 
-void wg_socket_clear_peer_endpoint_src(struct wg_peer *peer)
+void wg_socket_clear_peer_endpoint_src(struct amn_wg_peer *peer)
 {
 	write_lock_bh(&peer->endpoint_lock);
 	memset(&peer->endpoint.src6, 0, sizeof(peer->endpoint.src6));
@@ -356,7 +356,7 @@ void wg_socket_clear_peer_endpoint_src(struct wg_peer *peer)
 
 static int wg_receive(struct sock *sk, struct sk_buff *skb)
 {
-	struct wg_device *wg;
+	struct amn_wg_device *wg;
 
 	if (unlikely(!sk))
 		goto err;
@@ -387,7 +387,7 @@ static void set_sock_opts(struct socket *sock)
 	sk_set_memalloc(sock->sk);
 }
 
-int wg_socket_init(struct wg_device *wg, u16 port)
+int wg_socket_init(struct amn_wg_device *wg, u16 port)
 {
 	struct net *net;
 	int ret;
@@ -457,7 +457,7 @@ out:
 	return ret;
 }
 
-void wg_socket_reinit(struct wg_device *wg, struct sock *new4,
+void wg_socket_reinit(struct amn_wg_device *wg, struct sock *new4,
 		      struct sock *new6)
 {
 	struct sock *old4, *old6;

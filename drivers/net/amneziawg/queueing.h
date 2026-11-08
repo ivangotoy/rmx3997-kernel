@@ -13,22 +13,22 @@
 #include <linux/ipv6.h>
 #include <net/ip_tunnels.h>
 
-struct wg_device;
-struct wg_peer;
-struct multicore_worker;
-struct crypt_queue;
-struct prev_queue;
+struct amn_wg_device;
+struct amn_wg_peer;
+struct amn_multicore_worker;
+struct amn_crypt_queue;
+struct amn_prev_queue;
 struct sk_buff;
 
 /* queueing.c APIs: */
-int wg_packet_queue_init(struct crypt_queue *queue, work_func_t function,
+int wg_packet_queue_init(struct amn_crypt_queue *queue, work_func_t function,
 			 unsigned int len);
-void wg_packet_queue_free(struct crypt_queue *queue, bool purge);
-struct multicore_worker __percpu *
+void wg_packet_queue_free(struct amn_crypt_queue *queue, bool purge);
+struct amn_multicore_worker __percpu *
 wg_packet_percpu_multicore_worker_alloc(work_func_t function, void *ptr);
 
 /* receive.c APIs: */
-void wg_packet_receive(struct wg_device *wg, struct sk_buff *skb);
+void wg_packet_receive(struct amn_wg_device *wg, struct sk_buff *skb);
 void wg_packet_handshake_receive_worker(struct work_struct *work);
 /* NAPI poll function: */
 int wg_packet_rx_poll(struct napi_struct *napi, int budget);
@@ -36,29 +36,29 @@ int wg_packet_rx_poll(struct napi_struct *napi, int budget);
 void wg_packet_decrypt_worker(struct work_struct *work);
 
 /* send.c APIs: */
-void wg_packet_send_queued_handshake_initiation(struct wg_peer *peer,
+void wg_packet_send_queued_handshake_initiation(struct amn_wg_peer *peer,
 						bool is_retry);
-void wg_packet_send_handshake_response(struct wg_peer *peer);
-void wg_packet_send_handshake_cookie(struct wg_device *wg,
+void wg_packet_send_handshake_response(struct amn_wg_peer *peer);
+void wg_packet_send_handshake_cookie(struct amn_wg_device *wg,
 				     struct sk_buff *initiating_skb,
 				     __le32 sender_index);
-void wg_packet_send_keepalive(struct wg_peer *peer);
-void wg_packet_purge_staged_packets(struct wg_peer *peer);
-void wg_packet_send_staged_packets(struct wg_peer *peer);
+void wg_packet_send_keepalive(struct amn_wg_peer *peer);
+void wg_packet_purge_staged_packets(struct amn_wg_peer *peer);
+void wg_packet_send_staged_packets(struct amn_wg_peer *peer);
 /* Workqueue workers: */
 void wg_packet_handshake_send_worker(struct work_struct *work);
 void wg_packet_tx_worker(struct work_struct *work);
 void wg_packet_encrypt_worker(struct work_struct *work);
 
-enum packet_state {
+enum amn_packet_state {
 	PACKET_STATE_UNCRYPTED,
 	PACKET_STATE_CRYPTED,
 	PACKET_STATE_DEAD
 };
 
-struct packet_cb {
+struct amn_packet_cb {
 	u64 nonce;
-	struct noise_keypair *keypair;
+	struct amn_noise_keypair *keypair;
 	atomic_t state;
 	u32 mtu;
 	u32 type;
@@ -67,7 +67,7 @@ struct packet_cb {
 	bool is_keepalive;
 };
 
-#define PACKET_CB(skb) ((struct packet_cb *)((skb)->cb))
+#define PACKET_CB(skb) ((struct amn_packet_cb *)((skb)->cb))
 #define PACKET_PEER(skb) (PACKET_CB(skb)->keypair->entry.peer)
 
 static inline bool wg_check_packet_protocol(struct sk_buff *skb)
@@ -140,16 +140,16 @@ static inline int wg_cpumask_next_online(int *last_cpu)
 	return cpu;
 }
 
-void wg_prev_queue_init(struct prev_queue *queue);
+void wg_prev_queue_init(struct amn_prev_queue *queue);
 
 /* Multi producer */
-bool wg_prev_queue_enqueue(struct prev_queue *queue, struct sk_buff *skb);
+bool wg_prev_queue_enqueue(struct amn_prev_queue *queue, struct sk_buff *skb);
 
 /* Single consumer */
-struct sk_buff *wg_prev_queue_dequeue(struct prev_queue *queue);
+struct sk_buff *wg_prev_queue_dequeue(struct amn_prev_queue *queue);
 
 /* Single consumer */
-static inline struct sk_buff *wg_prev_queue_peek(struct prev_queue *queue)
+static inline struct sk_buff *wg_prev_queue_peek(struct amn_prev_queue *queue)
 {
 	if (queue->peeked)
 		return queue->peeked;
@@ -158,13 +158,13 @@ static inline struct sk_buff *wg_prev_queue_peek(struct prev_queue *queue)
 }
 
 /* Single consumer */
-static inline void wg_prev_queue_drop_peeked(struct prev_queue *queue)
+static inline void wg_prev_queue_drop_peeked(struct amn_prev_queue *queue)
 {
 	queue->peeked = NULL;
 }
 
 static inline int wg_queue_enqueue_per_device_and_peer(
-	struct crypt_queue *device_queue, struct prev_queue *peer_queue,
+	struct amn_crypt_queue *device_queue, struct amn_prev_queue *peer_queue,
 	struct sk_buff *skb, struct workqueue_struct *wq)
 {
 	int cpu;
@@ -186,12 +186,12 @@ static inline int wg_queue_enqueue_per_device_and_peer(
 	return 0;
 }
 
-static inline void wg_queue_enqueue_per_peer_tx(struct sk_buff *skb, enum packet_state state)
+static inline void wg_queue_enqueue_per_peer_tx(struct sk_buff *skb, enum amn_packet_state state)
 {
 	/* We take a reference, because as soon as we call atomic_set, the
 	 * peer can be freed from below us.
 	 */
-	struct wg_peer *peer = wg_peer_get(PACKET_PEER(skb));
+	struct amn_wg_peer *peer = wg_peer_get(PACKET_PEER(skb));
 
 	atomic_set_release(&PACKET_CB(skb)->state, state);
 	queue_work_on(wg_cpumask_choose_online(&peer->serial_work_cpu, peer->internal_id),
@@ -199,12 +199,12 @@ static inline void wg_queue_enqueue_per_peer_tx(struct sk_buff *skb, enum packet
 	wg_peer_put(peer);
 }
 
-static inline void wg_queue_enqueue_per_peer_rx(struct sk_buff *skb, enum packet_state state)
+static inline void wg_queue_enqueue_per_peer_rx(struct sk_buff *skb, enum amn_packet_state state)
 {
 	/* We take a reference, because as soon as we call atomic_set, the
 	 * peer can be freed from below us.
 	 */
-	struct wg_peer *peer = wg_peer_get(PACKET_PEER(skb));
+	struct amn_wg_peer *peer = wg_peer_get(PACKET_PEER(skb));
 
 	atomic_set_release(&PACKET_CB(skb)->state, state);
 	napi_schedule(&peer->napi);

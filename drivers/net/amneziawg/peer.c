@@ -18,11 +18,11 @@
 static struct kmem_cache *peer_cache;
 static atomic64_t peer_counter = ATOMIC64_INIT(0);
 
-struct wg_peer *wg_peer_create(struct wg_device *wg,
+struct amn_wg_peer *wg_peer_create(struct amn_wg_device *wg,
 			       const u8 public_key[NOISE_PUBLIC_KEY_LEN],
 			       const u8 preshared_key[NOISE_SYMMETRIC_KEY_LEN])
 {
-	struct wg_peer *peer;
+	struct amn_wg_peer *peer;
 	int ret = -ENOMEM;
 
 	lockdep_assert_held(&wg->device_update_lock);
@@ -73,7 +73,7 @@ err:
 	return ERR_PTR(ret);
 }
 
-struct wg_peer *wg_peer_get_maybe_zero(struct wg_peer *peer)
+struct amn_wg_peer *wg_peer_get_maybe_zero(struct amn_wg_peer *peer)
 {
 	RCU_LOCKDEP_WARN(!rcu_read_lock_bh_held(),
 			 "Taking peer reference without holding the RCU read lock");
@@ -82,7 +82,7 @@ struct wg_peer *wg_peer_get_maybe_zero(struct wg_peer *peer)
 	return peer;
 }
 
-static void peer_make_dead(struct wg_peer *peer)
+static void peer_make_dead(struct amn_wg_peer *peer)
 {
 	/* Remove from configuration-time lookup structures. */
 	list_del_init(&peer->peer_list);
@@ -96,7 +96,7 @@ static void peer_make_dead(struct wg_peer *peer)
 	/* The caller must now synchronize_net() for this to take effect. */
 }
 
-static void peer_remove_after_dead(struct wg_peer *peer)
+static void peer_remove_after_dead(struct amn_wg_peer *peer)
 {
 	WARN_ON(!peer->is_dead);
 
@@ -158,7 +158,7 @@ static void peer_remove_after_dead(struct wg_peer *peer)
  * a peer is currently operating will eventually come to an end and not pass
  * their reference onto another context.
  */
-void wg_peer_remove(struct wg_peer *peer)
+void wg_peer_remove(struct amn_wg_peer *peer)
 {
 	if (unlikely(!peer))
 		return;
@@ -169,9 +169,9 @@ void wg_peer_remove(struct wg_peer *peer)
 	peer_remove_after_dead(peer);
 }
 
-void wg_peer_remove_all(struct wg_device *wg)
+void wg_peer_remove_all(struct amn_wg_device *wg)
 {
-	struct wg_peer *peer, *temp;
+	struct amn_wg_peer *peer, *temp;
 	LIST_HEAD(dead_peers);
 
 	lockdep_assert_held(&wg->device_update_lock);
@@ -190,7 +190,7 @@ void wg_peer_remove_all(struct wg_device *wg)
 
 static void rcu_release(struct rcu_head *rcu)
 {
-	struct wg_peer *peer = container_of(rcu, struct wg_peer, rcu);
+	struct amn_wg_peer *peer = container_of(rcu, struct amn_wg_peer, rcu);
 
 	dst_cache_destroy(&peer->endpoint_cache);
 	WARN_ON(wg_prev_queue_peek(&peer->tx_queue) || wg_prev_queue_peek(&peer->rx_queue));
@@ -204,7 +204,7 @@ static void rcu_release(struct rcu_head *rcu)
 
 static void kref_release(struct kref *refcount)
 {
-	struct wg_peer *peer = container_of(refcount, struct wg_peer, refcount);
+	struct amn_wg_peer *peer = container_of(refcount, struct amn_wg_peer, refcount);
 
 	pr_debug("%s: Peer %llu (%pISpfsc) destroyed\n",
 		 peer->device->dev->name, peer->internal_id,
@@ -225,7 +225,7 @@ static void kref_release(struct kref *refcount)
 	call_rcu(&peer->rcu, rcu_release);
 }
 
-void wg_peer_put(struct wg_peer *peer)
+void wg_peer_put(struct amn_wg_peer *peer)
 {
 	if (unlikely(!peer))
 		return;
@@ -234,7 +234,7 @@ void wg_peer_put(struct wg_peer *peer)
 
 int __init wg_peer_init(void)
 {
-	peer_cache = KMEM_CACHE(wg_peer, 0);
+	peer_cache = KMEM_CACHE(amn_wg_peer, 0);
 	return peer_cache ? 0 : -ENOMEM;
 }
 

@@ -13,7 +13,7 @@ static int parse_b_tag(char* val, struct list_head* head) {
     int i;
     int len;
     u8* pkt;
-    struct jp_tag* tag;
+    struct amn_jp_tag* tag;
 
     if (!val || strncmp(val, "0x", 2))
         return -EINVAL;
@@ -55,14 +55,14 @@ error:
     return err;
 }
 
-static void pkt_counter_modifier(char* buf, int len, struct wg_peer *peer) {
+static void pkt_counter_modifier(char* buf, int len, struct amn_wg_peer *peer) {
     int val = atomic_read(&peer->jp_packet_counter);
     val = htonl(val);
     memcpy(buf, &val, sizeof(val));
 }
 
 static int parse_c_tag(char* val, struct list_head* head) {
-    struct jp_tag* tag;
+    struct amn_jp_tag* tag;
 
     if (val)
         return -EINVAL;
@@ -78,14 +78,14 @@ static int parse_c_tag(char* val, struct list_head* head) {
     return 0;
 }
 
-static void unix_time_modifier(char* buf, int len, struct wg_peer *peer) {
+static void unix_time_modifier(char* buf, int len, struct amn_wg_peer *peer) {
     u32 time = (u32)ktime_get_real_seconds();
     time = htonl(time);
     memcpy(buf, &time, sizeof(time));
 }
 
 static int parse_t_tag(char* val, struct list_head* head) {
-    struct jp_tag* tag;
+    struct amn_jp_tag* tag;
 
     if (val)
         return -EINVAL;
@@ -101,12 +101,12 @@ static int parse_t_tag(char* val, struct list_head* head) {
     return 0;
 }
 
-static void random_byte_modifier(char* buf, int len, struct wg_peer *peer) {
+static void random_byte_modifier(char* buf, int len, struct amn_wg_peer *peer) {
     get_random_bytes(buf, len);
 }
 
 static int parse_r_tag(char* val, struct list_head* head) {
-    struct jp_tag* tag;
+    struct amn_jp_tag* tag;
     int len;
 
     if (!val || 0 > kstrtoint(val, 10, &len))
@@ -126,7 +126,7 @@ static int parse_r_tag(char* val, struct list_head* head) {
 #define ALPHABET_LEN 26
 #define LETTER_LEN (ALPHABET_LEN * 2)
 
-static void random_char_modifier(char* buf, int len, struct wg_peer *peer) {
+static void random_char_modifier(char* buf, int len, struct amn_wg_peer *peer) {
     int i;
     u32 byte;
 
@@ -137,7 +137,7 @@ static void random_char_modifier(char* buf, int len, struct wg_peer *peer) {
 }
 
 static int parse_rc_tag(char* val, struct list_head* head) {
-    struct jp_tag* tag;
+    struct amn_jp_tag* tag;
     int len;
 
     if (!val || 0 > kstrtoint(val, 10, &len))
@@ -156,7 +156,7 @@ static int parse_rc_tag(char* val, struct list_head* head) {
 
 #define DIGIT_LEN 10
 
-static void random_digit_modifier(char* buf, int len, struct wg_peer *peer) {
+static void random_digit_modifier(char* buf, int len, struct amn_wg_peer *peer) {
     int i;
 
     for (i = 0; i < len; ++i)
@@ -164,7 +164,7 @@ static void random_digit_modifier(char* buf, int len, struct wg_peer *peer) {
 }
 
 static int parse_rd_tag(char* val, struct list_head* head) {
-    struct jp_tag* tag;
+    struct amn_jp_tag* tag;
     int len;
 
     if (!val || 0 > kstrtoint(val, 10, &len))
@@ -232,11 +232,11 @@ int jp_parse_tags(char* str, struct list_head* head) {
     return 0;
 }
 
-void jp_tag_free(struct jp_tag* tag) {
+void jp_tag_free(struct amn_jp_tag* tag) {
     kfree(tag->pkt);
 }
 
-void jp_spec_free(struct jp_spec *spec) {
+void jp_spec_free(struct amn_jp_spec *spec) {
     kfree(spec->desc);
     spec->desc = NULL;
     kfree(spec->pkt);
@@ -247,11 +247,11 @@ void jp_spec_free(struct jp_spec *spec) {
     spec->mods_size = 0;
 }
 
-int jp_spec_setup(struct jp_spec *spec, const char* str) {
+int jp_spec_setup(struct amn_jp_spec *spec, const char* str) {
     int err = 0;
     int pkt_size, mods_size;
-    struct jp_tag *tag, *tmp;
-    struct jp_modifier *mod;
+    struct amn_jp_tag *tag, *tmp;
+    struct amn_jp_modifier *mod;
     char* buf, *desc;
     LIST_HEAD(head);
 
@@ -334,9 +334,9 @@ error:
     return err;
 }
 
-void jp_spec_applymods(struct jp_spec* spec, struct wg_peer* peer) {
+void jp_spec_applymods(struct amn_jp_spec* spec, struct amn_wg_peer* peer) {
     int i;
-    struct jp_modifier* mod;
+    struct amn_jp_modifier* mod;
 
     for (i = 0; i < spec->mods_size; i++) {
         mod = &spec->mods[i];

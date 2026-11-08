@@ -18,11 +18,11 @@
 #include <linux/kref.h>
 #include <net/dst_cache.h>
 
-struct wg_device;
+struct amn_wg_device;
 
-struct endpoint {
+struct amn_endpoint {
 	union {
-		struct sockaddr_inet addr;     /* Large enough for both address families */
+		struct amn_sockaddr_inet addr;     /* Large enough for both address families */
 		struct sockaddr_in addr4;
 		struct sockaddr_in6 addr6;
 	};
@@ -36,22 +36,22 @@ struct endpoint {
 	};
 };
 
-struct wg_peer {
-	struct wg_device *device;
-	struct prev_queue tx_queue, rx_queue;
+struct amn_wg_peer {
+	struct amn_wg_device *device;
+	struct amn_prev_queue tx_queue, rx_queue;
 	struct sk_buff_head staged_packet_queue;
 	int serial_work_cpu;
 	bool is_dead;
 	bool timer_need_another_keepalive;
 	bool sent_lastminute_handshake;
-	struct noise_keypairs keypairs;
-	struct endpoint endpoint;
+	struct amn_noise_keypairs keypairs;
+	struct amn_endpoint endpoint;
 	struct dst_cache endpoint_cache;
 	rwlock_t endpoint_lock;
-	struct noise_handshake handshake;
+	struct amn_noise_handshake handshake;
 	atomic64_t last_sent_handshake;
 	struct work_struct transmit_handshake_work, clear_peer_work, transmit_packet_work;
-	struct cookie latest_cookie;
+	struct amn_cookie latest_cookie;
 	struct hlist_node pubkey_hash;
 	u64 rx_bytes, tx_bytes;
 	struct timer_list timer_retransmit_handshake, timer_send_keepalive;
@@ -71,32 +71,32 @@ struct wg_peer {
 	unsigned int udp_window;
 };
 
-struct wg_peer *wg_peer_create(struct wg_device *wg,
+struct amn_wg_peer *wg_peer_create(struct amn_wg_device *wg,
 			       const u8 public_key[NOISE_PUBLIC_KEY_LEN],
 			       const u8 preshared_key[NOISE_SYMMETRIC_KEY_LEN]);
 
-struct wg_peer *__must_check wg_peer_get_maybe_zero(struct wg_peer *peer);
-static inline struct wg_peer *wg_peer_get(struct wg_peer *peer)
+struct amn_wg_peer *__must_check wg_peer_get_maybe_zero(struct amn_wg_peer *peer);
+static inline struct amn_wg_peer *wg_peer_get(struct amn_wg_peer *peer)
 {
 	kref_get(&peer->refcount);
 	return peer;
 }
-void wg_peer_put(struct wg_peer *peer);
-void wg_peer_remove(struct wg_peer *peer);
-void wg_peer_remove_all(struct wg_device *wg);
+void wg_peer_put(struct amn_wg_peer *peer);
+void wg_peer_remove(struct amn_wg_peer *peer);
+void wg_peer_remove_all(struct amn_wg_device *wg);
 
 int wg_peer_init(void);
 void wg_peer_uninit(void);
 
-static inline void wg_peer_reset_last_sent_handshake(struct wg_peer *peer)
+static inline void wg_peer_reset_last_sent_handshake(struct amn_wg_peer *peer)
 {
 	u16 timeout = !u16_range_is_zero(peer->device->rekey_timeout) ? u16_range_lo(peer->device->rekey_timeout) : REKEY_TIMEOUT;
 	atomic64_set(&peer->last_sent_handshake, ktime_get_coarse_boottime_ns() -
 				       (u64)(timeout + 1) * NSEC_PER_SEC);
 }
 
-static inline unsigned int wg_peer_skb_random_trailer(struct wg_peer *peer,
-									struct wg_device *wg, unsigned int size)
+static inline unsigned int wg_peer_skb_random_trailer(struct amn_wg_peer *peer,
+									struct amn_wg_device *wg, unsigned int size)
 {
 	unsigned int udp_window = peer
 		? READ_ONCE(peer->udp_window)
@@ -107,8 +107,8 @@ static inline unsigned int wg_peer_skb_random_trailer(struct wg_peer *peer,
 		: 0;
 }
 
-static inline unsigned int wg_peer_skb_randomize_padding_addition(struct wg_peer *peer,
-									  			struct wg_device *wg, unsigned int size)
+static inline unsigned int wg_peer_skb_randomize_padding_addition(struct amn_wg_peer *peer,
+									  			struct amn_wg_device *wg, unsigned int size)
 {
 	unsigned int udp_window = peer
 		? READ_ONCE(peer->udp_window)

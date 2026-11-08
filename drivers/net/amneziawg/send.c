@@ -25,15 +25,15 @@
 #include <net/udp.h>
 #include <net/sock.h>
 
-static void wg_packet_send_handshake_initiation(struct wg_peer *peer)
+static void wg_packet_send_handshake_initiation(struct amn_wg_peer *peer)
 {
-	struct message_handshake_initiation packet;
-	struct wg_device *wg = peer->device;
+	struct amn_message_handshake_initiation packet;
+	struct amn_wg_device *wg = peer->device;
 	void *buffer;
 	u8 ds;
 	u16 junk_packet_count, junk_packet_size;
 	int i;
-	struct jp_spec* spec;
+	struct amn_jp_spec* spec;
 	u16 min_timeout = !u16_range_is_zero(peer->device->rekey_timeout) ?
 		u16_range_lo(peer->device->rekey_timeout) : REKEY_TIMEOUT;
 
@@ -93,14 +93,14 @@ static void wg_packet_send_handshake_initiation(struct wg_peer *peer)
 
 void wg_packet_handshake_send_worker(struct work_struct *work)
 {
-	struct wg_peer *peer = container_of(work, struct wg_peer,
+	struct amn_wg_peer *peer = container_of(work, struct amn_wg_peer,
 					    transmit_handshake_work);
 
 	wg_packet_send_handshake_initiation(peer);
 	wg_peer_put(peer);
 }
 
-void wg_packet_send_queued_handshake_initiation(struct wg_peer *peer,
+void wg_packet_send_queued_handshake_initiation(struct amn_wg_peer *peer,
 						bool is_retry)
 {
 	u16 min_timeout = !u16_range_is_zero(peer->device->rekey_timeout) ?
@@ -135,10 +135,10 @@ out:
 	rcu_read_unlock_bh();
 }
 
-void wg_packet_send_handshake_response(struct wg_peer *peer)
+void wg_packet_send_handshake_response(struct amn_wg_peer *peer)
 {
-	struct message_handshake_response packet;
-	struct wg_device *wg = peer->device;
+	struct amn_message_handshake_response packet;
+	struct amn_wg_device *wg = peer->device;
 
 	atomic64_set(&peer->last_sent_handshake, ktime_get_coarse_boottime_ns());
 	net_dbg_ratelimited("%s: Sending handshake response to peer %llu (%pISpfsc)\n",
@@ -163,11 +163,11 @@ void wg_packet_send_handshake_response(struct wg_peer *peer)
 	}
 }
 
-void wg_packet_send_handshake_cookie(struct wg_device *wg,
+void wg_packet_send_handshake_cookie(struct amn_wg_device *wg,
 				     struct sk_buff *initiating_skb,
 				     __le32 sender_index)
 {
-	struct message_handshake_cookie packet;
+	struct amn_message_handshake_cookie packet;
 
 	net_dbg_skb_ratelimited("%s: Sending cookie response for denied handshake message for %pISpfsc\n",
 				wg->dev->name, initiating_skb);
@@ -179,14 +179,14 @@ void wg_packet_send_handshake_cookie(struct wg_device *wg,
 						  wg->cookie_padding);
 }
 
-static int key_fresh_timeout(struct wg_peer *peer)
+static int key_fresh_timeout(struct amn_wg_peer *peer)
 {
 	return !u16_range_is_zero(peer->device->rekey_after_time) ? u16_range_pick_one(peer->device->rekey_after_time) : REKEY_AFTER_TIME;
 }
 
-static void keep_key_fresh(struct wg_peer *peer)
+static void keep_key_fresh(struct amn_wg_peer *peer)
 {
-	struct noise_keypair *keypair;
+	struct amn_noise_keypair *keypair;
 	bool send;
 
 	rcu_read_lock_bh();
@@ -222,20 +222,20 @@ static unsigned int calculate_skb_padding(struct sk_buff *skb)
 	return padded_size - last_unit;
 }
 
-static bool encrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair
+static bool encrypt_packet(struct sk_buff *skb, struct amn_noise_keypair *keypair
 	COMPAT_MAYBE_SIMD_CONTEXT(simd_context_t *simd_context))
 {
-	struct wg_peer *peer = keypair->entry.peer;
+	struct amn_wg_peer *peer = keypair->entry.peer;
 	unsigned int padding_len, plaintext_len, trailer_len, packet_len;
 	struct scatterlist sg[MAX_SKB_FRAGS + 8];
-	struct chacha_state state;
-	struct message_data *header;
+	struct amn_chacha_state state;
+	struct amn_message_data *header;
 	struct sk_buff *trailer;
 	char *crypto;
 	int num_frags;
 	unsigned int udp_window;
 	int padding;
-	u16_range_t content_padding_addition;
+	amn_u16_range_t content_padding_addition;
 
 	padding = peer->device->transport_padding;
 	content_padding_addition = peer->device->content_padding_addition;
@@ -287,7 +287,7 @@ static bool encrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair
 	 * and the header.
 	 */
 	skb_set_inner_network_header(skb, 0);
-	header = (struct message_data *)skb_push(skb, sizeof(*header));
+	header = (struct amn_message_data *)skb_push(skb, sizeof(*header));
 	header->header.type = cpu_to_le32(
 		u32_range_pick_one(peer->device->transport_header));
 	header->key_idx = keypair->remote_index;
@@ -302,7 +302,7 @@ static bool encrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair
 
 	/* Now we can encrypt the scattergather segments */
 	sg_init_table(sg, num_frags);
-	if (skb_to_sgvec(skb, sg, sizeof(struct message_data) + padding,
+	if (skb_to_sgvec(skb, sg, sizeof(struct amn_message_data) + padding,
 			 noise_encrypted_len(plaintext_len)) <= 0)
 		return false;
 	return chacha20poly1305_encrypt_sg_inplace(sg, plaintext_len, NULL, 0,
@@ -311,7 +311,7 @@ static bool encrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair
 							COMPAT_MAYBE_SIMD_CONTEXT(simd_context));
 }
 
-void wg_packet_send_keepalive(struct wg_peer *peer)
+void wg_packet_send_keepalive(struct amn_wg_peer *peer)
 {
 	struct sk_buff *skb;
 
@@ -333,7 +333,7 @@ void wg_packet_send_keepalive(struct wg_peer *peer)
 	wg_packet_send_staged_packets(peer);
 }
 
-static void wg_packet_create_data_done(struct wg_peer *peer, struct sk_buff *first)
+static void wg_packet_create_data_done(struct amn_wg_peer *peer, struct sk_buff *first)
 {
 	struct sk_buff *skb, *next;
 	bool data_sent = false;
@@ -356,9 +356,9 @@ static void wg_packet_create_data_done(struct wg_peer *peer, struct sk_buff *fir
 
 void wg_packet_tx_worker(struct work_struct *work)
 {
-	struct wg_peer *peer = container_of(work, struct wg_peer, transmit_packet_work);
-	struct noise_keypair *keypair;
-	enum packet_state state;
+	struct amn_wg_peer *peer = container_of(work, struct amn_wg_peer, transmit_packet_work);
+	struct amn_noise_keypair *keypair;
+	enum amn_packet_state state;
 	struct sk_buff *first;
 
 	while ((first = wg_prev_queue_peek(&peer->tx_queue)) != NULL &&
@@ -381,7 +381,7 @@ void wg_packet_tx_worker(struct work_struct *work)
 
 void wg_packet_encrypt_worker(struct work_struct *work)
 {
-	struct crypt_queue *queue = container_of(work, struct multicore_worker,
+	struct amn_crypt_queue *queue = container_of(work, struct amn_multicore_worker,
 						 work)->ptr;
 	struct sk_buff *first, *skb, *next;
 
@@ -390,7 +390,7 @@ void wg_packet_encrypt_worker(struct work_struct *work)
 	simd_get(&simd_context);
 #endif
 	while ((first = ptr_ring_consume_bh(&queue->ring)) != NULL) {
-		enum packet_state state = PACKET_STATE_CRYPTED;
+		enum amn_packet_state state = PACKET_STATE_CRYPTED;
 
 		skb_list_walk_safe(first, skb, next) {
 			if (likely(encrypt_packet(
@@ -416,9 +416,9 @@ void wg_packet_encrypt_worker(struct work_struct *work)
 #endif
 }
 
-static void wg_packet_create_data(struct wg_peer *peer, struct sk_buff *first)
+static void wg_packet_create_data(struct amn_wg_peer *peer, struct sk_buff *first)
 {
-	struct wg_device *wg = peer->device;
+	struct amn_wg_device *wg = peer->device;
 	int ret = -EINVAL;
 
 	rcu_read_lock_bh();
@@ -438,7 +438,7 @@ err:
 	kfree_skb_list(first);
 }
 
-void wg_packet_purge_staged_packets(struct wg_peer *peer)
+void wg_packet_purge_staged_packets(struct amn_wg_peer *peer)
 {
 	spin_lock_bh(&peer->staged_packet_queue.lock);
 	DEV_STATS_ADD(peer->device->dev, tx_dropped,
@@ -447,9 +447,9 @@ void wg_packet_purge_staged_packets(struct wg_peer *peer)
 	spin_unlock_bh(&peer->staged_packet_queue.lock);
 }
 
-void wg_packet_send_staged_packets(struct wg_peer *peer)
+void wg_packet_send_staged_packets(struct amn_wg_peer *peer)
 {
-	struct noise_keypair *keypair;
+	struct amn_noise_keypair *keypair;
 	struct sk_buff_head packets;
 	struct sk_buff *skb;
 

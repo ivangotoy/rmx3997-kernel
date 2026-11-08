@@ -599,7 +599,7 @@ static inline struct nlattr **genl_family_attrbuf(const struct genl_family *fami
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 8) && LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)) || (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 25) && LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)) || LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 87)
 #define wg_get_device_dump(a, b) wg_get_device_dump_real(a, b); \
 static int wg_get_device_dump(a, b) { \
-	struct wg_device *wg = (struct wg_device *)cb->args[0]; \
+	struct amn_wg_device *wg = (struct amn_wg_device *)cb->args[0]; \
 	if (!wg) { \
 		int ret = wg_get_device_start(cb); \
 		if (ret) \
@@ -876,8 +876,8 @@ static inline void skb_mark_not_on_list(struct sk_buff *skb)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 0) && !defined(ISRHEL8) && !defined(ISRHEL9)
 #define genl_dumpit_info(cb) ({ \
-	struct { struct nlattr **attrs; } *a = (void *)((u8 *)cb->args + offsetofend(struct dump_ctx, next_allowedip)); \
-	BUILD_BUG_ON(sizeof(cb->args) < offsetofend(struct dump_ctx, next_allowedip) + sizeof(*a)); \
+	struct { struct nlattr **attrs; } *a = (void *)((u8 *)cb->args + offsetofend(struct amn_dump_ctx, next_allowedip)); \
+	BUILD_BUG_ON(sizeof(cb->args) < offsetofend(struct amn_dump_ctx, next_allowedip) + sizeof(*a)); \
 	a->attrs = genl_family_attrbuf(&genl_family); \
 	if (nlmsg_parse(cb->nlh, GENL_HDRLEN + genl_family.hdrsize, a->attrs, genl_family.maxattr, device_policy, NULL) < 0) \
 		memset(a->attrs, 0, (genl_family.maxattr + 1) * sizeof(struct nlattr *)); \
@@ -1302,7 +1302,7 @@ static inline int timer_delete(struct timer_list *timer)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 17, 0)
 #include <linux/in6.h>
-struct sockaddr_inet {
+struct amn_sockaddr_inet {
 	unsigned short	sa_family;
 	char		sa_data[sizeof(struct sockaddr_in6) -
 				sizeof(unsigned short)];
@@ -1325,14 +1325,14 @@ static inline void netif_threaded_enable(struct net_device *dev) { }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0)
 #define COMPAT_CANNOT_USE_RTNL_NEWLINK_PARAMS
-struct rtnl_newlink_params {
+struct amn_rtnl_newlink_params {
 	struct net *src_net;
 	struct net *link_net;
 	struct net *peer_net;
 	struct nlattr **tb;
 	struct nlattr **data;
 };
-static inline struct net *rtnl_newlink_link_net(struct rtnl_newlink_params *p)
+static inline struct net *rtnl_newlink_link_net(struct amn_rtnl_newlink_params *p)
 {
 	return p->link_net ? : p->src_net;
 }
@@ -1422,11 +1422,11 @@ static inline struct dst_entry *ip6_dst_lookup_flow(struct net *net, const struc
 #define CHACHA_STATE_WORDS	(CHACHA_BLOCK_SIZE / sizeof(u32))
 #endif
 
-struct chacha_state {
+struct amn_chacha_state {
 	u32 x[CHACHA_STATE_WORDS];
 };
 
-static inline void __compat_chacha_init(struct chacha_state *state,
+static inline void __compat_chacha_init(struct amn_chacha_state *state,
 					const u32 *key,
 					const u8 *iv)
 {
@@ -1434,7 +1434,7 @@ static inline void __compat_chacha_init(struct chacha_state *state,
 }
 #define chacha_init(state, key, iv) __compat_chacha_init((state), (key), (iv))
 
-static inline void __compat_chacha20_crypt(struct chacha_state *state,
+static inline void __compat_chacha20_crypt(struct amn_chacha_state *state,
 					       u8 *dst, const u8 *src,
 					       unsigned int bytes)
 {

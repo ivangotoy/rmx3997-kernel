@@ -3,8 +3,8 @@
 
 #include <crypto/chacha.h>
 
-bool awg_header_protection_init(struct chacha_state *state, struct wg_device *wg, u8 *nonce) {
-	struct header_protection* p = &wg->header_protection;
+bool awg_header_protection_init(struct amn_chacha_state *state, struct amn_wg_device *wg, u8 *nonce) {
+	struct amn_header_protection* p = &wg->header_protection;
 	bool res = false;
 	u8 iv[16];
 
@@ -22,7 +22,7 @@ out:
 	return res;
 }
 
-void awg_header_protection_set_key(struct header_protection *p, u8 key[HEADER_PROTECTION_KEY_SIZE]) {
+void awg_header_protection_set_key(struct amn_header_protection *p, u8 key[HEADER_PROTECTION_KEY_SIZE]) {
 	down_write(&p->lock);
 	p->key[0] = get_unaligned_le32(key + 0);
 	p->key[1] = get_unaligned_le32(key + 4);
@@ -36,7 +36,7 @@ void awg_header_protection_set_key(struct header_protection *p, u8 key[HEADER_PR
 	up_write(&p->lock);
 }
 
-void awg_header_protection_get_key(struct header_protection *p, u8 key[HEADER_PROTECTION_KEY_SIZE]) {
+void awg_header_protection_get_key(struct amn_header_protection *p, u8 key[HEADER_PROTECTION_KEY_SIZE]) {
 	down_read(&p->lock);
 	put_unaligned_le32(p->key[0], key + 0);
 	put_unaligned_le32(p->key[1], key + 4);
