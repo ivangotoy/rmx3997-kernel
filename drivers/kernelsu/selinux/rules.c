@@ -309,6 +309,14 @@ void apply_kernelsu_rules()
     ksu_allow(db, "system_server", KERNEL_SU_DOMAIN, "process", "getpgid");
     ksu_allow(db, "system_server", KERNEL_SU_DOMAIN, "process", "sigkill");
 
+#if IS_ENABLED(CONFIG_SUNRPC)
+    // The NFS client binds its kernel TCP socket to a reserved source port
+    // from a kworker in the kernel domain (servers export with "secure" by
+    // default). Android policy does not give kernel net_bind_service, so the
+    // bind fails with EACCES (dontaudited) and every NFS mount fails.
+    ksu_allow(db, "kernel", "kernel", "capability", "net_bind_service");
+#endif
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0) || defined(KSU_COMPAT_HAS_POLICY_MUTEX)
     rcu_assign_pointer(selinux_state.policy, pol);
     synchronize_rcu();

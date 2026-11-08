@@ -6,7 +6,10 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 - NFS client built in, NFS versions 4.0, 4.1 and 4.2 over TCP, with kernel DNS
   resolution for server referrals and the pNFS file and block layouts. There
-  is no NFS server and no NFSv2 or NFSv3 support.
+  is no NFS server and no NFSv2 or NFSv3 support. The built-in root policy
+  lets the kernel bind the client's reserved source port, so mounts work with
+  SELinux enforcing, for example
+  `mount -t nfs4 -o vers=4.2,addr=<server-ip> <server-ip>:/<export> /mnt/x`.
 
 ## Kernel features
 
