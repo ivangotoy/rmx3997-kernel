@@ -4,10 +4,9 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 ## Changes in this release
 
-- `/dev/ntsync` is now usable by apps such as Wine-based launchers. The device
-  node is created late in boot, after the driver's single permission pass, so
-  it stayed root-only. The driver now waits for the node and sets mode 0666
-  and the `gpu_device` SELinux label, which apps may already open.
+- NFS client built in, NFS versions 4.0, 4.1 and 4.2 over TCP, with kernel DNS
+  resolution for server referrals and the pNFS file and block layouts. There
+  is no NFS server and no NFSv2 or NFSv3 support.
 
 ## Kernel features
 
@@ -25,7 +24,7 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 | VPN and virtual networking | WireGuard (built in), TUN, MACVLAN |
 | Containers | User (creation requires CAP_SYS_ADMIN), IPC, PID, UTS, network and cgroup namespaces, SysV IPC, POSIX message queues, OverlayFS, FUSE |
 | Windows compatibility | NTSync, `/dev/ntsync` usable by apps |
-| Filesystems | F2FS, ext4, EROFS, CIFS/SMB3, tmpfs with xattrs and POSIX ACLs |
+| Filesystems | F2FS, ext4, EROFS, CIFS/SMB3, NFSv4 client (4.0, 4.1, 4.2), tmpfs with xattrs and POSIX ACLs |
 | Memory | memfd ashmem compatibility, MGLRU built in but off by default |
 
 ## Not enabled

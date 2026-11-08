@@ -50,6 +50,7 @@ come from Forgejo Actions; see Releases for downloads.
 **Filesystems and storage**
 
 - F2FS (OEM appboost and compression kept), ext4, EROFS, CIFS/SMB3
+- NFS client, versions 4.0, 4.1 and 4.2 (no NFS server, no NFSv2/v3)
 - TMPFS xattr and POSIX ACLs
 - Original realme ZRAM and HybridSwap modules untouched
 - memfd ashmem compatibility shim
@@ -225,6 +226,7 @@ current entry points.
 | `rmx3997-v3` | 5.15.223 | `android13-5.15` security fixes (November 2026), nftables |
 | `rmx3997-v4` | 5.15.223 | BBRv3 per-socket context ownership, user namespace creation requires CAP_SYS_ADMIN |
 | `rmx3997-v5` | 5.15.223 | `/dev/ntsync` usable by apps |
+| `rmx3997-v6` | 5.15.223 | NFSv4 client |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.
