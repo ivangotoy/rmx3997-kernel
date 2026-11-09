@@ -1955,6 +1955,7 @@ int wrapfd_put_mappable(struct file *file, struct device *dev,
 			union wrapfd_mappable *mappable)
 {
 	struct wrap_ctx *ctx;
+	int ret = 0;
 
 	if (!dev)
 		return -ENODEV;
@@ -1969,15 +1970,21 @@ int wrapfd_put_mappable(struct file *file, struct device *dev,
 
 	spin_lock(&ctx->lock);
 
+	if (!ctx->content) {
+		ret = -EINVAL;
+		goto unlock;
+	}
+
 	if (ctx->content->ops->put_mappable)
 		ctx->content->ops->put_mappable(ctx->content, mappable);
 
 	if (!WARN_ON(ctx->map_count <= 0))
 		ctx->map_count--;
 	generate_event(ctx, WRAPFD_EVENT_UNMAP);
+unlock:
 	spin_unlock(&ctx->lock);
 
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL_GPL(wrapfd_put_mappable);
 
