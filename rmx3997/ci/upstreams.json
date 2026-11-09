@@ -1,5 +1,5 @@
 {
-  "description": "Every upstream the RMX3997 kernel takes code from, with the exact commit it is at. rmx3997/ci/upstream.py checks them weekly; modes lts-merge, security-backports and subtree are applied automatically on an auto/<date> branch, report and release only notify.",
+  "description": "Every upstream the RMX3997 kernel takes code from, with the exact commit it is at. rmx3997/ci/upstream.py checks them weekly; modes lts-merge, security-backports and subtree are applied automatically and released as the next rmx3997-vN when every gate passes, report and release only notify.",
   "components": {
     "aosp-lts": {
       "mode": "lts-merge",

@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""RMX3997 upstream watcher and candidate branch builder.
+"""RMX3997 upstream watcher and automatic release.
 
-check      compare every pinned upstream in upstreams.json with its live branch
-candidate  build an auto/<date> branch: merge the new AOSP LTS, cherry-pick new
-           android13-5.15 security commits, 3-way apply component updates, and
-           refresh production.config when the only change is new symbols
-publish    push the candidate branch and post the report to the tracking issue
-verify     prove the vendored files equal the pinned upstream blobs
+check         compare every pinned upstream in upstreams.json with its live branch
+candidate     build the candidate on top of main in the stage (local only): merge
+              the new AOSP LTS, cherry-pick new android13-5.15 security commits,
+              3-way apply component updates
+refresh-commit  commit production.config when olddefconfig only added symbols
+plan-release  pick the next rmx3997-vN tag, add the README and release notes
+              commit and create the annotated tag locally
+promote       after every gate passed: fast-forward main to the candidate and
+              push the tag, in one atomic push
+report        post the result to the tracking issue
+verify        prove the vendored files equal the pinned upstream blobs
 
-Nothing here touches main or creates tags. Releases stay a manual tag push.
+No branch other than main is ever pushed. Nothing is pushed unless the build,
+every acceptance gate and packaging passed.
 """
 import argparse
 import base64
@@ -19,6 +25,8 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -184,8 +192,7 @@ def cmd_candidate(a):
     base = out('rev-parse', 'refs/remotes/origin/main', cwd=ws)
     if base != a.expect_main:
         die('main moved: cache has %s, run started at %s' % (base, a.expect_main))
-    branch = 'auto/' + a.label
-    git('checkout', '-q', '-b', branch, base, cwd=ws)
+    git('checkout', '-q', '--detach', base, cwd=ws)
     results = []
     for name, c in m['components'].items():
         r = rows[name]
@@ -261,14 +268,15 @@ def cmd_candidate(a):
             res['detail'] = detail or c.get('note')
         res['status'] = 'applied'
         res['commits'] = subjects(cdir, '%s..%s' % (c['pin'], tip))
+        res['count'] = int(out('-C', str(cdir), 'rev-list', '--count', '--no-merges',
+                               '%s..%s' % (c['pin'], tip)))
         c['pin'] = tip
     (ws / MANIFEST).write_text(json.dumps(m, indent=2) + '\n')
     git('add', MANIFEST, cwd=ws)
     applied = [r['name'] for r in results if r['status'] == 'applied']
     if applied:
         commit(ws, 'upstream: record pins (%s)' % ', '.join(applied))
-    state = {'branch': branch, 'base': base, 'label': a.label, 'components': results,
-             'changed': bool(applied)}
+    state = {'base': base, 'components': results, 'changed': bool(applied)}
     (stage / 'candidate.json').write_text(json.dumps(state, indent=2) + '\n')
     env = os.environ.get('FORGEJO_ENV') or os.environ.get('GITHUB_ENV')
     if env:
@@ -290,27 +298,221 @@ def cmd_refresh_commit(a):
         print('production.config unchanged')
 
 
-# ----------------------------------------------------------------- publish
-def api(method, url, token, data=None):
-    req = urllib.request.Request(url, method=method, data=json.dumps(data).encode() if data else None,
-                                 headers={'Authorization': 'token ' + token,
-                                          'Content-Type': 'application/json'})
+# ----------------------------------------------------------------- release
+TRIES = 6
+DISPLAY = {'aosp-lts': 'AOSP `android13-5.15-lts`', 'aosp-security': '`android13-5.15` security branch',
+           'bakasu': 'BakaSU', 'susfs': 'SUSFS', 'nomount': 'NoMount',
+           'baseband-guard': 'Baseband Guard'}
+
+
+def backoff(retry_after, attempt):
     try:
-        with urllib.request.urlopen(req, timeout=120) as r:
-            return r.status, json.load(r) if r.length != 0 else None
-    except urllib.error.HTTPError as e:
-        return e.code, None
+        wait = max(0, min(int(retry_after), 300))
+    except (TypeError, ValueError):
+        wait = 10 * attempt
+    print('HTTP 429, retrying in %d s' % wait, flush=True)
+    time.sleep(wait)
+
+
+def api(method, url, token, data=None):
+    body = json.dumps(data).encode() if data is not None else None
+    for attempt in range(1, TRIES + 1):
+        req = urllib.request.Request(url, method=method, data=body,
+                                     headers={'Authorization': 'token ' + token,
+                                              'Content-Type': 'application/json'})
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                raw = r.read()
+                return r.status, json.loads(raw) if raw else None
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < TRIES:
+                backoff(e.headers.get('Retry-After'), attempt)
+                continue
+            return e.code, None
+
+
+def auth(token):
+    basic = base64.b64encode(('x-access-token:' + token).encode()).decode()
+    return ['-c', 'http.extraHeader=Authorization: basic ' + basic]
+
+
+def remote_refs(url, token, *patterns):
+    """ls-remote with bounded retry; {refname: sha}, peeled tags as <name>^{}."""
+    for attempt in range(1, TRIES + 1):
+        r = git(*auth(token), 'ls-remote', url, *patterns, check=False)
+        if not r.returncode:
+            return {l.split('\t', 1)[1]: l.split('\t', 1)[0] for l in r.stdout.splitlines() if l}
+        print('ls-remote attempt %d failed: %s' % (attempt, r.stderr.strip()[-300:]), flush=True)
+        if attempt < TRIES:
+            time.sleep(5 * attempt)
+    die('ls-remote %s failed %d times' % (url, TRIES))
+
+
+def next_tag(url, token):
+    nums = set()
+    for name in remote_refs(url, token, 'refs/tags/rmx3997-v*'):
+        if name.endswith('^{}'):
+            continue
+        m = re.fullmatch(r'refs/tags/rmx3997-v([1-9][0-9]*)', name)
+        if not m:
+            die('unexpected tag on the server: ' + name)
+        nums.add(int(m.group(1)))
+    if not nums or nums != set(range(1, max(nums) + 1)):
+        die('rmx3997-v tags on the server are not v1..vN without gaps: %s' % sorted(nums))
+    return 'rmx3997-v%d' % (max(nums) + 1)
+
+
+def sub_once(text, pat, rep, what):
+    new, n = re.subn(pat, rep, text, flags=re.M)
+    if n != 1:
+        die('%s: expected exactly one line matching %r, found %d' % (what, pat, n))
+    return new
+
+
+def save_candidate(stage, cand):
+    (stage / 'candidate.json').write_text(json.dumps(cand, indent=2) + '\n')
+
+
+def cmd_plan_release(a):
+    """Next tag, README and release notes commit, annotated tag (all local)."""
+    stage = Path(a.stage)
+    cand = json.loads((stage / 'candidate.json').read_text())
+    if not cand['changed'] or cand.get('release'):
+        die('candidate has nothing to release or is already planned')
+    ws = stage / 'src'
+    if out('status', '--porcelain', cwd=ws):
+        die('candidate tree is not clean')
+    tag = next_tag(a.repo_url, os.environ.get('TOKEN', ''))
+    mk = (ws / 'Makefile').read_text()
+    version = '.'.join(re.search(r'^%s = (\d+)$' % k, mk, re.M).group(1)
+                       for k in ('VERSION', 'PATCHLEVEL', 'SUBLEVEL'))
+    d = git('diff', '--quiet', cand['base'], 'HEAD', '--', 'rmx3997/config/production.config',
+            cwd=ws, check=False).returncode
+    if d not in (0, 1):
+        die('git diff of production.config failed')
+    config_changed = d == 1
+    m = load(ws)
+    readme = (ws / 'README.md').read_text()
+    phrases, bullets = [], []
+    for r in cand['components']:
+        if r['status'] != 'applied':
+            continue
+        name, old, new = r['name'], r['pin'], r['tip']
+        c = m['components'][name]
+        phrase = '%s `%s`' % (DISPLAY.get(name, name), new[:8])
+        extra = ''
+        if name == 'aosp-lts':
+            phrase = 'Merge of %s %s' % (DISPLAY[name], r['version'])
+            extra = ', now Linux %s' % r['version']
+            readme = sub_once(readme, r'^(# .* kernel - Linux )\d+\.\d+\.\d+$',
+                              lambda x: x.group(1) + r['version'], 'README title')
+            readme = sub_once(readme, r'^(\| Kernel \| Linux )\d+\.\d+\.\d+(, )',
+                              lambda x: x.group(1) + r['version'] + x.group(2), 'README status')
+        elif name == 'aosp-security':
+            phrase = '%s update' % DISPLAY[name]
+        elif name == 'susfs':
+            sv = re.search(r'^#define SUSFS_VERSION "(v[^"]+)"$',
+                           (ws / 'include/linux/susfs.h').read_text(), re.M)
+            if not sv:
+                die('SUSFS_VERSION not found in include/linux/susfs.h')
+            phrase += ' (%s)' % sv.group(1)
+            extra = ', now SUSFS %s' % sv.group(1)
+            readme = sub_once(readme, r'SUSFS `[0-9a-f]{8}` \(v[^)`\n]+\)',
+                              'SUSFS `%s` (%s)' % (new[:8], sv.group(1)), 'README SUSFS pin')
+        phrases.append(phrase)
+        detail = ('; ' + r['detail']) if r.get('detail') else ''
+        bullets.append('- `%s` (`%s`): `%s`..`%s`, %d upstream commit%s%s%s.' % (
+            name, c['ref'], old[:8], new[:8], r['count'], '' if r['count'] == 1 else 's',
+            extra, detail))
+    if not bullets:
+        die('no applied component to describe')
+    if config_changed:
+        phrases.append('config refresh')
+        bullets.append('- `production.config` refreshed with `olddefconfig` for the new upstream '
+                       'code: only new symbols were added, no existing option changed.')
+    summary = 'Upstream update: ' + ', '.join(phrases)
+    rows = list(re.finditer(r'^\| `rmx3997-v(\d+)` \|.*\n', readme, re.M))
+    if not rows or 'rmx3997-v%d' % (int(rows[-1].group(1)) + 1) != tag:
+        die('README History does not end with the release before %s' % tag)
+    end = rows[-1].end()
+    readme = readme[:end] + '| `%s` | %s | %s |\n' % (tag, version, summary) + readme[end:]
+    notes_path = ws / 'rmx3997/ci/release-notes.md'
+    text = '\n'.join(bullets).replace('{', '{{').replace('}', '}}')
+    notes, n = re.subn(r'(^## Changes in this release\n\n).*?(?=^## )',
+                       lambda x: x.group(1) + text + '\n\n', notes_path.read_text(),
+                       flags=re.M | re.S)
+    if n != 1:
+        die('release-notes.md: "## Changes in this release" section not found exactly once')
+    notes.format(kernel='k', version='v', commit='c')
+    (ws / 'README.md').write_text(readme)
+    notes_path.write_text(notes)
+    git('add', 'README.md', 'rmx3997/ci/release-notes.md', cwd=ws)
+    commit(ws, 'README and release notes: %s upstream update\n\n%s' % (tag, summary))
+    git(*IDENT, 'tag', '-a', '-m', '%s\n\n%s\n\nReleased by the weekly upstream job.' % (tag, summary),
+        tag, 'HEAD', cwd=ws)
+    head = out('rev-parse', 'HEAD', cwd=ws)
+    cand['release'] = {'tag': tag, 'commit': head, 'summary': summary}
+    save_candidate(stage, cand)
+    env = os.environ.get('FORGEJO_ENV') or os.environ.get('GITHUB_ENV')
+    if env:
+        with open(env, 'a') as f:
+            f.write('RMX_TAG=%s\n' % tag)
+    print('%s on %s: %s' % (tag, head[:12], summary))
+
+
+def cmd_promote(a):
+    """Fast-forward main and push the tag atomically; bounded retry, ls-remote verified."""
+    stage = Path(a.stage)
+    cand = json.loads((stage / 'candidate.json').read_text())
+    rel = cand.get('release') or die('no planned release')
+    tag, base = rel['tag'], cand['base']
+    ws = stage / 'src'
+    head = out('rev-parse', 'HEAD', cwd=ws)
+    if head != rel['commit'] or out('rev-parse', tag + '^{commit}', cwd=ws) != head:
+        die('candidate HEAD or tag differs from the planned release commit')
+    if not (stage / 'b/acceptance.json').exists() or not (stage / 'b/dist.env').exists():
+        die('build, acceptance or packaging did not complete')
+    if git('merge-base', '--is-ancestor', base, head, cwd=ws, check=False).returncode:
+        die('candidate is not a fast-forward of main')
+    tag_obj = out('rev-parse', 'refs/tags/' + tag, cwd=ws)
+    token = os.environ.get('TOKEN', '')
+    pushes = 0
+    while True:
+        refs = remote_refs(a.repo_url, token, 'refs/heads/main', 'refs/tags/' + tag)
+        main, srv_tag = refs.get('refs/heads/main'), refs.get('refs/tags/' + tag)
+        if main == head and srv_tag == tag_obj:
+            break
+        if main != base:
+            die('main moved: server main is %s, the candidate is on %s; nothing pushed by this step'
+                % ((main or 'missing')[:12], base[:12]))
+        if srv_tag is not None:
+            die('%s already exists on the server' % tag)
+        if pushes == TRIES:
+            die('main and %s not on the server after %d push attempts' % (tag, TRIES))
+        if pushes:
+            time.sleep(5 * pushes)
+        pushes += 1
+        r = git(*auth(token), 'push', '-q', '--atomic', '--force-with-lease=refs/heads/main:' + base,
+                '--force-with-lease=refs/tags/%s:' % tag, a.repo_url, 'HEAD:refs/heads/main',
+                'refs/tags/%s:refs/tags/%s' % (tag, tag), cwd=ws, check=False)
+        if r.returncode:
+            print('push attempt %d failed: %s' % (pushes, r.stderr.strip()[-300:]), flush=True)
+    (stage / 'promote.ok').write_text(head + '\n')
+    print('main fast-forwarded %s..%s, %s pushed (verified by ls-remote)' % (base[:12], head[:12], tag))
 
 
 def outcome(stage):
     b = stage / 'b'
     if not (stage / 'candidate.json').exists():
-        return 'FAIL: candidate branch could not be prepared (see run log)'
+        return 'FAIL: candidate could not be prepared (see run log)'
     cand = json.loads((stage / 'candidate.json').read_text())
     if not cand['changed']:
         return 'no automatic update applied; nothing was built'
     if not (stage / 'config-refresh.ok').exists():
         return 'FAIL: config refresh (an existing option changed; see run log)'
+    if not cand.get('release'):
+        return 'FAIL: release planning (next tag, README and release notes; see run log)'
+    tag = cand['release']['tag']
     ex = b / 'build-execution.json'
     if not ex.exists():
         return 'FAIL: build did not start (host inputs or config gate)'
@@ -320,10 +522,16 @@ def outcome(stage):
         return 'FAIL: acceptance gates (OEM CRC or struct layout; see run log)'
     if not (b / 'dist.env').exists():
         return 'FAIL: packaging'
-    return 'PASS: built, all acceptance gates passed, ZIP packaged'
+    if not (stage / 'promote.ok').exists():
+        return 'FAIL: fast-forward of main and push of %s (see run log)' % tag
+    if not (stage / 'release.ok').exists():
+        return 'FAIL: Forgejo release of %s (main and the tag are pushed; see run log)' % tag
+    if not (stage / 'github.ok').exists():
+        return 'FAIL: GitHub release copy of %s (the Forgejo release is published)' % tag
+    return 'PASS: built, all acceptance gates passed, released %s' % tag
 
 
-def cmd_publish(a):
+def cmd_report(a):
     stage = Path(a.stage)
     token = os.environ['TOKEN']
     res = outcome(stage)
@@ -335,19 +543,15 @@ def cmd_publish(a):
         st = r.get('status', 'new' if r.get('new') else 'current')
         detail = (' - ' + r['detail']) if r.get('detail') else ''
         lines.append('| %s | `%s` | `%s` | %s%s |' % (r['name'], r['pin'][:12], r['tip'][:12], st, detail))
-    lines += ['', '**Candidate:** ' + res]
-    if cand and cand['changed']:
-        ws = stage / 'src'
-        head = out('rev-parse', 'HEAD', cwd=ws)
-        auth = base64.b64encode(('x-access-token:' + token).encode()).decode()
-        r = git('-c', 'http.extraHeader=Authorization: basic ' + auth, 'push', '-q', '--force',
-                a.repo_url, 'HEAD:refs/heads/' + cand['branch'], cwd=ws, check=False)
-        if r.returncode:
-            lines.append('FAIL: pushing %s failed' % cand['branch'])
-        else:
-            lines.append('Branch `%s` at `%s`, on top of main `%s`.' % (cand['branch'], head[:12], cand['base'][:12]))
-            if res.startswith('PASS'):
-                lines.append('To release: fast-forward main to it and push the next `rmx3997-vN` tag.')
+    lines += ['', '**Result:** ' + res]
+    rel = cand.get('release') if cand else None
+    if res.startswith('PASS'):
+        lines.append('Released `%s`: %s/releases/tag/%s (main fast-forwarded `%s`..`%s`).' % (
+            rel['tag'], re.sub(r'\.git$', '', a.repo_url), rel['tag'], cand['base'][:12],
+            rel['commit'][:12]))
+    elif not (stage / 'promote.ok').exists():
+        lines.append('Nothing was pushed; main and the tags are unchanged.')
+    if cand:
         for c in rows:
             if c.get('commits'):
                 lines += ['', '<details><summary>%s commits</summary>' % c['name'], ''] + c['commits'] + ['', '</details>']
@@ -367,6 +571,9 @@ def cmd_publish(a):
     print('report posted')
     if res.startswith('FAIL'):
         raise SystemExit(1)
+    manual = [r['name'] for r in rows if r.get('status') in ('conflict', 'manual')]
+    if manual:
+        die('needs a manual port: ' + ', '.join(manual))
 
 
 # ------------------------------------------------------------------ verify
@@ -399,17 +606,22 @@ def main():
     c = sub.add_parser('check')
     c.add_argument('--stage', required=True)
     c = sub.add_parser('candidate')
-    for f in ('--stage', '--label', '--repo-url', '--expect-main'):
+    for f in ('--stage', '--repo-url', '--expect-main'):
         c.add_argument(f, required=True)
     c = sub.add_parser('refresh-commit')
     c.add_argument('--src', required=True)
-    c = sub.add_parser('publish')
+    for name in ('plan-release', 'promote'):
+        c = sub.add_parser(name)
+        for f in ('--stage', '--repo-url'):
+            c.add_argument(f, required=True)
+    c = sub.add_parser('report')
     for f in ('--stage', '--api', '--repo', '--repo-url', '--run-url'):
         c.add_argument(f, required=True)
     sub.add_parser('verify')
     a = p.parse_args()
     {'check': cmd_check, 'candidate': cmd_candidate, 'refresh-commit': cmd_refresh_commit,
-     'publish': cmd_publish, 'verify': cmd_verify}[a.cmd](a)
+     'plan-release': cmd_plan_release, 'promote': cmd_promote, 'report': cmd_report,
+     'verify': cmd_verify}[a.cmd](a)
 
 
 if __name__ == '__main__':

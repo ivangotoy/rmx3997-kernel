@@ -1,10 +1,16 @@
 name: RMX3997 upstream
 
 # Weekly: compare every pinned upstream (rmx3997/ci/upstreams.json) with its
-# live branch. When something is new, build an auto/<date> candidate branch
-# with the updates applied, run the full build and every acceptance gate, and
-# post the result to the "Upstream updates" issue. Nothing touches main and
-# nothing is released; a release stays a manual tag push.
+# live branch. When something is new, prepare the candidate on top of main in
+# the stage (never pushed as a branch) with the updates applied, add the README
+# and release notes commit for the next rmx3997-vN tag, and run the full build
+# and every acceptance gate on that exact commit. Only when all of them pass:
+# fast-forward main and push the annotated tag in one atomic push, then publish
+# the release (Forgejo and the GitHub copy) from the ZIP built here. This run is
+# the release build: pushes made with the job token do not start workflows, so
+# the tag does not trigger build-rmx3997.yml (which also skips tags that already
+# have a release). If any gate fails, nothing is pushed. The result goes to the
+# "Upstream updates" issue.
 on:
   schedule:
     - cron: '17 3 * * 1'
@@ -45,15 +51,14 @@ jobs:
           test ! -e "$STAGE"
           install -d -m 700 "$STAGE"
           echo "STAGE=$STAGE" >> "$FORGEJO_ENV"
-          echo "LABEL=$(date -u +%Y%m%d)-r${FORGEJO_RUN_NUMBER}" >> "$FORGEJO_ENV"
 
       - name: Check upstreams
         run: python3 -I rmx3997/ci/upstream.py check --stage "$STAGE"
 
-      - name: Prepare candidate branch
+      - name: Prepare candidate
         if: env.RMX_AUTO_UPDATES == '1'
         run: |
-          python3 -I rmx3997/ci/upstream.py candidate --stage "$STAGE" --label "$LABEL" \
+          python3 -I rmx3997/ci/upstream.py candidate --stage "$STAGE" \
             --repo-url "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" --expect-main "$(git rev-parse HEAD)"
 
       - name: Refresh config
@@ -64,6 +69,15 @@ jobs:
           RMX_REFRESH_CONFIG=1 bash rmx3997/ci/build.sh "$STAGE/cfg"
           python3 -I rmx3997/ci/upstream.py refresh-commit --src .
           touch "$STAGE/config-refresh.ok"
+
+      - name: Next tag, README and release notes
+        if: env.RMX_CAND_CHANGED == '1'
+        env:
+          TOKEN: ${{ forgejo.token }}
+        run: |
+          cd "$RMX_CAND_SRC"
+          python3 -I rmx3997/ci/upstream.py plan-release --stage "$STAGE" \
+            --repo-url "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git"
 
       - name: Verify pinned host inputs
         if: env.RMX_CAND_CHANGED == '1'
@@ -84,11 +98,11 @@ jobs:
         run: |
           set -Eeuo pipefail
           cd "$RMX_CAND_SRC"
-          python3 -I rmx3997/ci/rmx_ci.py package --stage "$STAGE/b" --label "auto-$LABEL" \
+          python3 -I rmx3997/ci/rmx_ci.py package --stage "$STAGE/b" --label "$RMX_TAG" \
             --commit "$(git rev-parse HEAD)" --run-url "$RUN_URL"
           cat "$STAGE/b/dist.env" >> "$FORGEJO_ENV"
 
-      - name: Upload candidate ZIP
+      - name: Upload build artifact
         if: env.RMX_CAND_CHANGED == '1'
         uses: https://code.forgejo.org/forgejo/upload-artifact@16871d9e8cfcf27ff31822cac382bbb5450f1e1e
         with:
@@ -97,13 +111,46 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Push branch and report
+      - name: Fast-forward main and push the tag
+        if: env.RMX_CAND_CHANGED == '1'
+        env:
+          TOKEN: ${{ forgejo.token }}
+        run: |
+          set -Eeuo pipefail
+          python3 -I rmx3997/ci/upstream.py promote --stage "$STAGE" \
+            --repo-url "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git"
+
+      - name: Publish release
+        if: env.RMX_CAND_CHANGED == '1'
+        env:
+          RELEASE_TOKEN: ${{ forgejo.token }}
+          RUN_URL: ${{ forgejo.server_url }}/${{ forgejo.repository }}/actions/runs/${{ forgejo.run_number }}
+        run: |
+          set -Eeuo pipefail
+          cd "$RMX_CAND_SRC"
+          python3 -I rmx3997/ci/rmx_ci.py release --api "$FORGEJO_API_URL" \
+            --repo "$FORGEJO_REPOSITORY" --tag "$RMX_TAG" \
+            --commit "$(git rev-parse HEAD)" --dist "$RMX_DIST" --run-url "$RUN_URL"
+          touch "$STAGE/release.ok"
+
+      - name: Copy release to GitHub
+        if: env.RMX_CAND_CHANGED == '1'
+        env:
+          GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          cd "$RMX_CAND_SRC"
+          python3 -I rmx3997/ci/rmx_ci.py github-release --forgejo-api "$FORGEJO_API_URL" \
+            --repo "$FORGEJO_REPOSITORY" --github-repo ivangotoy/rmx3997-kernel --tag "$RMX_TAG"
+          touch "$STAGE/github.ok"
+
+      - name: Report
         if: always() && env.RMX_UPDATES == '1'
         env:
           TOKEN: ${{ forgejo.token }}
           RUN_URL: ${{ forgejo.server_url }}/${{ forgejo.repository }}/actions/runs/${{ forgejo.run_number }}
         run: |
-          python3 -I rmx3997/ci/upstream.py publish --stage "$STAGE" --api "$FORGEJO_API_URL" \
+          python3 -I rmx3997/ci/upstream.py report --stage "$STAGE" --api "$FORGEJO_API_URL" \
             --repo "$FORGEJO_REPOSITORY" --repo-url "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" \
             --run-url "$RUN_URL"
 

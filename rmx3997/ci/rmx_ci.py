@@ -15,6 +15,7 @@ import re
 import struct
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -535,17 +536,34 @@ def cmd_package(a):
 
 
 # ------------------------------------------------------------------ release
+TRIES = 6
+
+
+def open_url(req):
+    """urlopen with bounded retry on HTTP 429 (Forgejo rate-limits bursts).
+    A 429 is returned before the request is processed, so a POST is safe to repeat."""
+    for attempt in range(1, TRIES + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=300) as r:
+                return r.status, r.read()
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or attempt == TRIES:
+                return e.code, e.read()
+            try:
+                wait = max(0, min(int(e.headers.get('Retry-After')), 300))
+            except (TypeError, ValueError):
+                wait = 10 * attempt
+            print('HTTP 429 from %s, retrying in %d s' % (req.full_url.split('?', 1)[0], wait),
+                  flush=True)
+            time.sleep(wait)
+
+
 def api(method, url, token, data=None, ctype='application/json'):
     req = urllib.request.Request(url, data=data, method=method)
     req.add_header('Authorization', 'token ' + token)
     if data is not None:
         req.add_header('Content-Type', ctype)
-    try:
-        with urllib.request.urlopen(req, timeout=300) as r:
-            body = r.read()
-            return r.status, body
-    except urllib.error.HTTPError as e:
-        return e.code, e.read()
+    return open_url(req)
 
 
 def release_body(tag, commit, dist):
@@ -621,10 +639,7 @@ def fetch(url):
     """Anonymous GET (redirects followed); no credential can leave the host."""
     req = urllib.request.Request(url, headers={'User-Agent': 'rmx3997-ci'})
     try:
-        with urllib.request.urlopen(req, timeout=300) as r:
-            return r.status, r.read()
-    except urllib.error.HTTPError as e:
-        return e.code, e.read()
+        return open_url(req)
     except urllib.error.URLError as e:
         die('GET %s failed: %s' % (url.split('?', 1)[0], e.reason))
 

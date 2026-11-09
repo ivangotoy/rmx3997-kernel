@@ -2,7 +2,9 @@ name: RMX3997 kernel
 
 # Builds run on the maintainer's own host runner. Only people with write
 # access can trigger them: manual dispatch, or pushing an rmx3997-* tag.
-# There is deliberately no pull_request trigger.
+# There is deliberately no pull_request trigger. The weekly upstream job
+# (upstream-rmx3997.yml) builds and releases its own tags; a tag that already
+# has a release is not built again.
 on:
   workflow_dispatch:
     inputs:
@@ -47,7 +49,26 @@ jobs:
           git checkout -q --detach FETCH_HEAD
           echo "checked out $(git rev-parse HEAD)"
 
+      # The upstream job pushes its tag with the job token, which does not start
+      # workflows, and publishes the release in the same run. Both workflows
+      # share one concurrency group, so a run for such a tag could only start
+      # after that release exists: skip it instead of building the same commit
+      # twice. Any lookup result other than 200 or 404 fails the run.
+      - name: Skip a tag that is already released
+        if: forgejo.ref_type == 'tag'
+        run: |
+          set -Eeuo pipefail
+          code=$(curl -sS --retry 5 --retry-delay 10 -o /dev/null -w '%{http_code}' \
+            "$FORGEJO_API_URL/repos/$FORGEJO_REPOSITORY/releases/tags/$FORGEJO_REF_NAME")
+          case "$code" in
+            404) echo "no release for $FORGEJO_REF_NAME yet; building" ;;
+            200) echo "SKIP: $FORGEJO_REF_NAME already has a release; not building it again"
+                 echo 'RMX_SKIP=1' >> "$FORGEJO_ENV" ;;
+            *) echo "FAIL: release lookup returned HTTP $code"; exit 1 ;;
+          esac
+
       - name: Bind to the exact commit
+        if: env.RMX_SKIP != '1'
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           EVENT_SHA: ${{ forgejo.sha }}
@@ -60,6 +81,7 @@ jobs:
           echo "building $head"
 
       - name: Prepare disk-backed stage
+        if: env.RMX_SKIP != '1'
         run: |
           set -Eeuo pipefail
           case "$(findmnt -n -o FSTYPE --target "$HOME/.cache")" in ext4|xfs|btrfs) ;; *) echo 'FAIL: stage would not be disk-backed'; exit 1;; esac
@@ -70,15 +92,19 @@ jobs:
           df -h --output=avail "$HOME/.cache" | tail -1
 
       - name: Verify pinned host inputs
+        if: env.RMX_SKIP != '1'
         run: python3 -I rmx3997/ci/rmx_ci.py preflight
 
       - name: Build (config gate, guarded Full-LTO build)
+        if: env.RMX_SKIP != '1'
         run: bash rmx3997/ci/build.sh "$STAGE"
 
       - name: Acceptance gates
+        if: env.RMX_SKIP != '1'
         run: python3 -I rmx3997/ci/rmx_ci.py accept --stage "$STAGE"
 
       - name: Package ZIP (boot_b image stays on the host)
+        if: env.RMX_SKIP != '1'
         env:
           LABEL: ${{ forgejo.ref_type == 'tag' && forgejo.ref_name || format('ci{0}', forgejo.run_number) }}
           RUN_URL: ${{ forgejo.server_url }}/${{ forgejo.repository }}/actions/runs/${{ forgejo.run_number }}
@@ -89,6 +115,7 @@ jobs:
           cat "$STAGE/dist.env" >> "$FORGEJO_ENV"
 
       - name: Upload build artifact
+        if: env.RMX_SKIP != '1'
         uses: https://code.forgejo.org/forgejo/upload-artifact@16871d9e8cfcf27ff31822cac382bbb5450f1e1e
         with:
           name: ${{ env.RMX_BASE }}
@@ -97,7 +124,7 @@ jobs:
           retention-days: 30
 
       - name: Publish release (tag builds only)
-        if: forgejo.ref_type == 'tag'
+        if: forgejo.ref_type == 'tag' && env.RMX_SKIP != '1'
         env:
           RELEASE_TOKEN: ${{ forgejo.token }}
           RUN_URL: ${{ forgejo.server_url }}/${{ forgejo.repository }}/actions/runs/${{ forgejo.run_number }}
@@ -110,7 +137,7 @@ jobs:
       # the published release (the same ZIP and checksum) onto the mirrored tag.
       # It never creates or moves a tag and never edits an existing release.
       - name: Copy release to GitHub (tag builds only)
-        if: forgejo.ref_type == 'tag'
+        if: forgejo.ref_type == 'tag' && env.RMX_SKIP != '1'
         env:
           GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
         run: |
@@ -118,5 +145,5 @@ jobs:
             --repo "$FORGEJO_REPOSITORY" --github-repo ivangotoy/rmx3997-kernel --tag "$FORGEJO_REF_NAME"
 
       - name: Remove build tree
-        if: success()
+        if: success() && env.RMX_SKIP != '1'
         run: rm -rf "$STAGE/out" "$STAGE/work" "$STAGE/tmp" "$STAGE/pycache"
