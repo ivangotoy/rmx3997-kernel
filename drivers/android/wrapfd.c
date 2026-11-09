@@ -49,7 +49,9 @@ struct content_attribs {
 struct wrap_content_operations {
 	void (*get_content_attribs)(struct wrap_content *content,
 				    struct content_attribs *attrs);
-	int (*clear)(struct wrap_content *content);
+	int (*clear_prepare)(struct wrap_content *content);
+	void (*clear)(struct wrap_content *content);
+	void (*clear_complete)(struct wrap_content *content);
 	int (*load)(struct wrap_content *content, struct file *file,
 		    loff_t file_offs, loff_t buf_offs, loff_t len);
 	loff_t (*llseek)(struct wrap_content *content, loff_t offs, int whence);
@@ -80,6 +82,12 @@ struct wrap_content {
 struct wrap_content_dmabuf {
 	struct wrap_content content;
 	struct dma_buf *dmabuf;
+	/*
+	 * This map is used for clearing. No explicit synchronization is required, since the buffer
+	 * is only cleared during the rewrap and empty operations, at which point the content is not
+	 * visible to other threads.
+	 */
+	struct dma_buf_map map;
 	bool writable;
 };
 
@@ -155,15 +163,14 @@ static void dmabuf_get_content_attribs(struct wrap_content *content,
 	attrs->size = dmabuf_content->dmabuf->size;
 }
 
-static int dmabuf_content_clear(struct wrap_content *content)
+static int dmabuf_content_clear_prepare(struct wrap_content *content)
 {
 	struct wrap_content_dmabuf *dmabuf_content;
-	struct dma_buf_map map;
 	struct dma_buf *dmabuf;
+	struct dma_buf_map map;
 	int ret;
 
-	dmabuf_content = container_of(content, struct wrap_content_dmabuf,
-				      content);
+	dmabuf_content = container_of(content, struct wrap_content_dmabuf, content);
 	dmabuf = dmabuf_content->dmabuf;
 	ret = dma_buf_begin_cpu_access(dmabuf, DMA_BIDIRECTIONAL);
 	if (ret)
@@ -173,16 +180,40 @@ static int dmabuf_content_clear(struct wrap_content *content)
 	if (ret)
 		goto err_end_cpu;
 
-	if (!map.is_iomem)
-		memset(map.vaddr, 0, dmabuf->size);
-	else
+	if (map.is_iomem)
 		ret = -EINVAL;
+	else
+		dmabuf_content->map = map;
 
-	dma_buf_vunmap(dmabuf, &map);
+	if (ret)
+		dma_buf_vunmap(dmabuf, &map);
 err_end_cpu:
-	dma_buf_end_cpu_access(dmabuf, DMA_BIDIRECTIONAL);
-
+	if (ret)
+		dma_buf_end_cpu_access(dmabuf, DMA_BIDIRECTIONAL);
 	return ret;
+}
+
+static void dmabuf_content_clear(struct wrap_content *content)
+{
+	struct wrap_content_dmabuf *dmabuf_content;
+	struct dma_buf *dmabuf;
+
+	dmabuf_content = container_of(content, struct wrap_content_dmabuf, content);
+	dmabuf = dmabuf_content->dmabuf;
+	memset(dmabuf_content->map.vaddr, 0, dmabuf->size);
+}
+
+static void dmabuf_content_clear_complete(struct wrap_content *content)
+{
+	struct wrap_content_dmabuf *dmabuf_content;
+	struct dma_buf *dmabuf;
+
+	dmabuf_content = container_of(content, struct wrap_content_dmabuf, content);
+	dmabuf = dmabuf_content->dmabuf;
+
+	dma_buf_vunmap(dmabuf, &dmabuf_content->map);
+	dma_buf_map_clear(&dmabuf_content->map);
+	dma_buf_end_cpu_access(dmabuf, DMA_BIDIRECTIONAL);
 }
 
 static size_t dio_aligned_len(loff_t file_offs, size_t len)
@@ -746,7 +777,9 @@ static int dmabuf_content_ioctl(struct wrap_content *content,
 
 static struct wrap_content_operations dmabuf_content_ops = {
 	.get_content_attribs	= dmabuf_get_content_attribs,
+	.clear_prepare		= dmabuf_content_clear_prepare,
 	.clear			= dmabuf_content_clear,
+	.clear_complete		= dmabuf_content_clear_complete,
 	.load			= dmabuf_content_load,
 	.llseek			= dmabuf_content_llseek,
 	.mmap			= dmabuf_content_mmap,
@@ -771,6 +804,7 @@ static struct wrap_content *alloc_dmabuf_content(struct dma_buf *dmabuf,
 	dmabuf_content->dmabuf = dmabuf;
 	dmabuf_content->writable = writable;
 	dmabuf_content->content.ops = &dmabuf_content_ops;
+	dma_buf_map_clear(&dmabuf_content->map);
 
 	return &dmabuf_content->content;
 }
@@ -1014,10 +1048,13 @@ static inline int publish_wrap(struct wrap_ctx *ctx,
 	}
 
 	if (old_content == content) {
-		notify_content_release(old_content);
-		err = old_content->ops->clear(old_content);
+		err = old_content->ops->clear_prepare(old_content);
 		if (err)
 			goto put_file;
+
+		notify_content_release(old_content);
+		old_content->ops->clear(old_content);
+		old_content->ops->clear_complete(old_content);
 	}
 
 	/*
