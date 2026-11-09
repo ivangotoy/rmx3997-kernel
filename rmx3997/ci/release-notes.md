@@ -4,13 +4,10 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 ## Changes in this release
 
-- AmneziaWG built in, next to WireGuard. AmneziaWG is a WireGuard fork that
-  adds traffic obfuscation (junk packets, randomized headers and padding)
-  against deep packet inspection. The driver is
-  `amneziawg-linux-kernel-module` v3.1.20260906 (commit `4569c4c67f3a`),
-  using the kernel's own crypto library. Interfaces use the `amneziawg` link
-  type and are configured with `awg` and `awg-quick` from `amneziawg-tools`;
-  plain WireGuard interfaces and `wg` keep working unchanged.
+- SUSFS updated to v2.4.0 (`gki-android13-5.15` commit `fe943d15`). The
+  kernel now reports SUSFS version v2.4.0, and the SUSFS log messages for
+  added sus SELinux types and allowed AVD rules are rate-limited. SUSFS
+  features and the BakaSU integration are otherwise unchanged.
 
 ## Kernel features
 

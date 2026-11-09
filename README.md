@@ -30,7 +30,7 @@ come from Forgejo Actions; see Releases for downloads.
 
 **Root and security tooling**
 
-- BakaSU (KernelSU fork) built in, SUSFS `d5df1d93`
+- BakaSU (KernelSU fork) built in, SUSFS `fe943d15` (v2.4.0)
 - NoMount on the upstream track (maxsteeel `dev`), protocol 22
 - Baseband Guard built in
 - CFI enforced for both kernel and OEM modules, stack protector strong
@@ -228,6 +228,7 @@ current entry points.
 | `rmx3997-v5` | 5.15.223 | `/dev/ntsync` usable by apps |
 | `rmx3997-v6` | 5.15.223 | NFSv4 client |
 | `rmx3997-v7` | 5.15.223 | AmneziaWG |
+| `rmx3997-v8` | 5.15.223 | SUSFS v2.4.0 |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.
