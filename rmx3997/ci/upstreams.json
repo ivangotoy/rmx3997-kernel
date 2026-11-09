@@ -29,6 +29,7 @@
         "drivers/kernelsu/hook/setuid_hook.c",
         "drivers/kernelsu/preinit/preinit.c",
         "drivers/kernelsu/runtime/ksud_integration.c",
+        "drivers/kernelsu/selinux/rules.c",
         "drivers/kernelsu/supercall/dispatch.c",
         "drivers/kernelsu/supercall/supercall.c"
       ]
