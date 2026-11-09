@@ -130,7 +130,8 @@ performance or power claim.
 own host runner (`aimax-rmx-host`). It runs only on manual dispatch or when an
 `rmx3997-*` tag is pushed. Both need write access to this repository, and
 there is no pull-request trigger, so outside code never runs on the runner.
-Forks and mirrors skip the job.
+Forks and mirrors skip the job. A tag that already has a release (one the
+weekly upstream job built and published itself) is not built again.
 
 One run does the following, and any failed gate fails the run:
 
@@ -172,8 +173,9 @@ BBRv3 donor, AnyKernel3 and ZyC Clang. `python3 rmx3997/ci/upstream.py verify`
 checks that the vendored files equal those pins.
 
 `.forgejo/workflows/upstream-rmx3997.yml` runs every Monday (and on manual
-dispatch). When an upstream has moved, it builds an `auto/<date>` branch from
-main with the updates applied:
+dispatch). When an upstream has moved, it prepares a candidate on top of main
+with the updates applied (the candidate stays inside the run; no branch is
+pushed):
 
 - AOSP LTS: merged as a tree snapshot, like the earlier LTS merges.
 - AOSP security branch: new commits that are not in LTS are cherry-picked.
@@ -181,13 +183,21 @@ main with the updates applied:
   applied with a 3-way merge onto the local files.
 - BBRv3, AnyKernel3, ZyC Clang: reported only; they need a manual port.
 
-The branch then goes through the same config, build and acceptance gates as a
-tag build, including the struct layout gate, and the ZIP is kept as a run
-artifact. `olddefconfig` may add new symbols there; a change to any existing
-option fails the run. The result, with the upstream commit lists, is posted
-to the `Upstream updates` issue. A merge conflict or failed gate is reported
-the same way. The workflow never changes main and never tags; a release is
-still a manual fast-forward of main and an `rmx3997-*` tag push.
+`olddefconfig` may add new symbols; a change to any existing option fails the
+run. The run then picks the next `rmx3997-vN` tag and adds one commit with the
+README History row, the updated pins named in this README and the "Changes in
+this release" section of the release notes. That exact commit goes through the
+same config, build and acceptance gates as a tag build, including the struct
+layout gate, and is packaged under the tag's name.
+
+Only when every gate passes, the run fast-forwards main to that commit and
+pushes the annotated tag in one atomic push (it fails if main moved during the
+run), then publishes the release and its GitHub copy from the ZIP it built,
+exactly as a tag build does. That run is the release build; the tag push does
+not start a second one. If any gate fails, nothing is pushed. The result, with the
+upstream commit lists, is posted to the `Upstream updates` issue. A merge
+conflict or a component that needs a manual port is listed there and fails the
+run; the components that applied cleanly are still released.
 
 ## License
 
