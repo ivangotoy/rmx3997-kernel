@@ -4,10 +4,12 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 ## Changes in this release
 
-- SUSFS updated to v2.4.0 (`gki-android13-5.15` commit `fe943d15`). The
-  kernel now reports SUSFS version v2.4.0, and the SUSFS log messages for
-  added sus SELinux types and allowed AVD rules are rate-limited. SUSFS
-  features and the BakaSU integration are otherwise unchanged.
+- AOSP `android13-5.15` security branch update: 54 new commits that are not
+  in `android13-5.15-lts`. Most add the Android wrapfd driver
+  (`drivers/android/wrapfd.c`, `CONFIG_ANDROID_WRAPFD`), which this kernel
+  does not enable; its hook in `mm/mmap.c` and the `PAGE_ALIGN_DOWN` helper
+  are built in. The rest are selftest build fixes.
+- SUSFS stays at v2.4.0 (`fe943d15`).
 
 ## Kernel features
 
