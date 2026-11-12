@@ -105,7 +105,11 @@ def cache(name, url, refs, shallow_since=None):
     args = ['-C', str(d), 'fetch', '-q', '--no-tags']
     if shallow_since:
         args.append('--shallow-since=' + shallow_since)
-    git(*args, url, *['+refs/heads/%s:refs/heads/%s' % (r, r) for r in refs])
+    specs = ['+refs/heads/%s:refs/heads/%s' % (r, r) for r in refs]
+    if name == 'bakasu':
+        # bakasu_identity() needs the release tags for git describe
+        specs.append('+refs/tags/*:refs/tags/*')
+    git(*args, url, *specs)
     return d
 
 
