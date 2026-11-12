@@ -5,20 +5,20 @@
       "mode": "lts-merge",
       "url": "https://android.googlesource.com/kernel/common",
       "ref": "android13-5.15-lts",
-      "pin": "2316d138a3c3f2ec12cfb4b2f09ca9c95aa92ce5",
-      "snapshot": "ffbe4bbe066e3e869dae2a9b8b3e87fd58703571"
+      "pin": "f181319b13edc6e68c367bc247e36bc255097483",
+      "snapshot": "e76192159b60faf5b839b6616c8547a76062a4dd"
     },
     "aosp-security": {
       "mode": "security-backports",
       "url": "https://android.googlesource.com/kernel/common",
       "ref": "android13-5.15",
-      "pin": "a5a9930e03c61e245e77f94ef4d0fef4d57c5092"
+      "pin": "3f0fd7f6624d7b99bd8d93cbcfe0241bc92d6448"
     },
     "bakasu": {
       "mode": "subtree",
       "url": "https://github.com/Baka-SU/BakaSU",
       "ref": "main",
-      "pin": "516d3e87fbc986ccefdde2c2765f1700612441a9",
+      "pin": "548d1dda060ca198823d8808804d01f5209ef4a9",
       "paths": {
         "kernel/": "drivers/kernelsu/"
       },
