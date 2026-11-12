@@ -1009,10 +1009,10 @@ version_ge() {
 do_check_boot_version() {
   ui_print " " "  -> Check kernel version compatibility..."
 
-  # BYPASS: do.check_boot_version=0 in anykernel.sh skips check
+  # SKIPPED: do.check_boot_version=0 in anykernel.sh skips check
   if [ "$(file_getprop anykernel.sh do.check_boot_version)" != 1 ]; then
-    ui_print "  -> [BYPASS] do.check_boot_version=0: version check SKIPPED."
-    ui_print "  -> [BYPASS] Forced flash. Proceed with caution!"
+    ui_print "  -> [SKIPPED] do.check_boot_version=0: version check SKIPPED."
+    ui_print "  -> [SKIPPED] Forced flash. Proceed with caution!"
     return 1
   fi
 

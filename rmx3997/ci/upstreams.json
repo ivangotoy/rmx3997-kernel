@@ -105,7 +105,7 @@
       "mode": "report",
       "url": "https://github.com/WildKernels/AnyKernel3",
       "ref": "gki-2.0",
-      "pin": "0b46673ae91aee8d60bd6ee257b4d56d3f6a0114",
+      "pin": "e1e9dce98430c5c6f231f7094a8c7f4ecaf50948",
       "note": "installer; port by hand into rmx3997/development/wk-anykernel"
     },
     "zyc-clang": {

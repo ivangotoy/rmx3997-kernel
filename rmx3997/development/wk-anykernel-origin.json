@@ -1,6 +1,6 @@
 {
   "repository": "WildKernels/AnyKernel3",
-  "commit": "0b46673ae91aee8d60bd6ee257b4d56d3f6a0114",
+  "commit": "e1e9dce98430c5c6f231f7094a8c7f4ecaf50948",
   "authenticated_binary_git_blobs": {
     "tools/busybox": "9a8246d1726a65f94105fce2115b3354d322996c",
     "tools/magiskboot": "c8719093d934b383d7ade6aaa0fe237acf31203a",
@@ -9,7 +9,7 @@
   },
   "authenticated_text_git_blobs": {
     "anykernel.sh": "6a97197fef49cc39ca8f4f241734460651272352",
-    "ak3-core.sh": "9ba26e9587731d06e86ea45cbe672a1284d92cf4",
+    "ak3-core.sh": "098506eac2ead126efae3019ca0687cd7d244be7",
     "update-binary": "9b321d0e6e785ee59deaf232cb54b6333a38bdb0"
   },
   "adaptation": {

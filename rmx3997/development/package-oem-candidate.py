@@ -76,7 +76,7 @@ def package(image, output, identity):
             raise ValueError('Pinned AnyKernel tool/license identity differs: ' + name)
     members['Image'] = image.read_bytes()
     members['manifest.json'] = (json.dumps({**identity,
-        'AnyKernel3': 'WildKernels/AnyKernel3@0b46673ae91aee8d60bd6ee257b4d56d3f6a0114',
+        'AnyKernel3': 'WildKernels/AnyKernel3@e1e9dce98430c5c6f231f7094a8c7f4ecaf50948',
         'target': 'active boot only; existing ramdisk/DT/header retained',
         'phone_boot': 'UNVERIFIED', 'native_package_validation': 'PENDING',
         'boot_AVB_policy': 'CUSTOM-UNSIGNED AVB NONE; original NONE/SHA256_RSA2048 verified; requires 0/unlocked/orange; OEM signature removed; no vbmeta partition or rollback flag changes',
