@@ -47,6 +47,10 @@
         "kernel_patches/include/linux/susfs.h",
         "kernel_patches/include/linux/susfs_def.h"
       ],
+      "local_modified": [
+        "fs/susfs.c",
+        "include/linux/susfs_def.h"
+      ],
       "manual_paths": [
         "kernel_patches/50_add_susfs_in_gki-android13-5.15.patch",
         "kernel_patches/KernelSU/"

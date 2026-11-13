@@ -109,6 +109,9 @@
 #include <linux/poll.h>
 #include <linux/rtnetlink.h>
 #include <linux/mount.h>
+#ifdef CONFIG_KSU_SUSFS
+#include <linux/susfs_def.h>
+#endif
 #include <net/checksum.h>
 #include <linux/security.h>
 #include <linux/freezer.h>
@@ -737,12 +740,82 @@ static void unix_show_fdinfo(struct seq_file *m, struct socket *sock)
 #define unix_show_fdinfo NULL
 #endif
 
+#ifdef CONFIG_KSU_SUSFS
+static bool susfs_is_hidden_adb_jdwp_addr(struct sockaddr *uaddr, int addr_len)
+{
+	struct sockaddr_un *sunaddr = (struct sockaddr_un *)uaddr;
+	int path_len;
+
+	if (!uaddr || addr_len <= offsetof(struct sockaddr_un, sun_path) ||
+	    addr_len > sizeof(*sunaddr) || sunaddr->sun_family != AF_UNIX)
+		return false;
+
+	if (!susfs_is_current_app_uid())
+		return false;
+
+	path_len = addr_len - offsetof(struct sockaddr_un, sun_path);
+	if (!sunaddr->sun_path[0]) {
+		return (path_len == 13 &&
+			!memcmp(sunaddr->sun_path + 1, "jdwp-control", 12)) ||
+		       (path_len > 13 &&
+			!memcmp(sunaddr->sun_path + 1, "jdwp-control", 12) &&
+			sunaddr->sun_path[13] == '\0');
+	}
+
+	return (path_len >= 16 &&
+		!strncmp(sunaddr->sun_path, "/dev/socket/adbd", 16) &&
+		(path_len == 16 || sunaddr->sun_path[16] == '\0')) ||
+	       (path_len >= 11 &&
+		!strncmp(sunaddr->sun_path, "/dev/socket", 11) &&
+		strnstr(sunaddr->sun_path, "/adbd", path_len));
+}
+
+static int susfs_unix_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
+{
+	if (unlikely(susfs_is_hidden_adb_jdwp_addr(uaddr, addr_len))) {
+		struct sockaddr_un *sunaddr = (struct sockaddr_un *)uaddr;
+
+		if (sunaddr->sun_path[0])
+			return -EACCES;
+		return 0;
+	}
+	return unix_bind(sock, uaddr, addr_len);
+}
+
+static int susfs_unix_stream_connect(struct socket *sock, struct sockaddr *uaddr,
+				     int addr_len, int flags)
+{
+	if (unlikely(susfs_is_hidden_adb_jdwp_addr(uaddr, addr_len))) {
+		struct sockaddr_un *sunaddr = (struct sockaddr_un *)uaddr;
+
+		return sunaddr->sun_path[0] ? -ENOENT : -ECONNREFUSED;
+	}
+	return unix_stream_connect(sock, uaddr, addr_len, flags);
+}
+
+static int susfs_unix_dgram_connect(struct socket *sock, struct sockaddr *addr,
+				    int alen, int flags)
+{
+	if (unlikely(susfs_is_hidden_adb_jdwp_addr(addr, alen))) {
+		struct sockaddr_un *sunaddr = (struct sockaddr_un *)addr;
+
+		return sunaddr->sun_path[0] ? -ENOENT : -ECONNREFUSED;
+	}
+	return unix_dgram_connect(sock, addr, alen, flags);
+}
+#endif
+
 static const struct proto_ops unix_stream_ops = {
 	.family =	PF_UNIX,
 	.owner =	THIS_MODULE,
 	.release =	unix_release,
+#ifdef CONFIG_KSU_SUSFS
+	.bind =		susfs_unix_bind,
+	.connect =	susfs_unix_stream_connect,
+#else
 	.bind =		unix_bind,
 	.connect =	unix_stream_connect,
+#endif
 	.socketpair =	unix_socketpair,
 	.accept =	unix_accept,
 	.getname =	unix_getname,
@@ -767,8 +840,13 @@ static const struct proto_ops unix_dgram_ops = {
 	.family =	PF_UNIX,
 	.owner =	THIS_MODULE,
 	.release =	unix_release,
+#ifdef CONFIG_KSU_SUSFS
+	.bind =		susfs_unix_bind,
+	.connect =	susfs_unix_dgram_connect,
+#else
 	.bind =		unix_bind,
 	.connect =	unix_dgram_connect,
+#endif
 	.socketpair =	unix_socketpair,
 	.accept =	sock_no_accept,
 	.getname =	unix_getname,
@@ -792,8 +870,13 @@ static const struct proto_ops unix_seqpacket_ops = {
 	.family =	PF_UNIX,
 	.owner =	THIS_MODULE,
 	.release =	unix_release,
+#ifdef CONFIG_KSU_SUSFS
+	.bind =		susfs_unix_bind,
+	.connect =	susfs_unix_stream_connect,
+#else
 	.bind =		unix_bind,
 	.connect =	unix_stream_connect,
+#endif
 	.socketpair =	unix_socketpair,
 	.accept =	unix_accept,
 	.getname =	unix_getname,
@@ -3264,6 +3347,22 @@ static int unix_seq_show(struct seq_file *seq, void *v)
 		struct sock *s = v;
 		struct unix_sock *u = unix_sk(s);
 		unix_state_lock(s);
+#ifdef CONFIG_KSU_SUSFS
+		if (u->addr && susfs_is_current_app_uid()) {
+			int path_len = u->addr->len - offsetof(struct sockaddr_un, sun_path);
+			const char *sp = u->addr->name->sun_path;
+			if (path_len > 0) {
+				if (!sp[0] && path_len >= 13 && !memcmp(sp + 1, "jdwp-control", 12)) {
+					unix_state_unlock(s);
+					return 0;
+				}
+				if (sp[0] && path_len >= 16 && !memcmp(sp, "/dev/socket/adbd", 16)) {
+					unix_state_unlock(s);
+					return 0;
+				}
+			}
+		}
+#endif
 
 		seq_printf(seq, "%pK: %08X %08X %08X %04X %02X %5lu",
 			s,

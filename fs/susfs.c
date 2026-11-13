@@ -371,6 +371,18 @@ bool susfs_is_inode_sus_path(struct inode *inode)
 #endif
 {
 	struct fuse_inode *fi = NULL;
+	if (unlikely(S_ISSOCK(inode->i_mode) && susfs_is_current_app_uid())) {
+		struct dentry *dentry;
+		rcu_read_lock();
+		dentry = hlist_entry_safe(READ_ONCE(inode->i_dentry.first),
+					  struct dentry, d_u.d_alias);
+		if (dentry && !strcmp(dentry->d_name.name, "adbd") &&
+		    dentry->d_parent && !strcmp(dentry->d_parent->d_name.name, "socket")) {
+			rcu_read_unlock();
+			return true;
+		}
+		rcu_read_unlock();
+	}
 	if (!susfs_is_current_proc_umounted_app()) {
 		return false;
 	}

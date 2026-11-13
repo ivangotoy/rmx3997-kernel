@@ -4,6 +4,14 @@
 #include <linux/bits.h>
 #include <linux/bitmap.h>
 #include <linux/string.h>
+#include <linux/cred.h>
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+#define SUSFS_FILLDIR_SKIP true
+#else
+#define SUSFS_FILLDIR_SKIP 0
+#endif
 
 /********/
 /* ENUM */

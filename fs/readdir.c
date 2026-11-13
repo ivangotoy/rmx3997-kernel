@@ -171,6 +171,10 @@ static int fillonedir(struct dir_context *ctx, const char *name, int namlen,
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
 	inode = ilookup(buf->sb, ino);
 	if (!inode) {
+		if (unlikely(d_type == DT_SOCK && namlen == 4 &&
+			     !memcmp(name, "adbd", 4) &&
+			     susfs_is_current_app_uid()))
+			return SUSFS_FILLDIR_SKIP;
 		goto orig_flow;
 	}
 	if (susfs_is_inode_sus_path(inode)) {
@@ -278,6 +282,10 @@ static int filldir(struct dir_context *ctx, const char *name, int namlen,
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
 	inode = ilookup(buf->sb, ino);
 	if (!inode) {
+		if (unlikely(d_type == DT_SOCK && namlen == 4 &&
+			     !memcmp(name, "adbd", 4) &&
+			     susfs_is_current_app_uid()))
+			return SUSFS_FILLDIR_SKIP;
 		goto orig_flow;
 	}
 	if (susfs_is_inode_sus_path(inode)) {
@@ -381,6 +389,10 @@ static int filldir64(struct dir_context *ctx, const char *name, int namlen,
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
 	inode = ilookup(buf->sb, ino);
 	if (!inode) {
+		if (unlikely(d_type == DT_SOCK && namlen == 4 &&
+			     !memcmp(name, "adbd", 4) &&
+			     susfs_is_current_app_uid()))
+			return SUSFS_FILLDIR_SKIP;
 		goto orig_flow;
 	}
 	if (susfs_is_inode_sus_path(inode)) {
@@ -492,6 +504,10 @@ static int compat_fillonedir(struct dir_context *ctx, const char *name,
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
 	inode = ilookup(buf->sb, ino);
 	if (!inode) {
+		if (unlikely(d_type == DT_SOCK && namlen == 4 &&
+			     !memcmp(name, "adbd", 4) &&
+			     susfs_is_current_app_uid()))
+			return SUSFS_FILLDIR_SKIP;
 		goto orig_flow;
 	}
 	if (susfs_is_inode_sus_path(inode)) {
@@ -593,6 +609,10 @@ static int compat_filldir(struct dir_context *ctx, const char *name, int namlen,
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
 	inode = ilookup(buf->sb, ino);
 	if (!inode) {
+		if (unlikely(d_type == DT_SOCK && namlen == 4 &&
+			     !memcmp(name, "adbd", 4) &&
+			     susfs_is_current_app_uid()))
+			return SUSFS_FILLDIR_SKIP;
 		goto orig_flow;
 	}
 	if (susfs_is_inode_sus_path(inode)) {
