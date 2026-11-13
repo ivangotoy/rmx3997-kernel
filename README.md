@@ -24,7 +24,7 @@ come from Forgejo Actions; see Releases for downloads.
 | Kernel | Linux 5.15.223, Android13-5.15 GKI KMI8 |
 | Compiler | ZyC Clang 18.0.0git (LLVM `3dea0aa8`), Full LTO, strict CFI |
 | Default TCP congestion control | `bbr3` (BBRv3 backport); upstream `bbr` still available |
-| Metamodule support | NoMount protocol 22 (metamodule versionCode 647) |
+| Metamodule support | NoMount protocol 22 (metamodule versionCode 713) |
 
 ## Features
 
@@ -241,6 +241,7 @@ current entry points.
 | `rmx3997-v8` | 5.15.223 | SUSFS v2.4.0 |
 | `rmx3997-v9` | 5.15.223 | `android13-5.15` security branch update (wrapfd driver, not enabled) |
 | `rmx3997-v10` | 5.15.223 | `android13-5.15-lts` update (exec timer, memcg and tracing fixes), BakaSU 35259 |
+| `rmx3997-v11` | 5.15.223 | NoMount `6298d58a` engine update (metamodule 713), adbd and jdwp-control sockets hidden from apps, `select_idle_capacity` scan order, 500 ms default timeout for userspace wakelocks |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.

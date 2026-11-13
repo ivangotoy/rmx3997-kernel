@@ -4,16 +4,27 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 ## Changes in this release
 
-- AOSP `android13-5.15-lts` update (`2316d138`..`f181319b`, still Linux
-  5.15.223). It brings four upstream fixes that were not in this kernel yet:
-  POSIX timer cleanup right after `de_thread()` on exec, a NULL dereference
-  and use-after-free in the memcg high-limit work on a dying cgroup, and two
-  tracing histogram trigger fixes.
-- AOSP `android13-5.15` security branch: no commit outside the LTS branch.
-- BakaSU `548d1dda`: the upstream changes are manager only; the kernel driver
-  code is unchanged and its reported version is now 35259.
-- Installer: AnyKernel3 `gki-2.0` `e1e9dce9` (message wording).
-- NoMount stays at protocol 22, SUSFS at v2.4.0 (`fe943d15`).
+- NoMount `7fce5e2c`..`6298d58a` (maxsteeel `dev`, 65 upstream commits), ported
+  by hand: hash-bucket child index, rules that follow their backing file,
+  refcounted leaves with RCU retirement, and upstream fixes for a NULL dentry
+  dereference on cross-superblock backing children, rebind type mismatch,
+  out-of-bounds readdir and positive whiteouts. The protocol stays 22. Install
+  the matching NoMount metamodule build, versionCode 713
+  (`NoMount-v2.2.0-dev-6298d58-713`), together with this kernel.
+- SUSFS: the adbd and `jdwp-control` sockets are hidden from app UIDs. Apps can
+  no longer connect to `@jdwp-control` or see `/dev/socket/adbd`. Side effect:
+  JDWP debugging of apps on the phone (the Android Studio debugger) does not
+  work with this kernel; `adb shell`, `logcat` and `install` are unaffected.
+- Scheduler: `select_idle_capacity()` starts its scan at the CPU after the
+  target (mainline `8589018acc65`).
+- Wakelocks: a userspace wakelock written to `/sys/power/wake_lock` without a
+  timeout now expires after 500 ms unless it is taken again; wakelocks with an
+  explicit timeout and kernel wakeup sources are unchanged.
+- Component versions in this release: AOSP `android13-5.15-lts` `f181319b`
+  (Linux 5.15.223), `android13-5.15` security branch `3f0fd7f6`, BakaSU
+  `548d1dda` (35259), SUSFS `fe943d15` (v2.4.0), NoMount `6298d58a`, Baseband
+  Guard `028ff7fd`, BBRv3 donor `f3544ee0`, AnyKernel3 `gki-2.0` `e1e9dce9`.
+  Only NoMount changed since the previous release.
 - `production.config` is unchanged.
 
 ## Kernel features
