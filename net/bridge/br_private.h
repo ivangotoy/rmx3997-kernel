@@ -464,13 +464,6 @@ struct net_bridge {
 
 	struct rhashtable		fdb_hash_tbl;
 	struct list_head		port_list;
-#if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
-	union {
-		struct rtable		fake_rtable;
-		struct rt6_info		fake_rt6_info;
-	};
-	u32				metrics[RTAX_MAX];
-#endif
 	u16				group_fwd_mask;
 	u16				group_fwd_mask_required;
 
@@ -583,6 +576,33 @@ struct br_input_skb_cb {
 # define BR_INPUT_SKB_CB_MROUTERS_ONLY(__skb)	(BR_INPUT_SKB_CB(__skb)->mrouters_only)
 #else
 # define BR_INPUT_SKB_CB_MROUTERS_ONLY(__skb)	(0)
+#endif
+
+#if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
+/*
+ * br_netfilter state of a bridge. KABI: it is not a member of struct
+ * net_bridge, whose layout has to stay the one prebuilt modules and the
+ * layout gate know. It lives in the same netdev private area, right behind
+ * struct net_bridge (BR_PRIV_SIZE), so it has the lifetime of the device.
+ */
+struct net_bridge_nf {
+	union {
+		struct rtable		fake_rtable;
+		struct rt6_info		fake_rt6_info;
+	};
+	u32				metrics[RTAX_MAX];
+};
+
+#define BR_NF_PRIV_OFFSET \
+	ALIGN(sizeof(struct net_bridge), __alignof__(struct net_bridge_nf))
+#define BR_PRIV_SIZE	(BR_NF_PRIV_OFFSET + sizeof(struct net_bridge_nf))
+
+static inline struct net_bridge_nf *br_nf_priv(const struct net_bridge *br)
+{
+	return (struct net_bridge_nf *)((char *)br + BR_NF_PRIV_OFFSET);
+}
+#else
+#define BR_PRIV_SIZE	sizeof(struct net_bridge)
 #endif
 
 #define br_printk(level, br, format, args...)	\

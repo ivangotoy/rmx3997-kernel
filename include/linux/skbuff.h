@@ -4414,9 +4414,6 @@ static inline void skb_set_nfct(struct sk_buff *skb, unsigned long nfct)
 
 #ifdef CONFIG_SKB_EXTENSIONS
 enum skb_ext_id {
-#if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
-	SKB_EXT_BRIDGE_NF,
-#endif
 #ifdef CONFIG_XFRM
 	SKB_EXT_SEC_PATH,
 #endif
@@ -4426,8 +4423,25 @@ enum skb_ext_id {
 #if IS_ENABLED(CONFIG_MPTCP)
 	SKB_EXT_MPTCP,
 #endif
-	SKB_EXT_NUM, /* must be last */
+	SKB_EXT_NUM, /* number of slots in skb_ext.offset[] */
+#if IS_ENABLED(CONFIG_BRIDGE_NETFILTER) && !defined(__GENKSYMS__)
+	/*
+	 * KABI: prebuilt vendor modules were compiled without this extension.
+	 * It is numbered after the ids they know and has no slot in
+	 * skb_ext.offset[], so struct skb_ext and the existing ids keep
+	 * their layout and values. See __skb_ext_offp().
+	 */
+	SKB_EXT_BRIDGE_NF = SKB_EXT_NUM,
+#endif
 };
+
+/* Extensions without a slot in skb_ext.offset[] (see above). */
+#if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
+#define SKB_EXT_NUM_XOFF	1
+#else
+#define SKB_EXT_NUM_XOFF	0
+#endif
+#define SKB_EXT_NUM_ALL		(SKB_EXT_NUM + SKB_EXT_NUM_XOFF)
 
 /**
  *	struct skb_ext - sk_buff extensions
@@ -4478,9 +4492,24 @@ static inline void skb_ext_copy(struct sk_buff *dst, const struct sk_buff *src)
 	__skb_ext_copy(dst, src);
 }
 
+/*
+ * Where the offset of extension @id is stored. Ids below SKB_EXT_NUM use
+ * skb_ext.offset[]. The others use one byte each in the first chunk of
+ * skb_ext.data[], which net/core/skbuff.c reserves in every extension block
+ * when SKB_EXT_NUM_XOFF is not zero.
+ */
+static inline u8 *__skb_ext_offp(const struct skb_ext *ext, enum skb_ext_id id)
+{
+#if SKB_EXT_NUM_XOFF
+	if ((unsigned int)id >= SKB_EXT_NUM)
+		return (u8 *)ext->data + ((unsigned int)id - SKB_EXT_NUM);
+#endif
+	return (u8 *)&ext->offset[id];
+}
+
 static inline bool __skb_ext_exist(const struct skb_ext *ext, enum skb_ext_id i)
 {
-	return !!ext->offset[i];
+	return !!*__skb_ext_offp(ext, i);
 }
 
 static inline bool skb_ext_exist(const struct sk_buff *skb, enum skb_ext_id id)
@@ -4499,7 +4528,7 @@ static inline void *skb_ext_find(const struct sk_buff *skb, enum skb_ext_id id)
 	if (skb_ext_exist(skb, id)) {
 		struct skb_ext *ext = skb->extensions;
 
-		return (void *)ext + (ext->offset[id] << 3);
+		return (void *)ext + (*__skb_ext_offp(ext, id) << 3);
 	}
 
 	return NULL;

@@ -223,7 +223,7 @@ static int br_change_mtu(struct net_device *dev, int new_mtu)
 	br_opt_toggle(br, BROPT_MTU_SET_BY_USER, true);
 #if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
 	/* remember the MTU in the rtable for PMTU */
-	dst_metric_set(&br->fake_rtable.dst, RTAX_MTU, new_mtu);
+	dst_metric_set(&br_nf_priv(br)->fake_rtable.dst, RTAX_MTU, new_mtu);
 #endif
 
 	return 0;

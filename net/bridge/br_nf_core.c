@@ -67,11 +67,12 @@ static struct dst_ops fake_dst_ops = {
  */
 void br_netfilter_rtable_init(struct net_bridge *br)
 {
-	struct rtable *rt = &br->fake_rtable;
+	struct net_bridge_nf *nf = br_nf_priv(br);
+	struct rtable *rt = &nf->fake_rtable;
 
 	atomic_set(&rt->dst.__refcnt, 1);
 	rt->dst.dev = br->dev;
-	dst_init_metrics(&rt->dst, br->metrics, false);
+	dst_init_metrics(&rt->dst, nf->metrics, false);
 	dst_metric_set(&rt->dst, RTAX_MTU, br->dev->mtu);
 	rt->dst.flags	= DST_NOXFRM | DST_FAKE_RTABLE;
 	rt->dst.ops = &fake_dst_ops;

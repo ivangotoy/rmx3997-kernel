@@ -67,9 +67,9 @@ static void nf_queue_entry_release_refs(struct nf_queue_entry *entry)
 		nf_queue_sock_put(state->sk);
 
 #if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
-	dev_put(entry->bridge_dev);
-	dev_put(entry->physin);
-	dev_put(entry->physout);
+	dev_put(nf_queue_entry_br(entry)->bridge_dev);
+	dev_put(nf_queue_entry_br(entry)->physin);
+	dev_put(nf_queue_entry_br(entry)->physout);
 #endif
 }
 
@@ -83,6 +83,7 @@ EXPORT_SYMBOL_GPL(nf_queue_entry_free);
 static void __nf_queue_entry_init_physdevs(struct nf_queue_entry *entry)
 {
 #if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
+	struct nf_queue_entry_br *br = nf_queue_entry_br(entry);
 	const struct sk_buff *skb = entry->skb;
 	struct dst_entry *dst = skb_dst(skb);
 	struct net_device *dev = NULL;
@@ -90,11 +91,11 @@ static void __nf_queue_entry_init_physdevs(struct nf_queue_entry *entry)
 
 	nf_bridge = nf_bridge_info_get(skb);
 	if (nf_bridge) {
-		entry->physin = nf_bridge_get_physindev(skb);
-		entry->physout = nf_bridge_get_physoutdev(skb);
+		br->physin = nf_bridge_get_physindev(skb);
+		br->physout = nf_bridge_get_physoutdev(skb);
 	} else {
-		entry->physin = NULL;
-		entry->physout = NULL;
+		br->physin = NULL;
+		br->physout = NULL;
 	}
 
 	if (entry->state.pf == NFPROTO_BRIDGE &&
@@ -105,7 +106,7 @@ static void __nf_queue_entry_init_physdevs(struct nf_queue_entry *entry)
 	 * the dst itself, but the fake rtable is embedded in bridge-private
 	 * storage that netdevice teardown can free independently.
 	 */
-	entry->bridge_dev = dev;
+	br->bridge_dev = dev;
 #endif
 }
 
@@ -122,9 +123,9 @@ bool nf_queue_entry_get_refs(struct nf_queue_entry *entry)
 	dev_hold(state->out);
 
 #if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
-	dev_hold(entry->bridge_dev);
-	dev_hold(entry->physin);
-	dev_hold(entry->physout);
+	dev_hold(nf_queue_entry_br(entry)->bridge_dev);
+	dev_hold(nf_queue_entry_br(entry)->physin);
+	dev_hold(nf_queue_entry_br(entry)->physout);
 #endif
 	return true;
 }
@@ -208,7 +209,8 @@ static int __nf_queue(struct sk_buff *skb, const struct nf_hook_state *state,
 		}
 	}
 
-	entry = kmalloc(sizeof(*entry) + route_key_size, GFP_ATOMIC);
+	entry = kmalloc(sizeof(*entry) + NF_QUEUE_ENTRY_BR_SIZE + route_key_size,
+			GFP_ATOMIC);
 	if (!entry)
 		return -ENOMEM;
 
@@ -222,7 +224,7 @@ static int __nf_queue(struct sk_buff *skb, const struct nf_hook_state *state,
 		.skb_dev = skb->dev,
 		.state	= *state,
 		.hook_index = index,
-		.size	= sizeof(*entry) + route_key_size,
+		.size	= sizeof(*entry) + NF_QUEUE_ENTRY_BR_SIZE + route_key_size,
 	};
 	__nf_queue_entry_init_physdevs(entry);
 

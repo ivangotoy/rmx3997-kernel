@@ -4540,6 +4540,13 @@ done:
 #ifdef CONFIG_SKB_EXTENSIONS
 #define SKB_EXT_ALIGN_VALUE	8
 #define SKB_EXT_CHUNKSIZEOF(x)	(ALIGN((sizeof(x)), SKB_EXT_ALIGN_VALUE) / SKB_EXT_ALIGN_VALUE)
+/*
+ * Chunks at the start of skb_ext.data[] that hold the offsets of the
+ * extensions without a slot in skb_ext.offset[] (__skb_ext_offp()), and the
+ * resulting first chunk usable for extension payload.
+ */
+#define SKB_EXT_XOFF_CHUNKS	(ALIGN(SKB_EXT_NUM_XOFF, SKB_EXT_ALIGN_VALUE) / SKB_EXT_ALIGN_VALUE)
+#define SKB_EXT_HDR_CHUNKS	(SKB_EXT_CHUNKSIZEOF(struct skb_ext) + SKB_EXT_XOFF_CHUNKS)
 
 static const u8 skb_ext_type_len[] = {
 #if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
@@ -4558,7 +4565,7 @@ static const u8 skb_ext_type_len[] = {
 
 static __always_inline unsigned int skb_ext_total_length(void)
 {
-	return SKB_EXT_CHUNKSIZEOF(struct skb_ext) +
+	return SKB_EXT_HDR_CHUNKS +
 #if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
 		skb_ext_type_len[SKB_EXT_BRIDGE_NF] +
 #endif
@@ -4576,7 +4583,8 @@ static __always_inline unsigned int skb_ext_total_length(void)
 
 static void skb_extensions_init(void)
 {
-	BUILD_BUG_ON(SKB_EXT_NUM >= 8);
+	BUILD_BUG_ON(SKB_EXT_NUM_ALL >= 8);
+	BUILD_BUG_ON(ARRAY_SIZE(skb_ext_type_len) != SKB_EXT_NUM_ALL);
 	BUILD_BUG_ON(skb_ext_total_length() > 255);
 
 	skbuff_ext_cache = kmem_cache_create("skbuff_ext_cache",
@@ -6541,7 +6549,7 @@ void skb_condense(struct sk_buff *skb)
 #ifdef CONFIG_SKB_EXTENSIONS
 static void *skb_ext_get_ptr(struct skb_ext *ext, enum skb_ext_id id)
 {
-	return (void *)ext + (ext->offset[id] * SKB_EXT_ALIGN_VALUE);
+	return (void *)ext + (*__skb_ext_offp(ext, id) * SKB_EXT_ALIGN_VALUE);
 }
 
 /**
@@ -6559,6 +6567,9 @@ struct skb_ext *__skb_ext_alloc(gfp_t flags)
 
 	if (new) {
 		memset(new->offset, 0, sizeof(new->offset));
+		if (SKB_EXT_XOFF_CHUNKS)
+			memset(new->data, 0,
+			       SKB_EXT_XOFF_CHUNKS * SKB_EXT_ALIGN_VALUE);
 		refcount_set(&new->refcnt, 1);
 	}
 
@@ -6606,12 +6617,12 @@ static struct skb_ext *skb_ext_maybe_cow(struct skb_ext *old,
 void *__skb_ext_set(struct sk_buff *skb, enum skb_ext_id id,
 		    struct skb_ext *ext)
 {
-	unsigned int newlen, newoff = SKB_EXT_CHUNKSIZEOF(*ext);
+	unsigned int newlen, newoff = SKB_EXT_HDR_CHUNKS;
 
 	skb_ext_put(skb);
 	newlen = newoff + skb_ext_type_len[id];
 	ext->chunks = newlen;
-	ext->offset[id] = newoff;
+	*__skb_ext_offp(ext, id) = newoff;
 	skb->extensions = ext;
 	skb->active_extensions = 1 << id;
 	return skb_ext_get_ptr(ext, id);
@@ -6648,7 +6659,7 @@ void *skb_ext_add(struct sk_buff *skb, enum skb_ext_id id)
 
 		newoff = new->chunks;
 	} else {
-		newoff = SKB_EXT_CHUNKSIZEOF(*new);
+		newoff = SKB_EXT_HDR_CHUNKS;
 
 		new = __skb_ext_alloc(GFP_ATOMIC);
 		if (!new)
@@ -6657,7 +6668,7 @@ void *skb_ext_add(struct sk_buff *skb, enum skb_ext_id id)
 
 	newlen = newoff + skb_ext_type_len[id];
 	new->chunks = newlen;
-	new->offset[id] = newoff;
+	*__skb_ext_offp(new, id) = newoff;
 set_active:
 	skb->slow_gro = 1;
 	skb->extensions = new;

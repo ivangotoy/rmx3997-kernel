@@ -46,7 +46,7 @@ static inline struct rtable *bridge_parent_rtable(const struct net_device *dev)
 	struct net_bridge_port *port;
 
 	port = br_port_get_rcu(dev);
-	return port ? &port->br->fake_rtable : NULL;
+	return port ? &br_nf_priv(port->br)->fake_rtable : NULL;
 #else
 	return NULL;
 #endif

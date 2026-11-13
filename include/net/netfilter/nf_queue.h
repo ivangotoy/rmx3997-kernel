@@ -15,18 +15,38 @@ struct nf_queue_entry {
 	struct net_device	*skb_dev;
 	unsigned int		id;
 	unsigned int		hook_index;	/* index in hook_entries->hook[] */
-#if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
-	struct net_device	*bridge_dev;
-	struct net_device	*physin;
-	struct net_device	*physout;
-#endif
 	struct nf_hook_state	state;
 	u16			size; /* sizeof(entry) + saved route keys */
 
 	/* extra space to store route keys */
 };
 
-#define nf_queue_entry_reroute(x) ((void *)x + sizeof(struct nf_queue_entry))
+#if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
+/*
+ * Bridge devices pinned while the packet is queued. KABI: kept out of
+ * struct nf_queue_entry so that its layout does not change; the block sits
+ * directly behind the entry, in the same allocation and before the route
+ * keys, and is covered by nf_queue_entry.size.
+ */
+struct nf_queue_entry_br {
+	struct net_device	*bridge_dev;
+	struct net_device	*physin;
+	struct net_device	*physout;
+};
+
+static inline struct nf_queue_entry_br *
+nf_queue_entry_br(const struct nf_queue_entry *entry)
+{
+	return (struct nf_queue_entry_br *)(entry + 1);
+}
+
+#define NF_QUEUE_ENTRY_BR_SIZE	sizeof(struct nf_queue_entry_br)
+#else
+#define NF_QUEUE_ENTRY_BR_SIZE	0
+#endif
+
+#define nf_queue_entry_reroute(x) \
+	((void *)x + sizeof(struct nf_queue_entry) + NF_QUEUE_ENTRY_BR_SIZE)
 
 /* Packet queuing */
 struct nf_queue_handler {
