@@ -20,12 +20,28 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 - Wakelocks: a userspace wakelock written to `/sys/power/wake_lock` without a
   timeout now expires after 500 ms unless it is taken again; wakelocks with an
   explicit timeout and kernel wakeup sources are unchanged.
+- fanotify: `CONFIG_FANOTIFY` and `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`
+  (`fanotify_init`, `fanotify_mark`, permission events, the
+  `fs.fanotify.*` and `user.max_fanotify_*` sysctls).
+- Device cgroup: `CONFIG_CGROUP_DEVICE`, the cgroup v1 `devices` controller
+  (`devices.allow`, `devices.deny`, `devices.list`) for container runtimes.
+- Bridge netfilter: `CONFIG_BRIDGE_NETFILTER`, `br_netfilter` built in, so
+  iptables, ip6tables and conntrack can see bridged traffic
+  (`net.bridge.bridge-nf-call-iptables` and related sysctls). The xt
+  `physdev` match is not enabled.
+- These three options normally change the layout of kernel structs that the
+  stock vendor modules were built against. Here their extra state is stored
+  outside those structs, so every struct of the stock kernel keeps its
+  layout and the existing subsystem, counter and extension ids keep their
+  values.
 - Component versions in this release: AOSP `android13-5.15-lts` `f181319b`
   (Linux 5.15.223), `android13-5.15` security branch `3f0fd7f6`, BakaSU
   `548d1dda` (35259), SUSFS `fe943d15` (v2.4.0), NoMount `6298d58a`, Baseband
   Guard `028ff7fd`, BBRv3 donor `f3544ee0`, AnyKernel3 `gki-2.0` `e1e9dce9`.
   Only NoMount changed since the previous release.
-- `production.config` is unchanged.
+- `production.config`: `CONFIG_FANOTIFY=y`,
+  `CONFIG_FANOTIFY_ACCESS_PERMISSIONS=y`, `CONFIG_CGROUP_DEVICE=y`,
+  `CONFIG_BRIDGE_NETFILTER=y`; no other option changed.
 
 ## Kernel features
 
@@ -41,7 +57,7 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 | Queue disciplines | CAKE, PIE, FQ-PIE |
 | Firewall and NAT | nftables (inet, IPv4, IPv6, ARP, bridge, netdev; NAT, conntrack, FIB, TPROXY, `nft_compat` for iptables-nft), IPv6 NAT and MASQUERADE, hop-limit match, ipset, xt `set`, `LOG`, `recent`, `addrtype`, TTL target, CONNMARK |
 | VPN and virtual networking | WireGuard and AmneziaWG (both built in), TUN, MACVLAN |
-| Containers | User (creation requires CAP_SYS_ADMIN), IPC, PID, UTS, network and cgroup namespaces, SysV IPC, POSIX message queues, OverlayFS, FUSE |
+| Containers | User (creation requires CAP_SYS_ADMIN), IPC, PID, UTS, network and cgroup namespaces, SysV IPC, POSIX message queues, OverlayFS, FUSE, cgroup v1 `devices` controller, fanotify, bridge netfilter |
 | Windows compatibility | NTSync, `/dev/ntsync` usable by apps |
 | Filesystems | F2FS, ext4, EROFS, CIFS/SMB3, NFSv4 client (4.0, 4.1, 4.2), tmpfs with xattrs and POSIX ACLs |
 | Memory | memfd ashmem compatibility, MGLRU built in but off by default |

@@ -252,7 +252,7 @@ current entry points.
 | `rmx3997-v8` | 5.15.223 | SUSFS v2.4.0 |
 | `rmx3997-v9` | 5.15.223 | `android13-5.15` security branch update (wrapfd driver, not enabled) |
 | `rmx3997-v10` | 5.15.223 | `android13-5.15-lts` update (exec timer, memcg and tracing fixes), BakaSU 35259 |
-| `rmx3997-v11` | 5.15.223 | NoMount `6298d58a` engine update (metamodule 713), adbd and jdwp-control sockets hidden from apps, `select_idle_capacity` scan order, 500 ms default timeout for userspace wakelocks |
+| `rmx3997-v11` | 5.15.223 | NoMount `6298d58a` engine update (metamodule 713), adbd and jdwp-control sockets hidden from apps, `select_idle_capacity` scan order, 500 ms default timeout for userspace wakelocks, fanotify, cgroup v1 `devices` controller and `br_netfilter` (all three with unchanged stock struct layouts) |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.
