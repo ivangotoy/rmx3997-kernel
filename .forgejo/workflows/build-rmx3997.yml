@@ -95,6 +95,13 @@ jobs:
         if: env.RMX_SKIP != '1'
         run: python3 -I rmx3997/ci/rmx_ci.py preflight
 
+      # Every pin in rmx3997/ci/upstreams.json must equal the live head of its
+      # upstream. A tree that is behind, or a failed lookup, fails here in
+      # seconds, before any compile.
+      - name: Upstream freshness gate
+        if: env.RMX_SKIP != '1'
+        run: python3 -I rmx3997/ci/upstream.py fresh
+
       - name: Build (config gate, guarded Full-LTO build)
         if: env.RMX_SKIP != '1'
         run: bash rmx3997/ci/build.sh "$STAGE"

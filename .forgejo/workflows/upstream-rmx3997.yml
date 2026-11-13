@@ -9,8 +9,12 @@ name: RMX3997 upstream
 # the release (Forgejo and the GitHub copy) from the ZIP built here. This run is
 # the release build: pushes made with the job token do not start workflows, so
 # the tag does not trigger build-rmx3997.yml (which also skips tags that already
-# have a release). If any gate fails, nothing is pushed. The result goes to the
-# "Upstream updates" issue.
+# have a release). If any gate fails, nothing is pushed. A component that moved
+# upstream and cannot be applied (conflict, manual port, report-only component,
+# branch moved during the run) fails the run in "Prepare candidate", named with
+# its reason: nothing is built, tagged or released from a partially refreshed
+# tree. When every component is current the run is a no-op. The result goes to
+# the "Upstream updates" issue.
 on:
   schedule:
     - cron: '17 3 * * 1'
@@ -56,7 +60,7 @@ jobs:
         run: python3 -I rmx3997/ci/upstream.py check --stage "$STAGE"
 
       - name: Prepare candidate
-        if: env.RMX_AUTO_UPDATES == '1'
+        if: env.RMX_UPDATES == '1'
         run: |
           python3 -I rmx3997/ci/upstream.py candidate --stage "$STAGE" \
             --repo-url "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" --expect-main "$(git rev-parse HEAD)"

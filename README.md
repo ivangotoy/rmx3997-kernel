@@ -139,12 +139,16 @@ One run does the following, and any failed gate fails the run:
 2. Verifies the host-local inputs against `rmx3997/ci/host-inputs.json`: ZyC
    Clang 18 and LLD, the host Clang and pahole, the stock OEM module corpus
    (489 files). None of these are in the repository.
-3. Runs `olddefconfig` and requires the result to equal
+3. Freshness gate (`python3 rmx3997/ci/upstream.py fresh`): compares every pin
+   in `rmx3997/ci/upstreams.json` with the live head of its upstream and prints
+   one line per component. A pin that is behind, or a lookup that fails, fails
+   the run here, before any compile.
+4. Runs `olddefconfig` and requires the result to equal
    `rmx3997/config/production.config` byte for byte.
-4. Builds `Image` and modules with Full LTO inside a systemd scope
+5. Builds `Image` and modules with Full LTO inside a systemd scope
    (MemoryMax 16G) under `rmx3997/development/resource-guard.py`, which aborts
    the build before host memory or swap runs out.
-5. Acceptance: root, SUSFS, CFI, LTO and MODVERSIONS contract, the Image's
+6. Acceptance: root, SUSFS, CFI, LTO and MODVERSIONS contract, the Image's
    embedded config, required root/SUSFS/NTSync symbols, MGLRU still default-off,
    and every imported symbol CRC of all stock OEM modules against the built
    `Module.symvers`, then the struct layout gate: every named struct and union
@@ -154,9 +158,9 @@ One run does the following, and any failed gate fails the run:
    if any member shares bytes with the `task_struct` reserve slots 4 to 8 that
    the OEM security guard writes. CRCs cannot see these changes; this gate
    rejects the 5.15.223 build that had SysV IPC in slot 4.
-6. Packages the AnyKernel3 ZIP and fails if the kernel or any ZIP member
+7. Packages the AnyKernel3 ZIP and fails if the kernel or any ZIP member
    contains a host build path.
-7. Uploads only the ZIP and its checksum as a run artifact. A tag build also
+8. Uploads only the ZIP and its checksum as a run artifact. A tag build also
    publishes a release with those two files, then copies that release to the
    GitHub mirror: it waits for the mirrored tag to reach GitHub at the same
    commit, uploads the same two files and checks them byte for byte against
@@ -181,7 +185,15 @@ pushed):
 - AOSP security branch: new commits that are not in LTS are cherry-picked.
 - BakaSU, SUSFS, NoMount, Baseband Guard: the upstream diff since the pin is
   applied with a 3-way merge onto the local files.
-- BBRv3, AnyKernel3, ZyC Clang: reported only; they need a manual port.
+- BBRv3, AnyKernel3, ZyC Clang: never applied automatically; they need a
+  manual port and a pin update.
+
+A component that moved upstream and could not be applied (a merge conflict, a
+file that needs a manual port, one of the manual components above, or a branch
+that moved during the run) fails the run at that point with a line naming the
+component and the reason. Nothing is built, tagged or released from a
+partially refreshed tree, even when other components applied cleanly. When
+every component is current the run does nothing.
 
 `olddefconfig` may add new symbols; a change to any existing option fails the
 run. The run then picks the next `rmx3997-vN` tag and adds one commit with the
@@ -195,9 +207,8 @@ pushes the annotated tag in one atomic push (it fails if main moved during the
 run), then publishes the release and its GitHub copy from the ZIP it built,
 exactly as a tag build does. That run is the release build; the tag push does
 not start a second one. If any gate fails, nothing is pushed. The result, with the
-upstream commit lists, is posted to the `Upstream updates` issue. A merge
-conflict or a component that needs a manual port is listed there and fails the
-run; the components that applied cleanly are still released.
+upstream commit lists and any component that blocked the run, is posted to the
+`Upstream updates` issue.
 
 ## License
 

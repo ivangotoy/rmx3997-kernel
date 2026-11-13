@@ -2,9 +2,13 @@
 """RMX3997 upstream watcher and automatic release.
 
 check         compare every pinned upstream in upstreams.json with its live branch
+fresh         freshness gate, no stage needed: one line per component (name, pin,
+              live, current|BEHIND); fails if any pin is behind its live
+              upstream or any lookup fails
 candidate     build the candidate on top of main in the stage (local only): merge
               the new AOSP LTS, cherry-pick new android13-5.15 security commits,
-              3-way apply component updates
+              3-way apply component updates; fails, naming the component and the
+              reason, if any component that moved upstream could not be applied
 refresh-commit  commit production.config when olddefconfig only added symbols
 plan-release  pick the next rmx3997-vN tag, add the README and release notes
               commit and create the annotated tag locally
@@ -14,7 +18,8 @@ report        post the result to the tracking issue
 verify        prove the vendored files equal the pinned upstream blobs
 
 No branch other than main is ever pushed. Nothing is pushed unless the build,
-every acceptance gate and packaging passed.
+every acceptance gate and packaging passed. Nothing is built, tagged or
+released from a tree that has any component behind its live upstream.
 """
 import argparse
 import base64
@@ -93,7 +98,31 @@ def cmd_check(a):
     env = os.environ.get('FORGEJO_ENV') or os.environ.get('GITHUB_ENV')
     if env:
         with open(env, 'a') as f:
-            f.write('RMX_UPDATES=%d\nRMX_AUTO_UPDATES=%d\n' % (updates > 0, auto > 0))
+            f.write('RMX_UPDATES=%d\n' % (updates > 0))
+
+
+# ------------------------------------------------------------------- fresh
+def cmd_fresh(a):
+    """Freshness gate: every pin must equal the live head of its upstream."""
+    m = json.loads(Path(a.manifest).read_text()) if a.manifest else load()
+    behind, failed = [], []
+    for name, c in m['components'].items():
+        try:
+            live = latest_release(c['github']) if c['mode'] == 'release' else remote_head(c['url'], c['ref'])
+        except (SystemExit, OSError, KeyError, ValueError) as e:
+            if not isinstance(e, SystemExit):
+                print('FAIL: %s lookup: %s' % (name, e), flush=True)
+            failed.append(name)
+            print('%-15s %s %s LOOKUP-FAILED' % (name, c['pin'], '-'), flush=True)
+            continue
+        if live != c['pin']:
+            behind.append(name)
+        print('%-15s %s %s %s' % (name, c['pin'], live, 'BEHIND' if live != c['pin'] else 'current'),
+              flush=True)
+    if behind or failed:
+        die('stale tree: behind live upstream: %s; lookup failed: %s' % (
+            ', '.join(behind) or 'none', ', '.join(failed) or 'none'))
+    print('all %d components are at their live upstream' % len(m['components']))
 
 
 # ------------------------------------------------------------------ caches
@@ -280,14 +309,25 @@ def cmd_candidate(a):
     applied = [r['name'] for r in results if r['status'] == 'applied']
     if applied:
         commit(ws, 'upstream: record pins (%s)' % ', '.join(applied))
-    state = {'base': base, 'components': results, 'changed': bool(applied)}
+    # A component that moved upstream and was not applied leaves the tree
+    # behind: the run fails here and nothing is built, tagged or released.
+    blocked = ['%s: %s%s' % (r['name'], 'needs a manual port and pin update; '
+                             if r['status'] == 'report' else '', r.get('detail') or r['status'])
+               for r in results if r['status'] not in ('current', 'applied')]
+    state = {'base': base, 'components': results, 'changed': bool(applied) and not blocked,
+             'blocked': blocked}
     (stage / 'candidate.json').write_text(json.dumps(state, indent=2) + '\n')
+    for r in results:
+        print('%-15s %-10s %s' % (r['name'], r['status'], r.get('detail') or ''), flush=True)
+    if blocked:
+        for b in blocked:
+            print('FAIL: not at live upstream, ' + b, flush=True)
+        die('%d component(s) could not be brought to their live upstream; nothing is built or released'
+            % len(blocked))
     env = os.environ.get('FORGEJO_ENV') or os.environ.get('GITHUB_ENV')
     if env:
         with open(env, 'a') as f:
             f.write('RMX_CAND_SRC=%s\nRMX_CAND_CHANGED=%d\n' % (ws, bool(applied)))
-    for r in results:
-        print('%-15s %-10s %s' % (r['name'], r['status'], r.get('detail') or ''))
 
 
 def cmd_refresh_commit(a):
@@ -510,6 +550,8 @@ def outcome(stage):
     if not (stage / 'candidate.json').exists():
         return 'FAIL: candidate could not be prepared (see run log)'
     cand = json.loads((stage / 'candidate.json').read_text())
+    if cand.get('blocked'):
+        return 'FAIL: not at live upstream, nothing was built: ' + '; '.join(cand['blocked'])
     if not cand['changed']:
         return 'no automatic update applied; nothing was built'
     if not (stage / 'config-refresh.ok').exists():
@@ -575,9 +617,6 @@ def cmd_report(a):
     print('report posted')
     if res.startswith('FAIL'):
         raise SystemExit(1)
-    manual = [r['name'] for r in rows if r.get('status') in ('conflict', 'manual')]
-    if manual:
-        die('needs a manual port: ' + ', '.join(manual))
 
 
 # ------------------------------------------------------------------ verify
@@ -624,6 +663,8 @@ def main():
     sub = p.add_subparsers(dest='cmd', required=True)
     c = sub.add_parser('check')
     c.add_argument('--stage', required=True)
+    c = sub.add_parser('fresh')
+    c.add_argument('--manifest', help='check this copy of upstreams.json instead of the tree\'s')
     c = sub.add_parser('candidate')
     for f in ('--stage', '--repo-url', '--expect-main'):
         c.add_argument(f, required=True)
@@ -638,7 +679,7 @@ def main():
         c.add_argument(f, required=True)
     sub.add_parser('verify')
     a = p.parse_args()
-    {'check': cmd_check, 'candidate': cmd_candidate, 'refresh-commit': cmd_refresh_commit,
+    {'check': cmd_check, 'fresh': cmd_fresh, 'candidate': cmd_candidate, 'refresh-commit': cmd_refresh_commit,
      'plan-release': cmd_plan_release, 'promote': cmd_promote, 'report': cmd_report,
      'verify': cmd_verify}[a.cmd](a)
 
