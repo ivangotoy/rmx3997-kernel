@@ -240,6 +240,7 @@ current entry points.
 | `rmx3997-v7` | 5.15.223 | AmneziaWG |
 | `rmx3997-v8` | 5.15.223 | SUSFS v2.4.0 |
 | `rmx3997-v9` | 5.15.223 | `android13-5.15` security branch update (wrapfd driver, not enabled) |
+| `rmx3997-v10` | 5.15.223 | `android13-5.15-lts` update (exec timer, memcg and tracing fixes), BakaSU 35259 |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.

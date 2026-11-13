@@ -4,12 +4,17 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 ## Changes in this release
 
-- AOSP `android13-5.15` security branch update: 54 new commits that are not
-  in `android13-5.15-lts`. Most add the Android wrapfd driver
-  (`drivers/android/wrapfd.c`, `CONFIG_ANDROID_WRAPFD`), which this kernel
-  does not enable; its hook in `mm/mmap.c` and the `PAGE_ALIGN_DOWN` helper
-  are built in. The rest are selftest build fixes.
-- SUSFS stays at v2.4.0 (`fe943d15`).
+- AOSP `android13-5.15-lts` update (`2316d138`..`f181319b`, still Linux
+  5.15.223). It brings four upstream fixes that were not in this kernel yet:
+  POSIX timer cleanup right after `de_thread()` on exec, a NULL dereference
+  and use-after-free in the memcg high-limit work on a dying cgroup, and two
+  tracing histogram trigger fixes.
+- AOSP `android13-5.15` security branch: no commit outside the LTS branch.
+- BakaSU `548d1dda`: the upstream changes are manager only; the kernel driver
+  code is unchanged and its reported version is now 35259.
+- Installer: AnyKernel3 `gki-2.0` `e1e9dce9` (message wording).
+- NoMount stays at protocol 22, SUSFS at v2.4.0 (`fe943d15`).
+- `production.config` is unchanged.
 
 ## Kernel features
 
