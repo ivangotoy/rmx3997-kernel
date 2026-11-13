@@ -9,6 +9,11 @@
  * This file *must* be included with SUBSYS() defined.
  */
 
+#ifndef SUBSYS_EXT
+#define SUBSYS_EXT(_x) SUBSYS(_x)
+#define __SUBSYS_EXT_IS_SUBSYS
+#endif
+
 #if IS_ENABLED(CONFIG_CPUSETS)
 SUBSYS(cpuset)
 #endif
@@ -27,10 +32,6 @@ SUBSYS(io)
 
 #if IS_ENABLED(CONFIG_MEMCG)
 SUBSYS(memory)
-#endif
-
-#if IS_ENABLED(CONFIG_CGROUP_DEVICE)
-SUBSYS(devices)
 #endif
 
 #if IS_ENABLED(CONFIG_CGROUP_FREEZER)
@@ -75,3 +76,20 @@ SUBSYS(debug)
 /*
  * DO NOT ADD ANY SUBSYSTEM WITHOUT EXPLICIT ACKS FROM CGROUP MAINTAINERS.
  */
+
+/*
+ * KABI: subsystems that the prebuilt vendor modules were compiled without.
+ * They are listed with SUBSYS_EXT() and must stay behind every SUBSYS()
+ * entry: their ids come after CGROUP_SUBSYS_COUNT, so the ids above and the
+ * arrays sized by CGROUP_SUBSYS_COUNT in struct cgroup and struct css_set
+ * do not change. See struct cgroup_ext and struct css_set_ext.
+ * An includer that does not define SUBSYS_EXT() gets them as SUBSYS().
+ */
+#if IS_ENABLED(CONFIG_CGROUP_DEVICE)
+SUBSYS_EXT(devices)
+#endif
+
+#ifdef __SUBSYS_EXT_IS_SUBSYS
+#undef SUBSYS_EXT
+#undef __SUBSYS_EXT_IS_SUBSYS
+#endif

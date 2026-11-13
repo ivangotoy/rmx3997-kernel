@@ -74,6 +74,23 @@ struct css_task_iter {
 extern struct file_system_type cgroup_fs_type;
 extern struct cgroup_root cgrp_dfl_root;
 extern struct css_set init_css_set;
+extern struct css_set_ext init_css_set_ext;
+
+static inline struct css_set_ext *css_set_ext(const struct css_set *cset)
+{
+	if (cset == &init_css_set)
+		return &init_css_set_ext;
+	return (struct css_set_ext *)(cset + 1);
+}
+
+/* Where @cset keeps its css pointer for subsystem @ssid. */
+static inline struct cgroup_subsys_state **
+css_set_subsys_p(struct css_set *cset, int ssid)
+{
+	if (CGROUP_SUBSYS_EXT_COUNT && ssid >= CGROUP_SUBSYS_COUNT)
+		return &css_set_ext(cset)->subsys[ssid - CGROUP_SUBSYS_COUNT];
+	return &cset->subsys[ssid];
+}
 
 #define SUBSYS(_x) extern struct cgroup_subsys _x ## _cgrp_subsys;
 #include <linux/cgroup_subsys.h>
@@ -484,7 +501,7 @@ extern spinlock_t css_set_lock;
  * synchronization rules are the same as task_css_set_check().
  */
 #define task_css_check(task, subsys_id, __c)				\
-	task_css_set_check((task), (__c))->subsys[(subsys_id)]
+	(*css_set_subsys_p(task_css_set_check((task), (__c)), (subsys_id)))
 
 /**
  * task_css_set - obtain a task's css_set
@@ -552,7 +569,7 @@ task_get_css(struct task_struct *task, int subsys_id)
 static inline bool task_css_is_root(struct task_struct *task, int subsys_id)
 {
 	return task_css_check(task, subsys_id, true) ==
-		init_css_set.subsys[subsys_id];
+		*css_set_subsys_p(&init_css_set, subsys_id);
 }
 
 static inline struct cgroup *task_cgroup(struct task_struct *task,

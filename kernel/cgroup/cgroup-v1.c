@@ -1216,7 +1216,7 @@ static int cgroup1_root_to_use(struct fs_context *fc)
 	if (ctx->ns != &init_cgroup_ns)
 		return -EPERM;
 
-	root = kzalloc(sizeof(*root), GFP_KERNEL);
+	root = kzalloc(CGROUP_ROOT_ALLOC_SIZE, GFP_KERNEL);
 	if (!root)
 		return -ENOMEM;
 

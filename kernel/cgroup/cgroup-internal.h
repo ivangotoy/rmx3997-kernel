@@ -176,11 +176,79 @@ extern struct list_head cgroup_roots;
 /**
  * for_each_subsys - iterate all enabled cgroup subsystems
  * @ss: the iteration cursor
- * @ssid: the index of @ss, CGROUP_SUBSYS_COUNT after reaching the end
+ * @ssid: the index of @ss, CGROUP_SUBSYS_TOTAL after reaching the end
  */
 #define for_each_subsys(ss, ssid)					\
-	for ((ssid) = 0; (ssid) < CGROUP_SUBSYS_COUNT &&		\
+	for ((ssid) = 0; (ssid) < CGROUP_SUBSYS_TOTAL &&		\
 	     (((ss) = cgroup_subsys[ssid]) || true); (ssid)++)
+
+/*
+ * Accessors for the per-subsystem slots of a cgroup and a css_set. Ids below
+ * CGROUP_SUBSYS_COUNT use the arrays in the structs, the SUBSYS_EXT() ids
+ * use struct cgroup_ext / struct css_set_ext (see <linux/cgroup-defs.h>).
+ * Nothing in the cgroup core may index the in-struct arrays directly.
+ */
+extern struct cgroup_ext cgrp_dfl_root_ext;
+
+#define CSS_SET_ALLOC_SIZE \
+	(sizeof(struct css_set) + sizeof(struct css_set_ext))
+#define CGROUP_ROOT_ALLOC_SIZE \
+	(sizeof(struct cgroup_root) + sizeof(struct cgroup_ext))
+
+/* offset of struct cgroup_ext in a cgroup allocated by cgroup_create() */
+static inline size_t cgroup_ext_offset(int level)
+{
+	return ALIGN(struct_size((struct cgroup *)NULL, ancestor_ids, level + 1),
+		     __alignof__(struct cgroup_ext));
+}
+
+#define CGROUP_ALLOC_SIZE(level) \
+	(cgroup_ext_offset(level) + sizeof(struct cgroup_ext))
+
+/* @cgrp->root and @cgrp->level must be set */
+static inline struct cgroup_ext *cgroup_ext(struct cgroup *cgrp)
+{
+	struct cgroup_root *root = cgrp->root;
+
+	if (cgrp == &root->cgrp) {
+		if (root == &cgrp_dfl_root)
+			return &cgrp_dfl_root_ext;
+		return (struct cgroup_ext *)(root + 1);
+	}
+	return (struct cgroup_ext *)((char *)cgrp + cgroup_ext_offset(cgrp->level));
+}
+
+static inline struct cgroup_subsys_state __rcu **
+cgroup_subsys_p(struct cgroup *cgrp, int ssid)
+{
+	if (CGROUP_SUBSYS_EXT_COUNT && ssid >= CGROUP_SUBSYS_COUNT)
+		return &cgroup_ext(cgrp)->subsys[ssid - CGROUP_SUBSYS_COUNT];
+	return &cgrp->subsys[ssid];
+}
+
+static inline struct list_head *cgroup_e_csets(struct cgroup *cgrp, int ssid)
+{
+	if (CGROUP_SUBSYS_EXT_COUNT && ssid >= CGROUP_SUBSYS_COUNT)
+		return &cgroup_ext(cgrp)->e_csets[ssid - CGROUP_SUBSYS_COUNT];
+	return &cgrp->e_csets[ssid];
+}
+
+static inline struct list_head *css_set_e_node(struct css_set *cset, int ssid)
+{
+	if (CGROUP_SUBSYS_EXT_COUNT && ssid >= CGROUP_SUBSYS_COUNT)
+		return &css_set_ext(cset)->e_cset_node[ssid - CGROUP_SUBSYS_COUNT];
+	return &cset->e_cset_node[ssid];
+}
+
+/* the css_set that @node, its e_cset_node of subsystem @ssid, belongs to */
+static inline struct css_set *css_set_from_e_node(struct list_head *node,
+						  int ssid)
+{
+	if (CGROUP_SUBSYS_EXT_COUNT && ssid >= CGROUP_SUBSYS_COUNT)
+		return container_of(node, struct css_set_ext,
+				    e_cset_node[ssid - CGROUP_SUBSYS_COUNT])->cset;
+	return container_of(node, struct css_set, e_cset_node[ssid]);
+}
 
 static inline bool cgroup_is_dead(const struct cgroup *cgrp)
 {

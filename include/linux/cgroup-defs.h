@@ -40,11 +40,27 @@ struct poll_table_struct;
 
 /* define the enumeration of all cgroup subsystems */
 #define SUBSYS(_x) _x ## _cgrp_id,
+#define SUBSYS_EXT(_x)
 enum cgroup_subsys_id {
 #include <linux/cgroup_subsys.h>
-	CGROUP_SUBSYS_COUNT,
-};
+	CGROUP_SUBSYS_COUNT,	/* subsystems with a slot in the in-struct arrays */
 #undef SUBSYS
+#undef SUBSYS_EXT
+#ifndef __GENKSYMS__
+	/* ids of the SUBSYS_EXT() subsystems continue at CGROUP_SUBSYS_COUNT */
+	__CGROUP_SUBSYS_EXT_BASE = CGROUP_SUBSYS_COUNT - 1,
+#define SUBSYS(_x)
+#define SUBSYS_EXT(_x) _x ## _cgrp_id,
+#include <linux/cgroup_subsys.h>
+#undef SUBSYS
+#undef SUBSYS_EXT
+	CGROUP_SUBSYS_TOTAL,	/* all subsystems */
+#endif
+};
+#ifdef __GENKSYMS__
+#define CGROUP_SUBSYS_TOTAL	CGROUP_SUBSYS_COUNT
+#endif
+#define CGROUP_SUBSYS_EXT_COUNT	(CGROUP_SUBSYS_TOTAL - CGROUP_SUBSYS_COUNT)
 
 /* bits in struct cgroup_subsys_state flags field */
 enum {
@@ -492,6 +508,30 @@ struct cgroup {
 };
 
 /*
+ * Per-cgroup and per-css_set state of the SUBSYS_EXT() subsystems, the
+ * counterpart of cgroup.subsys[] / cgroup.e_csets[] and css_set.subsys[] /
+ * css_set.e_cset_node[] for ids from CGROUP_SUBSYS_COUNT on.
+ *
+ * KABI: these are not members of struct cgroup and struct css_set. Each
+ * block is allocated together with its object and placed behind it:
+ *  - css_set: directly behind the css_set (init_css_set: init_css_set_ext);
+ *  - cgroup: behind ancestor_ids[]; for the cgroup embedded in a
+ *    cgroup_root, behind the cgroup_root (cgrp_dfl_root: cgrp_dfl_root_ext).
+ * The accessors are css_set_subsys_p() in <linux/cgroup.h> and the helpers
+ * in kernel/cgroup/cgroup-internal.h.
+ */
+struct css_set_ext {
+	struct css_set *cset;	/* owner, for e_cset_node[] -> css_set */
+	struct cgroup_subsys_state *subsys[CGROUP_SUBSYS_EXT_COUNT];
+	struct list_head e_cset_node[CGROUP_SUBSYS_EXT_COUNT];
+};
+
+struct cgroup_ext {
+	struct cgroup_subsys_state __rcu *subsys[CGROUP_SUBSYS_EXT_COUNT];
+	struct list_head e_csets[CGROUP_SUBSYS_EXT_COUNT];
+};
+
+/*
  * A cgroup_root represents the root of a cgroup hierarchy, and may be
  * associated with a kernfs_root to form an active hierarchy.  This is
  * internal to cgroup core.  Don't access directly from controllers.
@@ -737,6 +777,7 @@ static inline void cgroup_threadgroup_change_end(struct task_struct *tsk)
 #else	/* CONFIG_CGROUPS */
 
 #define CGROUP_SUBSYS_COUNT 0
+#define CGROUP_SUBSYS_TOTAL 0
 
 static inline void cgroup_threadgroup_change_begin(struct task_struct *tsk)
 {
