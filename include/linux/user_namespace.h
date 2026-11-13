@@ -51,16 +51,31 @@ enum ucount_type {
 	UCOUNT_INOTIFY_INSTANCES,
 	UCOUNT_INOTIFY_WATCHES,
 #endif
-#ifdef CONFIG_FANOTIFY
-	UCOUNT_FANOTIFY_GROUPS,
-	UCOUNT_FANOTIFY_MARKS,
-#endif
 	UCOUNT_RLIMIT_NPROC,
 	UCOUNT_RLIMIT_MSGQUEUE,
 	UCOUNT_RLIMIT_SIGPENDING,
 	UCOUNT_RLIMIT_MEMLOCK,
-	UCOUNT_COUNTS,
+	UCOUNT_COUNTS,	/* size of user_namespace.ucount_max[], ucounts.ucount[] */
+#if defined(CONFIG_FANOTIFY) && !defined(__GENKSYMS__)
+	/*
+	 * KABI: prebuilt vendor modules were compiled without these two
+	 * counters. They are numbered after the existing ones, which keep
+	 * their values, and have no element in the two arrays above, so
+	 * struct user_namespace and struct ucounts keep their layout. Their
+	 * storage is behind the object, see ucount_max_slot(), ucount_slot().
+	 */
+	UCOUNT_FANOTIFY_GROUPS = UCOUNT_COUNTS,
+	UCOUNT_FANOTIFY_MARKS,
+#endif
 };
+
+/* Counters stored behind the object instead of in its arrays (see above). */
+#ifdef CONFIG_FANOTIFY
+#define UCOUNT_EXTRA_COUNTS	2
+#else
+#define UCOUNT_EXTRA_COUNTS	0
+#endif
+#define UCOUNT_COUNTS_ALL	(UCOUNT_COUNTS + UCOUNT_EXTRA_COUNTS)
 
 #define MAX_PER_NAMESPACE_UCOUNTS UCOUNT_RLIMIT_NPROC
 
@@ -116,6 +131,49 @@ struct ucounts {
 extern struct user_namespace init_user_ns;
 extern struct ucounts init_ucounts;
 
+/*
+ * Allocation sizes: every dynamically allocated user_namespace and ucounts
+ * is followed by UCOUNT_EXTRA_COUNTS slots. The two static objects
+ * (init_user_ns, init_ucounts) have their slots in separate arrays.
+ */
+#define USER_NS_ALLOC_SIZE \
+	(sizeof(struct user_namespace) + UCOUNT_EXTRA_COUNTS * sizeof(long))
+#define UCOUNTS_ALLOC_SIZE \
+	(sizeof(struct ucounts) + UCOUNT_EXTRA_COUNTS * sizeof(atomic_long_t))
+
+#if UCOUNT_EXTRA_COUNTS
+extern long init_user_ns_ucount_max_extra[UCOUNT_EXTRA_COUNTS];
+extern atomic_long_t init_ucounts_extra[UCOUNT_EXTRA_COUNTS];
+#endif
+
+static inline long *ucount_max_slot(struct user_namespace *ns,
+				    enum ucount_type type)
+{
+#if UCOUNT_EXTRA_COUNTS
+	if ((unsigned int)type >= UCOUNT_COUNTS) {
+		long *extra = ns == &init_user_ns ?
+			init_user_ns_ucount_max_extra : (long *)(ns + 1);
+
+		return extra + ((unsigned int)type - UCOUNT_COUNTS);
+	}
+#endif
+	return &ns->ucount_max[type];
+}
+
+static inline atomic_long_t *ucount_slot(struct ucounts *ucounts,
+					 enum ucount_type type)
+{
+#if UCOUNT_EXTRA_COUNTS
+	if ((unsigned int)type >= UCOUNT_COUNTS) {
+		atomic_long_t *extra = ucounts == &init_ucounts ?
+			init_ucounts_extra : (atomic_long_t *)(ucounts + 1);
+
+		return extra + ((unsigned int)type - UCOUNT_COUNTS);
+	}
+#endif
+	return &ucounts->ucount[type];
+}
+
 bool setup_userns_sysctls(struct user_namespace *ns);
 void retire_userns_sysctls(struct user_namespace *ns);
 struct ucounts *inc_ucount(struct user_namespace *ns, kuid_t uid, enum ucount_type type);
@@ -126,7 +184,7 @@ void put_ucounts(struct ucounts *ucounts);
 
 static inline long get_ucounts_value(struct ucounts *ucounts, enum ucount_type type)
 {
-	return atomic_long_read(&ucounts->ucount[type]);
+	return atomic_long_read(ucount_slot(ucounts, type));
 }
 
 long inc_rlimit_ucounts(struct ucounts *ucounts, enum ucount_type type, long v);
@@ -138,7 +196,7 @@ bool is_ucounts_overlimit(struct ucounts *ucounts, enum ucount_type type, unsign
 static inline void set_rlimit_ucount_max(struct user_namespace *ns,
 		enum ucount_type type, unsigned long max)
 {
-	ns->ucount_max[type] = max <= LONG_MAX ? max : LONG_MAX;
+	*ucount_max_slot(ns, type) = max <= LONG_MAX ? max : LONG_MAX;
 }
 
 #ifdef CONFIG_USER_NS

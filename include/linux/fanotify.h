@@ -8,7 +8,7 @@
 extern struct ctl_table fanotify_table[]; /* for sysctl */
 
 #define FAN_GROUP_FLAG(group, flag) \
-	((group)->fanotify_data.flags & (flag))
+	(fanotify_group_data(group)->flags & (flag))
 
 /*
  * Flags allowed to be passed from/to userspace.

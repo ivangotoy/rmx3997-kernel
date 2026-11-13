@@ -116,7 +116,7 @@ static struct fsnotify_group *__fsnotify_alloc_group(
 {
 	struct fsnotify_group *group;
 
-	group = kzalloc(sizeof(struct fsnotify_group), gfp);
+	group = kzalloc(FSNOTIFY_GROUP_ALLOC_SIZE, gfp);
 	if (!group)
 		return ERR_PTR(-ENOMEM);
 

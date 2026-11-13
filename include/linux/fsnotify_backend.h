@@ -228,20 +228,39 @@ struct fsnotify_group {
 			struct ucounts *ucounts;
 		} inotify_data;
 #endif
-#ifdef CONFIG_FANOTIFY
-		struct fanotify_group_private_data {
-			/* Hash table of events for merge */
-			struct hlist_head *merge_hash;
-			/* allows a group to block waiting for a userspace response */
-			struct list_head access_list;
-			wait_queue_head_t access_waitq;
-			int flags;           /* flags from fanotify_init() */
-			int f_flags; /* event_f_flags from fanotify_init() */
-			struct ucounts *ucounts;
-		} fanotify_data;
-#endif /* CONFIG_FANOTIFY */
 	};
 };
+
+#ifdef CONFIG_FANOTIFY
+/*
+ * Private data of a fanotify group. KABI: it is not a member of the union
+ * in struct fsnotify_group (it is larger than the union and would grow the
+ * struct that prebuilt vendor modules and the layout gate know). Every group
+ * is allocated with room for it directly behind struct fsnotify_group
+ * (FSNOTIFY_GROUP_ALLOC_SIZE), so it has the lifetime of the group.
+ */
+struct fanotify_group_private_data {
+	/* Hash table of events for merge */
+	struct hlist_head *merge_hash;
+	/* allows a group to block waiting for a userspace response */
+	struct list_head access_list;
+	wait_queue_head_t access_waitq;
+	int flags;           /* flags from fanotify_init() */
+	int f_flags; /* event_f_flags from fanotify_init() */
+	struct ucounts *ucounts;
+};
+
+static inline struct fanotify_group_private_data *
+fanotify_group_data(const struct fsnotify_group *group)
+{
+	return (struct fanotify_group_private_data *)(group + 1);
+}
+
+#define FSNOTIFY_GROUP_ALLOC_SIZE \
+	(sizeof(struct fsnotify_group) + sizeof(struct fanotify_group_private_data))
+#else
+#define FSNOTIFY_GROUP_ALLOC_SIZE	sizeof(struct fsnotify_group)
+#endif /* CONFIG_FANOTIFY */
 
 /* When calling fsnotify tell it if the data is a path or inode */
 enum fsnotify_data_type {

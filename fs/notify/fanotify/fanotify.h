@@ -259,7 +259,7 @@ FANOTIFY_PE(struct fanotify_event *event)
  * Structure for permission fanotify events. It gets allocated and freed in
  * fanotify_handle_event() since we wait there for user response. When the
  * information is retrieved by userspace the structure is moved from
- * group->notification_list to group->fanotify_data.access_list to wait for
+ * group->notification_list to fanotify_group_data(group)->access_list to wait for
  * user response.
  */
 struct fanotify_perm_event {

@@ -14,6 +14,12 @@ struct ucounts init_ucounts = {
 	.count = ATOMIC_INIT(1),
 };
 
+#if UCOUNT_EXTRA_COUNTS
+/* Slots of init_user_ns and init_ucounts for the counters past UCOUNT_COUNTS. */
+long init_user_ns_ucount_max_extra[UCOUNT_EXTRA_COUNTS];
+atomic_long_t init_ucounts_extra[UCOUNT_EXTRA_COUNTS];
+#endif
+
 #define UCOUNTS_HASHTABLE_BITS 10
 static struct hlist_head ucounts_hashtable[(1 << UCOUNTS_HASHTABLE_BITS)];
 static DEFINE_SPINLOCK(ucounts_lock);
@@ -87,12 +93,22 @@ static struct ctl_table user_table[] = {
 	UCOUNT_ENTRY("max_fanotify_groups"),
 	UCOUNT_ENTRY("max_fanotify_marks"),
 #endif
-	{ },
-	{ },
-	{ },
-	{ },
 	{ }
 };
+
+/*
+ * The table lists the per-namespace counters in enum order, then the
+ * counters numbered after UCOUNT_COUNTS. The rlimit counters in between have
+ * no sysctl.
+ */
+#define USER_TABLE_ENTRIES	(MAX_PER_NAMESPACE_UCOUNTS + UCOUNT_EXTRA_COUNTS)
+
+static enum ucount_type user_table_type(int i)
+{
+	if (i < MAX_PER_NAMESPACE_UCOUNTS)
+		return i;
+	return UCOUNT_COUNTS + (i - MAX_PER_NAMESPACE_UCOUNTS);
+}
 #endif /* CONFIG_SYSCTL */
 
 bool setup_userns_sysctls(struct user_namespace *ns)
@@ -100,13 +116,16 @@ bool setup_userns_sysctls(struct user_namespace *ns)
 #ifdef CONFIG_SYSCTL
 	struct ctl_table *tbl;
 
-	BUILD_BUG_ON(ARRAY_SIZE(user_table) != UCOUNT_COUNTS + 1);
+	BUILD_BUG_ON(ARRAY_SIZE(user_table) != USER_TABLE_ENTRIES + 1);
+#ifdef CONFIG_FANOTIFY
+	BUILD_BUG_ON(UCOUNT_FANOTIFY_MARKS != UCOUNT_COUNTS_ALL - 1);
+#endif
 	setup_sysctl_set(&ns->set, &set_root, set_is_seen);
 	tbl = kmemdup(user_table, sizeof(user_table), GFP_KERNEL);
 	if (tbl) {
 		int i;
-		for (i = 0; i < UCOUNT_COUNTS; i++) {
-			tbl[i].data = &ns->ucount_max[i];
+		for (i = 0; i < USER_TABLE_ENTRIES; i++) {
+			tbl[i].data = ucount_max_slot(ns, user_table_type(i));
 		}
 		ns->sysctls = __register_sysctl_table(&ns->set, "user", tbl);
 	}
@@ -170,7 +189,7 @@ struct ucounts *alloc_ucounts(struct user_namespace *ns, kuid_t uid)
 	if (!ucounts) {
 		spin_unlock_irq(&ucounts_lock);
 
-		new = kzalloc(sizeof(*new), GFP_KERNEL);
+		new = kzalloc(UCOUNTS_ALLOC_SIZE, GFP_KERNEL);
 		if (!new)
 			return NULL;
 
@@ -233,15 +252,15 @@ struct ucounts *inc_ucount(struct user_namespace *ns, kuid_t uid,
 	for (iter = ucounts; iter; iter = tns->ucounts) {
 		long max;
 		tns = iter->ns;
-		max = READ_ONCE(tns->ucount_max[type]);
-		if (!atomic_long_inc_below(&iter->ucount[type], max))
+		max = READ_ONCE(*ucount_max_slot(tns, type));
+		if (!atomic_long_inc_below(ucount_slot(iter, type), max))
 			goto fail;
 	}
 	return ucounts;
 fail:
 	bad = iter;
 	for (iter = ucounts; iter != bad; iter = iter->ns->ucounts)
-		atomic_long_dec(&iter->ucount[type]);
+		atomic_long_dec(ucount_slot(iter, type));
 
 	put_ucounts(ucounts);
 	return NULL;
@@ -251,7 +270,7 @@ void dec_ucount(struct ucounts *ucounts, enum ucount_type type)
 {
 	struct ucounts *iter;
 	for (iter = ucounts; iter; iter = iter->ns->ucounts) {
-		long dec = atomic_long_dec_if_positive(&iter->ucount[type]);
+		long dec = atomic_long_dec_if_positive(ucount_slot(iter, type));
 		WARN_ON_ONCE(dec < 0);
 	}
 	put_ucounts(ucounts);
@@ -264,12 +283,12 @@ long inc_rlimit_ucounts(struct ucounts *ucounts, enum ucount_type type, long v)
 	long ret = 0;
 
 	for (iter = ucounts; iter; iter = iter->ns->ucounts) {
-		long new = atomic_long_add_return(v, &iter->ucount[type]);
+		long new = atomic_long_add_return(v, ucount_slot(iter, type));
 		if (new < 0 || new > max)
 			ret = LONG_MAX;
 		else if (iter == ucounts)
 			ret = new;
-		max = READ_ONCE(iter->ns->ucount_max[type]);
+		max = READ_ONCE(*ucount_max_slot(iter->ns, type));
 	}
 	return ret;
 }
@@ -279,7 +298,7 @@ bool dec_rlimit_ucounts(struct ucounts *ucounts, enum ucount_type type, long v)
 	struct ucounts *iter;
 	long new = -1; /* Silence compiler warning */
 	for (iter = ucounts; iter; iter = iter->ns->ucounts) {
-		long dec = atomic_long_add_return(-v, &iter->ucount[type]);
+		long dec = atomic_long_add_return(-v, ucount_slot(iter, type));
 		WARN_ON_ONCE(dec < 0);
 		if (iter == ucounts)
 			new = dec;
@@ -292,7 +311,7 @@ static void do_dec_rlimit_put_ucounts(struct ucounts *ucounts,
 {
 	struct ucounts *iter, *next;
 	for (iter = ucounts; iter != last; iter = next) {
-		long dec = atomic_long_add_return(-1, &iter->ucount[type]);
+		long dec = atomic_long_add_return(-1, ucount_slot(iter, type));
 		WARN_ON_ONCE(dec < 0);
 		next = iter->ns->ucounts;
 		if (dec == 0)
@@ -313,12 +332,12 @@ long inc_rlimit_get_ucounts(struct ucounts *ucounts, enum ucount_type type)
 	long dec, ret = 0;
 
 	for (iter = ucounts; iter; iter = iter->ns->ucounts) {
-		long new = atomic_long_add_return(1, &iter->ucount[type]);
+		long new = atomic_long_add_return(1, ucount_slot(iter, type));
 		if (new < 0 || new > max)
 			goto dec_unwind;
 		if (iter == ucounts)
 			ret = new;
-		max = READ_ONCE(iter->ns->ucount_max[type]);
+		max = READ_ONCE(*ucount_max_slot(iter->ns, type));
 		/*
 		 * Grab an extra ucount reference for the caller when
 		 * the rlimit count was previously 0.
@@ -330,7 +349,7 @@ long inc_rlimit_get_ucounts(struct ucounts *ucounts, enum ucount_type type)
 	}
 	return ret;
 dec_unwind:
-	dec = atomic_long_add_return(-1, &iter->ucount[type]);
+	dec = atomic_long_add_return(-1, ucount_slot(iter, type));
 	WARN_ON_ONCE(dec < 0);
 	do_dec_rlimit_put_ucounts(ucounts, iter, type);
 	return 0;
@@ -346,7 +365,7 @@ bool is_ucounts_overlimit(struct ucounts *ucounts, enum ucount_type type, unsign
 		long val = get_ucounts_value(iter, type);
 		if (val < 0 || val > max)
 			return true;
-		max = READ_ONCE(iter->ns->ucount_max[type]);
+		max = READ_ONCE(*ucount_max_slot(iter->ns, type));
 	}
 	return false;
 }

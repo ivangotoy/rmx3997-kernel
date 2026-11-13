@@ -61,7 +61,8 @@ static long ft_int_max = INT_MAX;
 struct ctl_table fanotify_table[] = {
 	{
 		.procname	= "max_user_groups",
-		.data	= &init_user_ns.ucount_max[UCOUNT_FANOTIFY_GROUPS],
+		.data	= &init_user_ns_ucount_max_extra[UCOUNT_FANOTIFY_GROUPS -
+						 UCOUNT_COUNTS],
 		.maxlen		= sizeof(long),
 		.mode		= 0644,
 		.proc_handler	= proc_doulongvec_minmax,
@@ -70,7 +71,8 @@ struct ctl_table fanotify_table[] = {
 	},
 	{
 		.procname	= "max_user_marks",
-		.data	= &init_user_ns.ucount_max[UCOUNT_FANOTIFY_MARKS],
+		.data	= &init_user_ns_ucount_max_extra[UCOUNT_FANOTIFY_MARKS -
+						 UCOUNT_COUNTS],
 		.maxlen		= sizeof(long),
 		.mode		= 0644,
 		.proc_handler	= proc_doulongvec_minmax,
@@ -222,7 +224,7 @@ static int create_fd(struct fsnotify_group *group, struct path *path,
 	int client_fd;
 	struct file *new_file;
 
-	client_fd = get_unused_fd_flags(group->fanotify_data.f_flags);
+	client_fd = get_unused_fd_flags(fanotify_group_data(group)->f_flags);
 	if (client_fd < 0)
 		return client_fd;
 
@@ -231,7 +233,7 @@ static int create_fd(struct fsnotify_group *group, struct path *path,
 	 * originally opened O_WRONLY.
 	 */
 	new_file = dentry_open(path,
-			       group->fanotify_data.f_flags | FMODE_NONOTIFY,
+			       fanotify_group_data(group)->f_flags | FMODE_NONOTIFY,
 			       current_cred());
 	if (IS_ERR(new_file)) {
 		/*
@@ -301,14 +303,14 @@ static int process_access_response(struct fsnotify_group *group,
 		return -EINVAL;
 
 	spin_lock(&group->notification_lock);
-	list_for_each_entry(event, &group->fanotify_data.access_list,
+	list_for_each_entry(event, &fanotify_group_data(group)->access_list,
 			    fae.fse.list) {
 		if (event->fd != fd)
 			continue;
 
 		list_del_init(&event->fae.fse.list);
 		finish_permission_event(group, event, response);
-		wake_up(&group->fanotify_data.access_waitq);
+		wake_up(&fanotify_group_data(group)->access_waitq);
 		return 0;
 	}
 	spin_unlock(&group->notification_lock);
@@ -715,11 +717,11 @@ static ssize_t fanotify_read(struct file *file, char __user *buf,
 				spin_lock(&group->notification_lock);
 				finish_permission_event(group,
 					FANOTIFY_PERM(event), FAN_DENY);
-				wake_up(&group->fanotify_data.access_waitq);
+				wake_up(&fanotify_group_data(group)->access_waitq);
 			} else {
 				spin_lock(&group->notification_lock);
 				list_add_tail(&event->fse.list,
-					&group->fanotify_data.access_list);
+					&fanotify_group_data(group)->access_list);
 				spin_unlock(&group->notification_lock);
 			}
 		}
@@ -780,10 +782,10 @@ static int fanotify_release(struct inode *ignored, struct file *file)
 	 * and simulate reply from userspace.
 	 */
 	spin_lock(&group->notification_lock);
-	while (!list_empty(&group->fanotify_data.access_list)) {
+	while (!list_empty(&fanotify_group_data(group)->access_list)) {
 		struct fanotify_perm_event *event;
 
-		event = list_first_entry(&group->fanotify_data.access_list,
+		event = list_first_entry(&fanotify_group_data(group)->access_list,
 				struct fanotify_perm_event, fae.fse.list);
 		list_del_init(&event->fae.fse.list);
 		finish_permission_event(group, event, FAN_ALLOW);
@@ -810,7 +812,7 @@ static int fanotify_release(struct inode *ignored, struct file *file)
 	spin_unlock(&group->notification_lock);
 
 	/* Response for all permission events it set, wakeup waiters */
-	wake_up(&group->fanotify_data.access_waitq);
+	wake_up(&fanotify_group_data(group)->access_waitq);
 
 	/* matches the fanotify_init->fsnotify_alloc_group */
 	fsnotify_destroy_group(group);
@@ -1015,7 +1017,7 @@ static struct fsnotify_mark *fanotify_add_new_mark(struct fsnotify_group *group,
 						   unsigned int type,
 						   __kernel_fsid_t *fsid)
 {
-	struct ucounts *ucounts = group->fanotify_data.ucounts;
+	struct ucounts *ucounts = fanotify_group_data(group)->ucounts;
 	struct fsnotify_mark *mark;
 	int ret;
 
@@ -1220,19 +1222,19 @@ SYSCALL_DEFINE2(fanotify_init, unsigned int, flags, unsigned int, event_f_flags)
 	}
 
 	/* Enforce groups limits per user in all containing user ns */
-	group->fanotify_data.ucounts = inc_ucount(current_user_ns(),
+	fanotify_group_data(group)->ucounts = inc_ucount(current_user_ns(),
 						  current_euid(),
 						  UCOUNT_FANOTIFY_GROUPS);
-	if (!group->fanotify_data.ucounts) {
+	if (!fanotify_group_data(group)->ucounts) {
 		fd = -EMFILE;
 		goto out_destroy_group;
 	}
 
-	group->fanotify_data.flags = flags | internal_flags;
+	fanotify_group_data(group)->flags = flags | internal_flags;
 	group->memcg = get_mem_cgroup_from_mm(current->mm);
 
-	group->fanotify_data.merge_hash = fanotify_alloc_merge_hash();
-	if (!group->fanotify_data.merge_hash) {
+	fanotify_group_data(group)->merge_hash = fanotify_alloc_merge_hash();
+	if (!fanotify_group_data(group)->merge_hash) {
 		fd = -ENOMEM;
 		goto out_destroy_group;
 	}
@@ -1245,9 +1247,9 @@ SYSCALL_DEFINE2(fanotify_init, unsigned int, flags, unsigned int, event_f_flags)
 
 	if (force_o_largefile())
 		event_f_flags |= O_LARGEFILE;
-	group->fanotify_data.f_flags = event_f_flags;
-	init_waitqueue_head(&group->fanotify_data.access_waitq);
-	INIT_LIST_HEAD(&group->fanotify_data.access_list);
+	fanotify_group_data(group)->f_flags = event_f_flags;
+	init_waitqueue_head(&fanotify_group_data(group)->access_waitq);
+	INIT_LIST_HEAD(&fanotify_group_data(group)->access_list);
 	switch (class) {
 	case FAN_CLASS_NOTIF:
 		group->priority = FS_PRIO_0;
@@ -1619,9 +1621,9 @@ static int __init fanotify_user_setup(void)
 	}
 
 	fanotify_max_queued_events = FANOTIFY_DEFAULT_MAX_EVENTS;
-	init_user_ns.ucount_max[UCOUNT_FANOTIFY_GROUPS] =
+	*ucount_max_slot(&init_user_ns, UCOUNT_FANOTIFY_GROUPS) =
 					FANOTIFY_DEFAULT_MAX_GROUPS;
-	init_user_ns.ucount_max[UCOUNT_FANOTIFY_MARKS] = max_marks;
+	*ucount_max_slot(&init_user_ns, UCOUNT_FANOTIFY_MARKS) = max_marks;
 
 	return 0;
 }

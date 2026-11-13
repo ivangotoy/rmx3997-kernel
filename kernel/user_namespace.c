@@ -137,6 +137,8 @@ int create_user_ns(struct cred *new)
 	for (i = 0; i < MAX_PER_NAMESPACE_UCOUNTS; i++) {
 		ns->ucount_max[i] = INT_MAX;
 	}
+	for (i = UCOUNT_COUNTS; i < UCOUNT_COUNTS_ALL; i++)
+		*ucount_max_slot(ns, i) = INT_MAX;
 	set_rlimit_ucount_max(ns, UCOUNT_RLIMIT_NPROC, enforced_nproc_rlimit());
 	set_rlimit_ucount_max(ns, UCOUNT_RLIMIT_MSGQUEUE, rlimit(RLIMIT_MSGQUEUE));
 	set_rlimit_ucount_max(ns, UCOUNT_RLIMIT_SIGPENDING, rlimit(RLIMIT_SIGPENDING));
@@ -1400,7 +1402,10 @@ const struct proc_ns_operations userns_operations = {
 
 static __init int user_namespaces_init(void)
 {
-	user_ns_cachep = KMEM_CACHE(user_namespace, SLAB_PANIC | SLAB_ACCOUNT);
+	/* USER_NS_ALLOC_SIZE: room for the counters past UCOUNT_COUNTS */
+	user_ns_cachep = kmem_cache_create("user_namespace", USER_NS_ALLOC_SIZE,
+					   __alignof__(struct user_namespace),
+					   SLAB_PANIC | SLAB_ACCOUNT, NULL);
 	return 0;
 }
 subsys_initcall(user_namespaces_init);

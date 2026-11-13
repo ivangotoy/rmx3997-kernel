@@ -157,7 +157,7 @@ static int fanotify_merge(struct fsnotify_group *group,
 {
 	struct fanotify_event *old, *new = FANOTIFY_E(event);
 	unsigned int bucket = fanotify_event_hash_bucket(group, new);
-	struct hlist_head *hlist = &group->fanotify_data.merge_hash[bucket];
+	struct hlist_head *hlist = &fanotify_group_data(group)->merge_hash[bucket];
 	int i = 0;
 
 	pr_debug("%s: group=%p event=%p bucket=%u\n", __func__,
@@ -198,7 +198,7 @@ static int fanotify_get_response(struct fsnotify_group *group,
 
 	pr_debug("%s: group=%p event=%p\n", __func__, group, event);
 
-	ret = wait_event_killable(group->fanotify_data.access_waitq,
+	ret = wait_event_killable(fanotify_group_data(group)->access_waitq,
 				  event->state == FAN_EVENT_ANSWERED);
 	/* Signal pending? */
 	if (ret < 0) {
@@ -698,7 +698,7 @@ static void fanotify_insert_event(struct fsnotify_group *group,
 {
 	struct fanotify_event *event = FANOTIFY_E(fsn_event);
 	unsigned int bucket = fanotify_event_hash_bucket(group, event);
-	struct hlist_head *hlist = &group->fanotify_data.merge_hash[bucket];
+	struct hlist_head *hlist = &fanotify_group_data(group)->merge_hash[bucket];
 
 	assert_spin_locked(&group->notification_lock);
 
@@ -801,9 +801,9 @@ finish:
 
 static void fanotify_free_group_priv(struct fsnotify_group *group)
 {
-	kfree(group->fanotify_data.merge_hash);
-	if (group->fanotify_data.ucounts)
-		dec_ucount(group->fanotify_data.ucounts,
+	kfree(fanotify_group_data(group)->merge_hash);
+	if (fanotify_group_data(group)->ucounts)
+		dec_ucount(fanotify_group_data(group)->ucounts,
 			   UCOUNT_FANOTIFY_GROUPS);
 }
 
@@ -864,7 +864,7 @@ static void fanotify_freeing_mark(struct fsnotify_mark *mark,
 				  struct fsnotify_group *group)
 {
 	if (!FAN_GROUP_FLAG(group, FAN_UNLIMITED_MARKS))
-		dec_ucount(group->fanotify_data.ucounts, UCOUNT_FANOTIFY_MARKS);
+		dec_ucount(fanotify_group_data(group)->ucounts, UCOUNT_FANOTIFY_MARKS);
 }
 
 static void fanotify_free_mark(struct fsnotify_mark *fsn_mark)
