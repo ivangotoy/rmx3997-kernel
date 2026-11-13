@@ -27,7 +27,8 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
   (`devices.allow`, `devices.deny`, `devices.list`) for container runtimes.
 - Bridge netfilter: `CONFIG_BRIDGE_NETFILTER`, `br_netfilter` built in, so
   iptables, ip6tables and conntrack can see bridged traffic
-  (`net.bridge.bridge-nf-call-iptables` and related sysctls). The xt
+  (`net.bridge.bridge-nf-call-iptables` and related sysctls; they default
+  to 0, so bridged traffic is filtered only after they are set to 1). The xt
   `physdev` match is not enabled.
 - These three options normally change the layout of kernel structs that the
   stock vendor modules were built against. Here their extra state is stored

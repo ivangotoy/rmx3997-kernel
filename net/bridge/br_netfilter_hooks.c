@@ -1213,9 +1213,14 @@ static struct ctl_table brnf_table[] = {
 
 static inline void br_netfilter_sysctl_default(struct brnf_net *brnf)
 {
-	brnf->call_iptables = 1;
-	brnf->call_ip6tables = 1;
-	brnf->call_arptables = 1;
+	/*
+	 * br_netfilter is built in here, so these defaults apply to every
+	 * bridge from boot. Off by default: bridged frames keep bypassing
+	 * iptables as on the stock kernel until the sysctl is set to 1.
+	 */
+	brnf->call_iptables = 0;
+	brnf->call_ip6tables = 0;
+	brnf->call_arptables = 0;
 	brnf->filter_vlan_tagged = 0;
 	brnf->filter_pppoe_tagged = 0;
 	brnf->pass_vlan_indev = 0;
