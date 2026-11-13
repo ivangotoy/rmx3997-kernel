@@ -88,6 +88,9 @@ def cmd_preflight(a):
     import shutil
     if not shutil.which('bpftool'):
         bad.append('bpftool: not installed (struct layout gate)')
+    for tool in ('avbtool', 'lz4'):
+        if not shutil.which(tool):
+            bad.append(tool + ': not installed (boot image packaging)')
     if bad:
         die('host inputs: ' + '; '.join(bad))
     print('host inputs: %d pinned files and %d OEM modules verified' % (len(pins['files']), len(rows)))
@@ -487,7 +490,7 @@ def cmd_package(a):
     if identity != acc['identity']:
         die('Image changed after acceptance')
     image = out / 'arch/arm64/boot/Image'
-    base = 'RMX3997-%s-%s' % (identity['release'], a.label)
+    base = 'RMX3997-kernel-%s-%s' % (identity['release'].split('-')[0], short_label(a.label))
     zip_path = dist / (base + '.zip')
     ident = dict(identity, build_purpose='forgejo-ci', source_commit=a.commit,
                  ci_run=a.run_url, oem_crc_gate=acc['oem_crc']['status'])
@@ -566,11 +569,16 @@ def api(method, url, token, data=None, ctype='application/json'):
     return open_url(req)
 
 
+def short_label(label):
+    """rmx3997-v10 -> v10: the file name already starts with the device."""
+    return label[len('rmx3997-'):] if label.startswith('rmx3997-') else label
+
+
 def release_body(tag, commit, dist):
-    zips = [p.name for p in dist.iterdir() if p.name.endswith('-%s.zip' % tag)]
+    zips = [p.name for p in dist.iterdir() if p.name.endswith('-%s.zip' % short_label(tag))]
     if len(zips) != 1:
         die('expected one release ZIP in dist')
-    kernel = zips[0][len('RMX3997-'):-len('-%s.zip' % tag)]
+    kernel = json.loads((dist.parent / 'acceptance.json').read_text())['identity']['release']
     text = (REPO / 'rmx3997/ci/release-notes.md').read_text()
     return text.format(kernel=kernel, version=kernel.split('-')[0], commit=commit[:12])
 
@@ -723,7 +731,7 @@ def cmd_github_release(a):
     if frel.get('draft') or frel.get('tag_name') != tag:
         die('Forgejo release for %s is not a published release of that tag' % tag)
     assets = {x['name']: x for x in frel.get('assets', [])}
-    zips = [n for n in assets if re.fullmatch(r'RMX3997-.+-%s\.zip' % re.escape(tag), n)]
+    zips = [n for n in assets if re.fullmatch(r'RMX3997-.+-%s\.zip' % re.escape(short_label(tag)), n)]
     if len(zips) != 1 or set(assets) != {zips[0], zips[0] + '.sha256'}:
         die('Forgejo release must hold exactly the ZIP and its .sha256 (has: %s)'
             % ', '.join(sorted(assets)))
@@ -836,6 +844,21 @@ def cmd_github_release(a):
           % (tag, rel['id'], len(files), ', '.join(sorted(files))))
 
 
+class _Scrub:
+    """Keep host paths out of the public job log (tracebacks included)."""
+
+    def __init__(self, stream):
+        self._stream = stream
+
+    def write(self, text):
+        for old, new in ((str(REPO), '.'), (os.path.expanduser('~'), '~')):
+            text = text.replace(old, new)
+        return self._stream.write(text)
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest='cmd', required=True)
@@ -850,7 +873,7 @@ def main():
     c.add_argument('--label', required=True)
     c.add_argument('--commit', required=True)
     c.add_argument('--run-url', required=True)
-    c.add_argument('--private-dir', default='~/.cache/rmx3997-ci/private')
+    c.add_argument('--private-dir', default='~/Downloads/rmx3997-images')
     c = sub.add_parser('layout')
     c.add_argument('--image', required=True)
     c.add_argument('--work', required=True)
@@ -873,4 +896,5 @@ def main():
 
 
 if __name__ == '__main__':
+    sys.stdout, sys.stderr = _Scrub(sys.stdout), _Scrub(sys.stderr)
     main()

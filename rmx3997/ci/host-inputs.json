@@ -18,12 +18,16 @@
       "sha256": "1841c3ad7132c040d5bbfa30d9e126624d9a72e1a32f90636cc444fe75c144a6"
     },
     "boot_b_layout_template": {
-      "path": "~/Downloads/RMX3997-boot_b-D2-ZYC/boot_b-D2-ZYC.img",
+      "path": "~/Downloads/rmx3997-images/layout-template/boot_b-D2-ZYC.img",
       "sha256": "df8e83eaec4542dfa590a47b7bf2a3c8b732a10b6d422465150103ab37735f51"
     },
     "stock_btf": {
       "path": "~/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/stock.btf",
       "sha256": "ed235edb712b225b81f7e11b1903dbdf600c0625203e7f8bb6c55638a7174f90"
+    },
+    "avbtool": {
+      "path": "~/.local/bin/avbtool",
+      "sha256": "1aa6f2b462aa67aa3fdf488bee83ab517de8ad9d8228c7b45c35267ab2cf6781"
     }
   },
   "oem_modules": {

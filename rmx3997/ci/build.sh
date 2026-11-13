@@ -90,7 +90,7 @@ print('build: exit=%s aborted=%s reason=%s min_MemAvailable_GiB=%s' % (
 EOF
 if [ "$rc" -ne 0 ]; then
   echo "FAIL: build exited $rc; last log lines:"
-  tail -n 60 "$STAGE/build.log" | sed "s#$HOME#~#g"
+  tail -n 60 "$STAGE/build.log" | sed "s#$SRC#.#g; s#$HOME#~#g"
   exit "$rc"
 fi
 cat "$OUT/include/config/kernel.release"

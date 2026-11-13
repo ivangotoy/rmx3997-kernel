@@ -604,6 +604,21 @@ def cmd_verify(a):
         die('%d vendored files differ from their pins' % bad)
 
 
+class _Scrub:
+    """Keep host paths out of the public job log (tracebacks included)."""
+
+    def __init__(self, stream):
+        self._stream = stream
+
+    def write(self, text):
+        for old, new in ((str(REPO), '.'), (os.path.expanduser('~'), '~')):
+            text = text.replace(old, new)
+        return self._stream.write(text)
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest='cmd', required=True)
@@ -629,4 +644,5 @@ def main():
 
 
 if __name__ == '__main__':
+    sys.stdout, sys.stderr = _Scrub(sys.stdout), _Scrub(sys.stderr)
     main()
