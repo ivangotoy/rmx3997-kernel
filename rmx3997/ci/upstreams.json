@@ -56,7 +56,7 @@
       "mode": "subtree",
       "url": "https://github.com/maxsteeel/nomount",
       "ref": "dev",
-      "pin": "7fce5e2ca6a5b91bebf730e50954d41119794763",
+      "pin": "6298d58af34a82cb094ec62f14646f63e6b12797",
       "paths": {
         "kernel/src/": "fs/nomount/"
       },
