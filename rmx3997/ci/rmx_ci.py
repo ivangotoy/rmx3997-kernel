@@ -52,6 +52,24 @@ def host_markers():
     return sorted({home + b'/', b'forgejo-runners', REPO.as_posix().encode()})
 
 
+def write_atomic(path, text):
+    """Replace path with text in one rename: an interrupted write leaves the
+    old file intact and no partial or temporary file behind."""
+    path = Path(path)
+    tmp = path.with_name('.%s.%d.tmp' % (path.name, os.getpid()))
+    try:
+        with open(tmp, 'x') as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        if path.exists():
+            os.chmod(tmp, path.stat().st_mode & 0o7777)
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
 def load_pins():
     return json.loads(PINS.read_text())
 
@@ -104,7 +122,7 @@ def cmd_record_pins(a):
         entry['sha256'] = sha(expand(entry['path']).resolve())
     rows = oem_manifest(pins['oem_modules']['dirs'])
     pins['oem_modules'].update(count=len(rows), manifest_sha256=manifest_digest(rows))
-    PINS.write_text(json.dumps(pins, indent=2) + '\n')
+    write_atomic(PINS, json.dumps(pins, indent=2) + '\n')
     print(json.dumps(pins, indent=2))
 
 
@@ -385,7 +403,7 @@ def cmd_layout(a):
             if stock[name] != built[name]:
                 rec['changed'][name] = {'sha256': layout_digest(built[name]),
                                         'members': member_changes(stock[name], built[name])[:40]}
-        LAYOUT_APPROVED.write_text(json.dumps(rec, indent=1) + '\n')
+        write_atomic(LAYOUT_APPROVED, json.dumps(rec, indent=1) + '\n')
         print('approved %d changed and %d removed structs from %s' % (
             len(rec['changed']), len(rec['removed']), a.approve))
         return
@@ -410,7 +428,7 @@ def cmd_refresh_config(a):
         die('olddefconfig changes existing options: ' + '; '.join(
             '%s -> %s' % (oldmap[s], newmap.get(s, 'removed')) for s in changed[:20]))
     added = sorted(set(newmap) - set(oldmap))
-    path.write_text('\n'.join(new) + '\n')
+    write_atomic(path, '\n'.join(new) + '\n')
     print('config: %d new symbols accepted: %s' % (len(added), ', '.join(added) or 'none'))
 
 

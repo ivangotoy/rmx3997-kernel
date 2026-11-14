@@ -108,5 +108,35 @@ class MakefileVersion(unittest.TestCase):
         self.assertEqual(e.exception.code, 1)
 
 
+class AtomicWrite(unittest.TestCase):
+    """Tracked-file rewrites (record-pins, layout --approve, refresh-config)."""
+
+    def test_replaces_and_keeps_mode(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d, 'f.json')
+            p.write_text('old\n')
+            p.chmod(0o644)
+            rmx_ci.write_atomic(p, 'new\n')
+            self.assertEqual(p.read_text(), 'new\n')
+            self.assertEqual(p.stat().st_mode & 0o777, 0o644)
+            self.assertEqual(sorted(x.name for x in Path(d).iterdir()), ['f.json'])
+
+    def test_failed_write_keeps_old_file_and_no_temp(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d, 'f.json')
+            p.write_text('old\n')
+            with mock.patch.object(rmx_ci.os, 'replace', side_effect=OSError('disk full')), \
+                    self.assertRaises(OSError):
+                rmx_ci.write_atomic(p, 'new\n')
+            self.assertEqual(p.read_text(), 'old\n')
+            self.assertEqual(sorted(x.name for x in Path(d).iterdir()), ['f.json'])
+
+    def test_refresh_config_uses_it(self):
+        src = (CI / 'rmx_ci.py').read_text()
+        body = src[src.index('def cmd_refresh_config'):src.index('# --------------------------------------------------------------- boot image')]
+        self.assertIn('write_atomic(path,', body)
+        self.assertNotIn('.write_text(', body)
+
+
 if __name__ == '__main__':
     unittest.main()
