@@ -38,8 +38,10 @@ def main():
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=False)
     scratch = Path(os.environ['TMPDIR']).resolve()
-    if not str(scratch).startswith('/home/build/.cache/codex-work/'):
-        raise ValueError('Disk-backed task TMPDIR required')
+    fstype = subprocess.run(['findmnt', '-n', '-o', 'FSTYPE', '--target', str(scratch)],
+                            capture_output=True, text=True, check=True).stdout.strip()
+    if fstype in ('tmpfs', 'ramfs'):
+        raise ValueError('Disk-backed task TMPDIR required, got %s' % fstype)
     drv = (PROVIDER / 'zram_drv.c').read_text()
     header = (PROVIDER / 'zram_drv.h').read_text()
     hybrid = (PROVIDER / 'hybridswap/hybridswap.c').read_text()
