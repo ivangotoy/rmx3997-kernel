@@ -79,5 +79,22 @@ class AvbInfoFields(unittest.TestCase):
         self.assertEqual(rmx_ci.avb_field(r'Salt:\s+([0-9a-f]+)', '    Salt: abc1\n', 'salt'), 'abc1')
 
 
+class BuildSummary(unittest.TestCase):
+    """build.sh keeps the build exit code and log tail when no execution record exists."""
+
+    def test_missing_execution_record(self):
+        text = (CI / 'build.sh').read_text()
+        start = text.index('# --- build summary')
+        end = text.index('# --- end build summary')
+        snippet = text[start:end]
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, 'build.log').write_text('compiler said no\n')
+            script = 'set -Eeuo pipefail\nSTAGE=%s\nSRC=/nonexistent\nrc=7\n%s' % (d, snippet)
+            r = subprocess.run(['bash', '-c', script], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 7, r.stdout + r.stderr)
+        self.assertIn('no execution record', r.stdout)
+        self.assertIn('compiler said no', r.stdout)
+
+
 if __name__ == '__main__':
     unittest.main()

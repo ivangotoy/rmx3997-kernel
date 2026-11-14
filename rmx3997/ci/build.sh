@@ -81,16 +81,26 @@ systemd-run --user --scope --quiet --collect \
     make "${MAKEVARS[@]}" -j"$JOBS" Image modules
 rc=$?
 set -e
-python3 -I - "$STAGE/build-execution.json" <<'EOF'
+# --- build summary (exercised by rmx3997/ci/test_ci.py)
+# No execution record means systemd-run or the guard failed before the build;
+# keep the real exit code and whatever log exists instead of a JSON traceback.
+if [ -f "$STAGE/build-execution.json" ]; then
+  python3 -I - "$STAGE/build-execution.json" <<'EOF'
 import json, sys
 r = json.load(open(sys.argv[1]))
 print('build: exit=%s aborted=%s reason=%s min_MemAvailable_GiB=%s' % (
     r.get('exit_code'), r.get('aborted'), r.get('reason'),
     round((r.get('minimum_actual_MemAvailable_bytes') or 0) / 2**30, 2)))
 EOF
+else
+  echo "build: no execution record (systemd-run or resource guard failed to start)"
+fi
 if [ "$rc" -ne 0 ]; then
   echo "FAIL: build exited $rc; last log lines:"
-  tail -n 60 "$STAGE/build.log" | sed "s#$SRC#.#g; s#$HOME#~#g"
+  if [ -f "$STAGE/build.log" ]; then
+    tail -n 60 "$STAGE/build.log" | sed "s#$SRC#.#g; s#$HOME#~#g"
+  fi
   exit "$rc"
 fi
+# --- end build summary
 cat "$OUT/include/config/kernel.release"
