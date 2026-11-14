@@ -66,5 +66,18 @@ class ReportIssueLookup(unittest.TestCase):
         self.assertEqual(posts, [('POST', 'https://forge.example/api/v1/repos/owner/repo/issues')])
 
 
+class AvbInfoFields(unittest.TestCase):
+    """Missing avbtool fields fail with a FAIL line, not an AttributeError."""
+
+    def test_missing_field_dies_cleanly(self):
+        with mock.patch('builtins.print') as p, self.assertRaises(SystemExit) as e:
+            rmx_ci.avb_field(r'Salt:\s+([0-9a-f]+)', 'Algorithm: NONE\n', 'salt')
+        self.assertEqual(e.exception.code, 1)
+        self.assertIn('salt', p.call_args[0][0])
+
+    def test_present_field(self):
+        self.assertEqual(rmx_ci.avb_field(r'Salt:\s+([0-9a-f]+)', '    Salt: abc1\n', 'salt'), 'abc1')
+
+
 if __name__ == '__main__':
     unittest.main()

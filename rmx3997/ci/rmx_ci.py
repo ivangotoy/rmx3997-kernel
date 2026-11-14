@@ -414,6 +414,14 @@ def cmd_refresh_config(a):
 
 
 # --------------------------------------------------------------- boot image
+def avb_field(pattern, info, what):
+    """One avbtool info_image field; a missing field fails the gate cleanly."""
+    m = re.search(pattern, info)
+    if not m:
+        die('avbtool info_image output has no %s' % what)
+    return m.group(1)
+
+
 def avb_info(path):
     return subprocess.run(['avbtool', 'info_image', '--image', str(path)],
                           capture_output=True, text=True, check=True).stdout
@@ -430,12 +438,12 @@ def build_boot_image(template, image, out_img, work):
         die('unexpected boot header layout %r' % ((hv, rs, hs),))
     pad = lambda n: (n + PAGE - 1) // PAGE * PAGE
     info = avb_info(template)
-    orig = int(re.search(r'Original image size:\s+(\d+)', info).group(1))
+    orig = int(avb_field(r'Original image size:\s+(\d+)', info, 'original image size'))
     if orig != PAGE + pad(ks) + pad(rs) + pad(sig):
         die('template AVB original size does not match its header')
     if not (re.search(r'Algorithm:\s+NONE', info) and re.search(r'Partition Name:\s+boot\b', info)):
         die('template AVB descriptor is not boot/NONE')
-    salt = re.search(r'Salt:\s+([0-9a-f]+)', info).group(1)
+    salt = avb_field(r'Salt:\s+([0-9a-f]+)', info, 'salt')
     props = re.findall(r"Prop: (\S+) -> '([^']*)'", info)
     sigblob = b[PAGE + pad(ks) + pad(rs):PAGE + pad(ks) + pad(rs) + sig]
     lz = work / 'Image.lz4'
@@ -461,9 +469,9 @@ def verify_boot_image(img, image, work):
     if len(data) != PART_SIZE or data[:8] != b'ANDROID!':
         die('boot image size/magic')
     info = avb_info(img)
-    orig = int(re.search(r'Original image size:\s+(\d+)', info).group(1))
-    salt = bytes.fromhex(re.search(r'Salt:\s+([0-9a-f]+)', info).group(1))
-    digest = re.search(r'Digest:\s+([0-9a-f]+)', info).group(1)
+    orig = int(avb_field(r'Original image size:\s+(\d+)', info, 'original image size'))
+    salt = bytes.fromhex(avb_field(r'Salt:\s+([0-9a-f]+)', info, 'salt'))
+    digest = avb_field(r'Digest:\s+([0-9a-f]+)', info, 'digest')
     if hashlib.sha256(salt + data[:orig]).hexdigest() != digest:
         die('AVB hash descriptor digest does not cover the payload')
     ks = struct.unpack_from('<I', data, 8)[0]
