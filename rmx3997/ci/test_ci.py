@@ -96,5 +96,17 @@ class BuildSummary(unittest.TestCase):
         self.assertIn('compiler said no', r.stdout)
 
 
+class MakefileVersion(unittest.TestCase):
+    def test_fields(self):
+        mk = 'VERSION = 5\nPATCHLEVEL = 15\nSUBLEVEL = 199\nEXTRAVERSION =\n'
+        self.assertEqual([upstream.makefile_field(mk, k) for k in ('VERSION', 'PATCHLEVEL', 'SUBLEVEL')],
+                         ['5', '15', '199'])
+
+    def test_missing_field_dies_cleanly(self):
+        with mock.patch('builtins.print'), self.assertRaises(SystemExit) as e:
+            upstream.makefile_field('VERSION = 5\n', 'SUBLEVEL')
+        self.assertEqual(e.exception.code, 1)
+
+
 if __name__ == '__main__':
     unittest.main()

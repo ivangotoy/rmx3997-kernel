@@ -191,6 +191,14 @@ def bakasu_identity(ws, cdir, tip):
     return None
 
 
+def makefile_field(text, key):
+    """VERSION/PATCHLEVEL/SUBLEVEL from a kernel Makefile; absent fails cleanly."""
+    m = re.search(r'^%s = (\d+)$' % key, text, re.M)
+    if not m:
+        die('kernel Makefile has no %s line' % key)
+    return m.group(1)
+
+
 def subjects(cdir, rng, limit=40):
     s = out('-C', str(cdir), 'log', '--no-merges', '--format=- %h %s', rng).splitlines()
     return s[:limit] + (['- ... %d more' % (len(s) - limit)] if len(s) > limit else [])
@@ -246,8 +254,7 @@ def cmd_candidate(a):
         head0 = out('rev-parse', 'HEAD', cwd=ws)
         if c['mode'] == 'lts-merge':
             mk = git('-C', str(cdir), 'show', tip + ':Makefile').stdout
-            ver = '5.%s.%s' % tuple(re.search(r'^%s = (\d+)' % k, mk, re.M).group(1)
-                                    for k in ('PATCHLEVEL', 'SUBLEVEL'))
+            ver = '5.%s.%s' % tuple(makefile_field(mk, k) for k in ('PATCHLEVEL', 'SUBLEVEL'))
             snap = out(*IDENT, 'commit-tree', tip + '^{tree}', '-p', c['snapshot'], '-m',
                        'AOSP %s at %s (%s)\n\nTree of %s %s %s; the parentless snapshot keeps\n'
                        'the AOSP history out of this repository.' %
@@ -428,8 +435,7 @@ def cmd_plan_release(a):
         die('candidate tree is not clean')
     tag = next_tag(a.repo_url, os.environ.get('TOKEN', ''))
     mk = (ws / 'Makefile').read_text()
-    version = '.'.join(re.search(r'^%s = (\d+)$' % k, mk, re.M).group(1)
-                       for k in ('VERSION', 'PATCHLEVEL', 'SUBLEVEL'))
+    version = '.'.join(makefile_field(mk, k) for k in ('VERSION', 'PATCHLEVEL', 'SUBLEVEL'))
     d = git('diff', '--quiet', cand['base'], 'HEAD', '--', 'rmx3997/config/production.config',
             cwd=ws, check=False).returncode
     if d not in (0, 1):
