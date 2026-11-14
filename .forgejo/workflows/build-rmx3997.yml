@@ -91,6 +91,14 @@ jobs:
           echo "STAGE=$STAGE" >> "$FORGEJO_ENV"
           df -h --output=avail "$HOME/.cache" | tail -1
 
+      # Offline unit tests of the CI scripts themselves (stubbed APIs, seconds).
+      - name: CI script tests
+        if: env.RMX_SKIP != '1'
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 "$STAGE/tmp"
+          TMPDIR="$STAGE/tmp" PYTHONPYCACHEPREFIX="$STAGE/pycache" python3 -I rmx3997/ci/test_ci.py
+
       - name: Verify pinned host inputs
         if: env.RMX_SKIP != '1'
         run: python3 -I rmx3997/ci/rmx_ci.py preflight
