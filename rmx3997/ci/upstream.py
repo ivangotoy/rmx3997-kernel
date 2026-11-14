@@ -577,6 +577,20 @@ def outcome(stage):
     return 'PASS: built, all acceptance gates passed, released %s' % tag
 
 
+def open_issues_titled(apiurl, repo, token, title):
+    """Open issues with this title, over every page (the server caps a page at 50)."""
+    found, page = [], 1
+    while True:
+        st, issues = api('GET', '%s/repos/%s/issues?state=open&type=issues&limit=50&page=%d'
+                         % (apiurl, repo, page), token)
+        if st != 200:
+            die('listing issues returned HTTP %d' % st)
+        if not issues:
+            return found
+        found += [i for i in issues if i['title'] == title]
+        page += 1
+
+
 def cmd_report(a):
     stage = Path(a.stage)
     token = os.environ['TOKEN']
@@ -604,10 +618,7 @@ def cmd_report(a):
     body = '\n'.join(lines)
     print(body)
     apiurl, repo = a.api.rstrip('/'), a.repo
-    st, issues = api('GET', '%s/repos/%s/issues?state=open&type=issues&limit=50' % (apiurl, repo), token)
-    if st != 200:
-        die('listing issues returned HTTP %d' % st)
-    mine = [i for i in issues if i['title'] == ISSUE_TITLE]
+    mine = open_issues_titled(apiurl, repo, token, ISSUE_TITLE)
     if mine:
         st, _ = api('POST', '%s/repos/%s/issues/%d/comments' % (apiurl, repo, mine[0]['number']), token, {'body': body})
     else:
