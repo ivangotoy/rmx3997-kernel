@@ -19,6 +19,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 
 REPO = Path(__file__).resolve().parents[2]
 CI = REPO / 'rmx3997/ci'
@@ -511,8 +512,8 @@ def cmd_package(a):
     checked = verify_boot_image(img_path, image, work)
     (private / (img_path.name + '.sha256')).write_text(sha(img_path) + '  ' + img_path.name + '\n')
     (dist / (zip_path.name + '.sha256')).write_text(sha(zip_path) + '  ' + zip_path.name + '\n')
-    z = __import__('zipfile').ZipFile(zip_path)
-    zleaks = sorted(n for n in z.namelist() if any(m in z.read(n) for m in host_markers()))
+    with zipfile.ZipFile(zip_path) as z:
+        zleaks = sorted(n for n in z.namelist() if any(m in z.read(n) for m in host_markers()))
     if zleaks:
         die('ZIP members contain host paths: %s' % ', '.join(zleaks))
     tools = {}
