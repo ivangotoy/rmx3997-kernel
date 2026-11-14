@@ -534,7 +534,7 @@ def cmd_package(a):
         'toolchain': tools,
         'host_input_pins_sha256': sha(PINS),
         'acceptance': acc,
-        'phone_boot': 'UNVERIFIED (CI cannot boot the phone; flash and test before publishing)',
+        'phone_boot': 'UNVERIFIED (CI cannot boot the phone)',
     }
     (private / (base + '.provenance.json')).write_text(json.dumps(prov, indent=2) + '\n')
     with open(stage / 'dist.env', 'w') as f:
