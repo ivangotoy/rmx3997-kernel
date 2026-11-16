@@ -12,13 +12,13 @@
       "mode": "security-backports",
       "url": "https://android.googlesource.com/kernel/common",
       "ref": "android13-5.15",
-      "pin": "3f0fd7f6624d7b99bd8d93cbcfe0241bc92d6448"
+      "pin": "3540cf724bf0fe246a3131fd1f3e9342fa03b03e"
     },
     "bakasu": {
       "mode": "subtree",
       "url": "https://github.com/Baka-SU/BakaSU",
       "ref": "main",
-      "pin": "548d1dda060ca198823d8808804d01f5209ef4a9",
+      "pin": "5d6d1843c8937f5ff2a145dc89a0cf46030ae6f8",
       "paths": {
         "kernel/": "drivers/kernelsu/"
       },
@@ -60,7 +60,7 @@
       "mode": "subtree",
       "url": "https://github.com/maxsteeel/nomount",
       "ref": "dev",
-      "pin": "6298d58af34a82cb094ec62f14646f63e6b12797",
+      "pin": "00e7c5d4fdbf1e58decea3522b8eb7207a46d413",
       "paths": {
         "kernel/src/": "fs/nomount/"
       },
