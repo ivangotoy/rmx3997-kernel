@@ -38,7 +38,7 @@
       "mode": "subtree",
       "url": "https://gitlab.com/simonpunk/susfs4ksu.git",
       "ref": "gki-android13-5.15",
-      "pin": "fe943d15ec6a1891f7a360bf210589bdffe4e318",
+      "pin": "c1d1da42b74771944207ec45aaceff9c57e84985",
       "paths": {
         "kernel_patches/": ""
       },

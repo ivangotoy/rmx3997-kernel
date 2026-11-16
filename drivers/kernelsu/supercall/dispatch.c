@@ -1122,6 +1122,10 @@ int ksu_handle_susfs_cmd(unsigned int cmd, void __user **arg)
         susfs_add_sus_path_loop(arg);
         return 0;
     }
+    case CMD_SUSFS_SET_SUS_PATH_UID_FILTER: {
+        susfs_set_sus_path_uid_filter(arg);
+        return 0;
+    }
 #endif //#ifdef CONFIG_KSU_SUSFS_SUS_PATH
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
     case CMD_SUSFS_HIDE_SUS_MNTS_FOR_NON_SU_PROCS: {
