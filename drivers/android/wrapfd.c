@@ -2196,7 +2196,8 @@ int wrapfd_add_listener(struct file *file, struct device *dev,
 
 	spin_lock(&ctx->lock);
 
-	if (!is_owner_dev(ctx, dev)) {
+	if (has_owner(ctx) && !is_owner_dev(ctx, dev) &&
+	    !is_owner_task(ctx, current)) {
 		ret = -EBUSY;
 		goto unlock;
 	}
