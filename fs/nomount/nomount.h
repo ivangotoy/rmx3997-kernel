@@ -16,7 +16,7 @@
 #include <linux/version.h>
 #include <linux/compat.h>
 
-#define NOMOUNT_BASE_VERSION "22"
+#define NOMOUNT_BASE_VERSION "23"
 #ifdef NOMOUNT_COMMIT_COUNT
     #define NOMOUNT_VERSION ""NOMOUNT_BASE_VERSION" ("NOMOUNT_COMMIT_COUNT")"
 #else
@@ -128,10 +128,9 @@ struct nm_leaf {
     u16 v_len;
     u16 child_len;
     bool native_file;
-    u32 child_hash;
-    union { struct hlist_node ht_node; struct rcu_head rcu; };
-    struct nm_leaf *next;
+    u16 child_hash;
     atomic_t refs;
+    union { struct hlist_node ht_node; struct nm_leaf *next; struct rcu_head rcu; };
     char paths[];
 };
 
@@ -184,6 +183,7 @@ static const struct inode_operations nm_dir_iops;
 static const struct dentry_operations nm_dops;
 
 /*** forward declarations ***/
+extern int vfs_path_lookup(struct dentry *, struct vfsmount *, const char *, unsigned int, struct path *);
 static struct dentry *nm_hijacked_lookup(struct inode *dir, struct dentry *dentry, unsigned int flags);
 static int nm_hijacked_iterate_dir(struct file *file, struct dir_context *ctx);
 static void nm_hijacked_evict_inode(struct inode *inode);
