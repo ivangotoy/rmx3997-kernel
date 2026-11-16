@@ -24,14 +24,14 @@ come from Forgejo Actions; see Releases for downloads.
 | Kernel | Linux 5.15.223, Android13-5.15 GKI KMI8 |
 | Compiler | ZyC Clang 18.0.0git (LLVM `3dea0aa8`), Full LTO, strict CFI |
 | Default TCP congestion control | `bbr3` (BBRv3 backport); upstream `bbr` still available |
-| Metamodule support | NoMount protocol 22 (metamodule versionCode 713) |
+| Metamodule support | NoMount protocol 23 (metamodule versionCode 737) |
 
 ## Features
 
 **Root and security tooling**
 
-- BakaSU (KernelSU fork) built in, SUSFS `fe943d15` (v2.4.0)
-- NoMount on the upstream track (maxsteeel `dev`), protocol 22
+- BakaSU (KernelSU fork) built in, SUSFS `c1d1da42` (v2.4.0)
+- NoMount on the upstream track (maxsteeel `dev`), protocol 23
 - Baseband Guard built in
 - CFI enforced for both kernel and OEM modules, stack protector strong
 - MGLRU compiled but left disabled by default
