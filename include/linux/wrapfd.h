@@ -92,20 +92,39 @@ int wrapfd_add_listener(struct file *file, struct device *dev,
 			void *param, void **handlep);
 
 /*
- * Unregister previously registered listener. Caller does not have to own the
- * buffer.
- * The caller can unregister its listener if it no longer needs to monitor
- * the content of the wrapfd object.
+ * Unregister previously registered listener and free its handle. Caller does
+ * not have to own the buffer or hold a reference to the wrap file, the file
+ * might have been released already.
+ * Should be called exactly once for each handle returned by
+ * wrapfd_add_listener(), whether or not on_content_release was invoked. The
+ * handle is invalid once the function returns 0.
  *
- * file: wrap file associated with the mappable object.
+ * Once the function returns 0, on_content_release of the listener will never
+ * be invoked anymore and, unless the function was called from that callback
+ * itself, it is not running. The @ops and @param passed to
+ * wrapfd_add_listener() can then be released; a callback which deleted its
+ * own listener can release them once it is done using them. The function
+ * does not tell whether the callback was invoked or not.
+ *
+ * If on_content_release of the listener is running or is about to be invoked
+ * by another task, the function sleeps until the callback has returned.
+ * Therefore it should be called from a sleepable context and the caller should
+ * not hold any lock which on_content_release takes, otherwise it can deadlock.
+ *
+ * The function can be called from on_content_release, but only to delete the
+ * listener this callback was invoked for. In this case it does not wait.
+ * Deleting another listener of the same content fails with -EINVAL and leaves
+ * that listener and its handle intact; it should be deleted later, outside of
+ * the callback.
+ *
  * handle: listener handle returned by wrapfd_add_listener().
  *
  * On success returns 0. On error returns:
- * -EBADF: file is invalid.
- * -EINVAL: handle is invalid or not found.
+ * -EINVAL: handle is NULL or the function is called from on_content_release
+ *	    of another listener, see above.
  * -EOPNOTSUPP: wrapfd driver is not enabled
  */
-int wrapfd_del_listener(struct file *file, void *handle);
+int wrapfd_del_listener(void *handle);
 
 /*
  * Take file ownersip.
@@ -174,7 +193,7 @@ static inline int wrapfd_add_listener(struct file *file, struct device *dev,
 	return -EOPNOTSUPP;
 }
 
-static inline int wrapfd_del_listener(struct file *file, void *handle)
+static inline int wrapfd_del_listener(void *handle)
 {
 	return -EOPNOTSUPP;
 }

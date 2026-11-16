@@ -74,6 +74,12 @@ struct wrap_content_operations {
 struct wrap_content {
 	struct wrap_content_operations *ops;
 	bool close_on_exec;
+	/*
+	 * One reference is held by the wrap context and one by each listener
+	 * which was neither notified nor deleted yet.
+	 */
+	refcount_t refcnt;
+	spinlock_t lock; /* protects listeners */
 	struct list_head listeners;
 };
 
@@ -833,10 +839,37 @@ struct wrap_ctx {
 	struct list_head event_list;
 };
 
+/*
+ * One reference is held by the creator of the listener until it calls
+ * wrapfd_del_listener() and one by notify_content_release() while it is
+ * notifying the listener. This keeps the handle valid until it is deleted,
+ * whether or not the listener was notified, and keeps the listener around
+ * if it is deleted while being notified.
+ */
 struct wrapfd_content_listener {
 	const struct wrapfd_listener_operations *ops;
 	void *param;
+	refcount_t refcnt;
+	/*
+	 * Points back to the content while holding a content->refcnt. Reset
+	 * with xchg() by notify_content_release() when it picks the listener
+	 * for notification and by wrapfd_del_listener(). The one which finds
+	 * it set owns the listener: it is the only one allowed to touch the
+	 * list node and it has to drop the content reference.
+	 */
+	struct wrap_content *content;
+	/* Node in content->listeners, protected by content->lock */
 	struct list_head list;
+	/*
+	 * The task which picked the listener for notification, set from the
+	 * moment the listener is picked until all listeners of the content
+	 * have been notified.
+	 */
+	struct task_struct *notifier;
+	/* Set while on_content_release of this listener is running. */
+	bool in_callback;
+	/* Completed once on_content_release has returned. */
+	struct completion comp;
 };
 
 struct file_monitor {
@@ -977,15 +1010,70 @@ static inline bool is_owner_dev(struct wrap_ctx *ctx,
 	return ctx->owner.dev == dev;
 }
 
+static void put_content(struct wrap_content *content)
+{
+	if (refcount_dec_and_test(&content->refcnt))
+		content->ops->free(content);
+}
+
+static void put_listener(struct wrapfd_content_listener *listener)
+{
+	if (refcount_dec_and_test(&listener->refcnt))
+		kfree(listener);
+}
+
+/*
+ * Notify the listeners of the content. The caller should hold a reference to
+ * the content and should have removed it from its context, so that no new
+ * listeners can be added while the current ones are being notified.
+ */
 static void notify_content_release(struct wrap_content *content)
 {
 	struct wrapfd_content_listener *listener;
 	struct wrapfd_content_listener *tmp;
+	LIST_HEAD(notify_list);
 
+	/*
+	 * Move the listeners into a local list, so that they can be notified
+	 * without holding the lock. Listeners in content->listeners can't be
+	 * freed while the lock is held, because they are unlinked under the
+	 * lock before the reference of their creator is dropped.
+	 */
+	spin_lock(&content->lock);
 	list_for_each_entry_safe(listener, tmp, &content->listeners, list) {
+		refcount_inc(&listener->refcnt);
+		if (!xchg(&listener->content, NULL)) {
+			/*
+			 * Lost the race with wrapfd_del_listener(), which is
+			 * waiting for the lock to unlink the listener.
+			 */
+			put_listener(listener);
+			continue;
+		}
+		WRITE_ONCE(listener->notifier, current);
+		list_move_tail(&listener->list, &notify_list);
+	}
+	spin_unlock(&content->lock);
+
+	/* Nobody else touches the claimed listeners and their list nodes. */
+	list_for_each_entry(listener, &notify_list, list) {
+		listener->in_callback = true;
 		listener->ops->on_content_release(listener->param);
-		list_del(&listener->list);
-		kfree(listener);
+		listener->in_callback = false;
+		/* Let wrapfd_del_listener() called from another task proceed. */
+		complete(&listener->comp);
+		/*
+		 * Drop the content reference of the listener, so that a
+		 * listener which is not deleted yet does not keep the content
+		 * around. The caller still holds its reference.
+		 */
+		put_content(content);
+	}
+
+	list_for_each_entry_safe(listener, tmp, &notify_list, list) {
+		list_del_init(&listener->list);
+		WRITE_ONCE(listener->notifier, NULL);
+		put_listener(listener);
 	}
 }
 
@@ -1017,7 +1105,7 @@ static void destroy_wrap_ctx(struct wrap_ctx *ctx)
 
 	if (content) {
 		notify_content_release(content);
-		content->ops->free(content);
+		put_content(content);
 	}
 
 	/* put_device() cannot be called in atomic context. */
@@ -1593,8 +1681,11 @@ static int wrap_file_rewrap(struct wrap_ctx *ctx,
 	if (ret < 0)
 		goto free_new_ctx;
 
-	if (new_content != content)
-		content->ops->free(content);
+	if (new_content != content) {
+		/* The content got replaced, let its listeners know. */
+		notify_content_release(content);
+		put_content(content);
+	}
 
 	spin_lock(&ctx->lock);
 	unblock_usage(ctx);
@@ -1606,7 +1697,7 @@ free_new_ctx:
 	destroy_wrap_ctx(new_ctx);
 free_new_content:
 	if (new_content != content)
-		new_content->ops->free(new_content);
+		put_content(new_content);
 restore_content:
 	/*
 	 * Restore original wrap. We are the owner and the wrap
@@ -1639,7 +1730,7 @@ unlock:
 
 	if (!ret) {
 		notify_content_release(content);
-		content->ops->free(content);
+		put_content(content);
 	}
 
 	return ret;
@@ -1674,10 +1765,16 @@ static struct wrap_content *create_content_for(int fd, unsigned long prot)
 
 	writable = !!(prot & PROT_WRITE);
 	is_file_writable = !!(dmabuf->file->f_mode & FMODE_WRITE);
-	if (writable && !is_file_writable)
+	if (writable && !is_file_writable) {
 		content = ERR_PTR(-EACCES);
-	else
+	} else {
 		content = alloc_dmabuf_content(dmabuf, writable);
+		if (!IS_ERR(content)) {
+			spin_lock_init(&content->lock);
+			INIT_LIST_HEAD(&content->listeners);
+			refcount_set(&content->refcnt, 1);
+		}
+	}
 	dma_buf_put(dmabuf);
 
 	return content;
@@ -1743,7 +1840,6 @@ unlock:
 		goto unblock;
 	}
 
-	INIT_LIST_HEAD(&content->listeners);
 	content->close_on_exec = get_close_on_exec(wrapfd_repopulate->fd);
 	content->ops->get_content_attribs(content, &attrs);
 	set_close_on_exec(wrapfd_repopulate->wrapfd,
@@ -2089,12 +2185,14 @@ int wrapfd_add_listener(struct file *file, struct device *dev,
 
 	ctx = file->private_data;
 
-	listener = kmalloc(sizeof(*listener), GFP_KERNEL);
+	listener = kzalloc(sizeof(*listener), GFP_KERNEL);
 	if (!listener)
 		return -ENOMEM;
 
 	listener->ops = ops;
 	listener->param = param;
+	init_completion(&listener->comp);
+	refcount_set(&listener->refcnt, 1);
 
 	spin_lock(&ctx->lock);
 
@@ -2108,54 +2206,77 @@ int wrapfd_add_listener(struct file *file, struct device *dev,
 		goto unlock;
 	}
 
-	*handlep = listener;
 	ret = 0;
 unlock:
-	if (!ret)
+	if (!ret) {
+		spin_lock(&ctx->content->lock);
+		refcount_inc(&ctx->content->refcnt);
+		listener->content = ctx->content;
 		list_add(&listener->list, &ctx->content->listeners);
-	else
+		spin_unlock(&ctx->content->lock);
+		*handlep = listener;
+	} else {
 		kfree(listener);
+	}
 	spin_unlock(&ctx->lock);
 
 	return ret;
 }
 EXPORT_SYMBOL_GPL(wrapfd_add_listener);
 
-int wrapfd_del_listener(struct file *file, void *handle)
+int wrapfd_del_listener(void *handle)
 {
-	struct wrapfd_content_listener *listener;
-	struct wrap_ctx *ctx;
-	int ret = -EINVAL;
+	struct wrapfd_content_listener *listener = handle;
+	struct wrap_content *content;
 
-	if (!handle)
+	if (!listener)
 		return -EINVAL;
 
-	if (!file || file->f_op != &wrap_fops)
-		return -EBADF;
+	content = xchg(&listener->content, NULL);
+	if (content) {
+		/*
+		 * The listener was not picked for notification and after this
+		 * point it can't be, so the callback is never invoked. We own
+		 * its content reference, which keeps the content and its lock
+		 * valid until the listener is unlinked.
+		 */
+		spin_lock(&content->lock);
+		list_del_init(&listener->list);
+		spin_unlock(&content->lock);
+		put_content(content);
+		goto drop_ref;
+	}
 
-	ctx = file->private_data;
-
-	spin_lock(&ctx->lock);
-
-	if (!ctx->content)
-		goto unlock;
+	/* Racing with notify_content_release() which owns the listener. */
+	if (READ_ONCE(listener->notifier) == current) {
+		/*
+		 * We are called from an on_content_release callback.
+		 * Deleting a listener from on_content_release is allowed only
+		 * for the listener that on_content_release was invoked for.
+		 * Complain and leave the listener and its handle intact.
+		 */
+		if (WARN_ON_ONCE(!listener->in_callback))
+			return -EINVAL;
+		/*
+		 * Called from the callback of this listener. It is invoked
+		 * only once, so just drop the reference of the creator.
+		 */
+		goto drop_ref;
+	}
 
 	/*
-	 * We could use handle directly as a listener but let's make sure
-	 * it actually points to a valid listener.
+	 * on_content_release() was invoked, is running or is about to be
+	 * invoked by another task. Wait for it to finish to guarantee that
+	 * after wrapfd_del_listener() no more events will come from this
+	 * listener. This does not block if the callback has finished already.
 	 */
-	list_for_each_entry(listener, &ctx->content->listeners, list) {
-		if (listener == handle) {
-			list_del(&listener->list);
-			kfree(listener);
-			ret = 0;
-			break;
-		}
-	}
-unlock:
-	spin_unlock(&ctx->lock);
+	wait_for_completion(&listener->comp);
 
-	return ret;
+drop_ref:
+	/* Drop the reference of the creator, the handle is invalid now. */
+	put_listener(listener);
+
+	return 0;
 }
 EXPORT_SYMBOL_GPL(wrapfd_del_listener);
 
@@ -2184,11 +2305,10 @@ static int wrap_file(struct wrap_ctx *ctx, __u32 fd, __u32 prot)
 		return PTR_ERR(content);
 
 	content->close_on_exec = get_close_on_exec(fd);
-	INIT_LIST_HEAD(&content->listeners);
 	wrapfd = publish_wrap(ctx, NULL, content);
 	if (wrapfd < 0) {
 		ctx->content = NULL;
-		content->ops->free(content);
+		put_content(content);
 	}
 
 	return wrapfd;
