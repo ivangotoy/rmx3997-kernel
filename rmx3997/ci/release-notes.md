@@ -41,7 +41,7 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 | Base | Linux {version}, Android13-5.15 GKI, KMI 8: AOSP `android13-5.15-lts` plus the `android13-5.15` security fixes (November 2026 bulletin) |
 | Compiler | ZyC Clang 18, Full LTO |
 | Root | BakaSU (KernelSU fork), SUSFS |
-| Module mounting | NoMount, protocol 23 |
+| Module mounting | NoMount, protocol 23 (metamodule versionCode 775) |
 | Security | Clang CFI for the kernel and OEM modules, strong stack protector, Baseband Guard |
 | OEM compatibility | Stock vendor modules load unchanged: OEM security guard, sched_assist, binder strategy, F2FS appboost and compression, ZRAM and HybridSwap |
 | TCP congestion control | BBRv3 (`bbr3`, default) with per-socket context ownership, BBR, CUBIC, Westwood, HTCP |
