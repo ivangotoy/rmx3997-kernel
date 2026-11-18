@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import struct
 import subprocess
 import sys
@@ -566,6 +567,57 @@ def cmd_package(a):
     print('host-only (not uploaded): %s' % img_path.name)
 
 
+# ------------------------------------------------------------ stage pruning
+# Build trees of earlier runs that did not reach their workflow's "Remove build
+# tree" step (it runs only on success). Only what that step removes is pruned:
+# logs, dist/ and the json records stay.
+STAGE_NAME = re.compile(r'(run|upstream)-[0-9]+-[0-9]+')
+STAGE_TREES = {'run': ('out', 'work', 'tmp', 'pycache'),
+               'upstream': ('b/out', 'b/work', 'b/tmp', 'cfg', 'src')}
+
+
+def prune_stage(stage, kind):
+    removed = []
+    for rel in STAGE_TREES[kind]:
+        path, linked = stage, False
+        for part in rel.split('/'):
+            path = path / part
+            linked = linked or path.is_symlink()
+        if linked or not path.is_dir():
+            continue
+        shutil.rmtree(path)
+        removed.append(rel)
+    return removed
+
+
+def cmd_prune_stages(a):
+    """Never fails the job: a prune error is a warning line and exit 0."""
+    try:
+        root = expand(a.root)
+        keep = Path(a.keep).resolve() if a.keep else None
+        cutoff = time.time() - a.days * 86400
+        stages = sorted(root.iterdir()) if root.is_dir() else []
+    except OSError as e:
+        print('WARN: prune-stages: %s; the build continues' % e, flush=True)
+        return
+    pruned = 0
+    for stage in stages:
+        m = STAGE_NAME.fullmatch(stage.name)
+        try:
+            if not m or stage.is_symlink() or not stage.is_dir() or stage.resolve() == keep:
+                continue
+            if stage.stat().st_mtime > cutoff:
+                continue
+            removed = prune_stage(stage, m.group(1))
+        except OSError as e:
+            print('WARN: prune-stages: %s: %s; the build continues' % (stage.name, e), flush=True)
+            continue
+        if removed:
+            pruned += 1
+            print('pruned %s: %s' % (stage.name, ' '.join(removed)), flush=True)
+    print('prune-stages: %d stage(s) older than %d days pruned' % (pruned, a.days), flush=True)
+
+
 # ------------------------------------------------------------------ release
 TRIES = 6
 
@@ -918,6 +970,10 @@ def main():
     c.add_argument('--commit', required=True)
     c.add_argument('--run-url', required=True)
     c.add_argument('--private-dir', default='~/Downloads/rmx3997-images')
+    c = sub.add_parser('prune-stages')
+    c.add_argument('--root', default='~/.cache/rmx3997-ci')
+    c.add_argument('--keep', help='the current stage, never pruned')
+    c.add_argument('--days', type=int, default=7)
     c = sub.add_parser('layout')
     c.add_argument('--image', required=True)
     c.add_argument('--work', required=True)
@@ -935,7 +991,7 @@ def main():
     a = p.parse_args()
     {'preflight': cmd_preflight, 'record-pins': cmd_record_pins, 'config': cmd_config,
      'accept': cmd_accept, 'package': cmd_package, 'release': cmd_release,
-     'github-release': cmd_github_release,
+     'github-release': cmd_github_release, 'prune-stages': cmd_prune_stages,
      'layout': cmd_layout, 'refresh-config': cmd_refresh_config}[a.cmd](a)
 
 

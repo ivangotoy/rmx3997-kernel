@@ -56,6 +56,11 @@ jobs:
           install -d -m 700 "$STAGE"
           echo "STAGE=$STAGE" >> "$FORGEJO_ENV"
 
+      # Build trees of failed runs older than 7 days (what "Remove build tree"
+      # would have removed); a prune error is a warning, never a failure.
+      - name: Prune old stage build trees
+        run: python3 -I rmx3997/ci/rmx_ci.py prune-stages --keep "$STAGE"
+
       - name: Check upstreams
         run: python3 -I rmx3997/ci/upstream.py check --stage "$STAGE"
 

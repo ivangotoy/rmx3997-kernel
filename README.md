@@ -168,6 +168,10 @@ One run does the following, and any failed gate fails the run:
 
 The kernel release string comes from the built commit (`-g<sha12>`).
 
+Each run (and the weekly upstream run) first removes the build trees of
+earlier runs that failed more than 7 days ago (`rmx_ci.py prune-stages`);
+their logs, records and ZIPs stay.
+
 ### Upstream updates
 
 `rmx3997/ci/upstreams.json` lists every upstream the kernel takes code from

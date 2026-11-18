@@ -623,5 +623,76 @@ class LsRemoteStallAbort(unittest.TestCase):
         self.assert_low_speed(fetches[0], False)
 
 
+class PruneStages(unittest.TestCase):
+    """prune-stages removes only the build trees of old run-/upstream- stages."""
+
+    def make(self, root, name, rels, age_days):
+        stage = root / name
+        stage.mkdir()
+        for rel in rels:
+            (stage / rel).mkdir(parents=True, exist_ok=True)
+            (stage / rel / 'f').write_text('x')
+        old = upstream.time.time() - age_days * 86400
+        for p in sorted(stage.rglob('*'), reverse=True) + [stage]:
+            os.utime(p, (old, old))
+        return stage
+
+    def run_prune(self, root, keep=None):
+        a = mock.Mock(root=str(root), keep=str(keep) if keep else None, days=7)
+        with mock.patch('builtins.print') as p:
+            rmx_ci.cmd_prune_stages(a)
+        return '\n'.join(str(c[0][0]) for c in p.call_args_list)
+
+    def test_prune(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run_old = self.make(root, 'run-5-1', ['out', 'work', 'tmp', 'pycache', 'dist'], 10)
+            (run_old / 'build.log').write_text('log')
+            (run_old / 'acceptance.json').write_text('{}')
+            up_old = self.make(root, 'upstream-6-2', ['b/out', 'b/work', 'b/tmp', 'b/dist', 'cfg', 'src'], 10)
+            (up_old / 'candidate.json').write_text('{}')
+            for st in (run_old, up_old):
+                os.utime(st, (upstream.time.time() - 10 * 86400,) * 2)
+            fresh = self.make(root, 'run-7-1', ['out'], 1)
+            current = self.make(root, 'run-8-1', ['out'], 10)
+            other = self.make(root, 'local-n17', ['out'], 10)
+            cache = self.make(root, 'upstream', ['aosp.git'], 10)
+            odd = self.make(root, 'run-9-1x', ['out'], 10)
+            outside = self.make(root, 'outside', ['keepme'], 10)
+            linked = self.make(root, 'run-10-1', [], 10)
+            (linked / 'out').symlink_to(outside / 'keepme')
+            os.utime(linked, (upstream.time.time() - 10 * 86400,) * 2)
+            text = self.run_prune(root, keep=current)
+            self.assertEqual(sorted(x.name for x in run_old.iterdir()), ['acceptance.json', 'build.log', 'dist'])
+            self.assertEqual(sorted(x.name for x in up_old.iterdir()), ['b', 'candidate.json'])
+            self.assertEqual(sorted(x.name for x in (up_old / 'b').iterdir()), ['dist'])
+            for kept in (fresh, current, other, odd):
+                self.assertTrue((kept / 'out/f').is_file(), kept.name)
+            self.assertTrue((cache / 'aosp.git/f').is_file())
+            self.assertTrue((outside / 'keepme/f').is_file())
+            self.assertIn('pruned run-5-1: out work tmp pycache', text)
+            self.assertIn('pruned upstream-6-2: b/out b/work b/tmp cfg src', text)
+            self.assertIn('2 stage(s) older than 7 days pruned', text)
+
+    def test_error_is_a_warning(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self.make(root, 'run-5-1', ['out'], 10)
+            with mock.patch.object(rmx_ci.shutil, 'rmtree', side_effect=PermissionError('denied')):
+                text = self.run_prune(root)
+            self.assertIn('WARN: prune-stages: run-5-1: denied; the build continues', text)
+
+    def test_missing_root(self):
+        with tempfile.TemporaryDirectory() as d:
+            text = self.run_prune(Path(d, 'absent'))
+        self.assertIn('0 stage(s)', text)
+
+    def test_cli(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = subprocess.run(['python3', '-I', str(CI / 'rmx_ci.py'), 'prune-stages', '--root', d],
+                               capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()

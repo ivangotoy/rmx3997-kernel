@@ -92,6 +92,12 @@ jobs:
           echo "STAGE=$STAGE" >> "$FORGEJO_ENV"
           df -h --output=avail "$HOME/.cache" | tail -1
 
+      # Build trees of failed runs older than 7 days (what "Remove build tree"
+      # would have removed); a prune error is a warning, never a failure.
+      - name: Prune old stage build trees
+        if: env.RMX_SKIP != '1'
+        run: python3 -I rmx3997/ci/rmx_ci.py prune-stages --keep "$STAGE"
+
       # Offline unit tests of the CI scripts themselves (stubbed APIs, seconds).
       - name: CI script tests
         if: env.RMX_SKIP != '1'
