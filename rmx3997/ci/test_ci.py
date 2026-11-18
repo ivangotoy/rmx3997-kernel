@@ -521,5 +521,67 @@ class PackageOffline(unittest.TestCase):
             self.assertTrue(Path(d, 'private', base, base + '.provenance.json').is_file())
 
 
+class PromotePush(unittest.TestCase):
+    """promote: one atomic push with both leases, token only in the environment,
+    verified by ls-remote; a push that times out after landing still passes."""
+    BASE, HEAD, TAGOBJ, TAG = 'b' * 40, 'h' * 40, 't' * 40, 'rmx3997-v99'
+
+    def run_promote(self, push_times_out):
+        calls, server = [], {'refs/heads/main': self.BASE}
+
+        def run(argv, **kw):
+            calls.append((argv, kw))
+            a = argv[1:]
+            if a[0] == 'rev-parse':
+                return subprocess.CompletedProcess(argv, 0, self.TAGOBJ if a[1].startswith('refs/tags/')
+                                                   else self.HEAD, '')
+            if a[0] == 'merge-base':
+                return subprocess.CompletedProcess(argv, 0, '', '')
+            if a[0] == 'ls-remote':
+                return subprocess.CompletedProcess(argv, 0, ''.join(
+                    '%s\t%s\n' % (v, k) for k, v in server.items()), '')
+            if a[0] == 'push':
+                server.update({'refs/heads/main': self.HEAD, 'refs/tags/' + self.TAG: self.TAGOBJ})
+                if push_times_out:
+                    raise subprocess.TimeoutExpired(argv, kw['timeout'])
+                return subprocess.CompletedProcess(argv, 0, '', '')
+            raise AssertionError(argv)
+
+        with tempfile.TemporaryDirectory() as d:
+            stage = Path(d)
+            (stage / 'b').mkdir()
+            (stage / 'src').mkdir()
+            (stage / 'b/acceptance.json').write_text('{}')
+            (stage / 'b/dist.env').write_text('')
+            (stage / 'candidate.json').write_text(json.dumps(
+                {'base': self.BASE, 'release': {'tag': self.TAG, 'commit': self.HEAD}}))
+            with mock.patch.object(upstream.subprocess, 'run', run), \
+                    mock.patch.object(upstream.time, 'sleep'), \
+                    mock.patch.dict('os.environ', {'TOKEN': 'made-up-token'}), \
+                    mock.patch('builtins.print'):
+                upstream.cmd_promote(mock.Mock(stage=d, repo_url='https://forge.example/o/r.git'))
+            ok = (stage / 'promote.ok').read_text()
+        return calls, ok
+
+    def check(self, push_times_out):
+        calls, ok = self.run_promote(push_times_out)
+        self.assertEqual(ok, self.HEAD + '\n')
+        pushes = [(argv, kw) for argv, kw in calls if argv[1] == 'push']
+        self.assertEqual(len(pushes), 1)
+        argv, kw = pushes[0]
+        self.assertIn('--force-with-lease=refs/heads/main:' + self.BASE, argv)
+        self.assertIn('--force-with-lease=refs/tags/%s:' % self.TAG, argv)
+        self.assertIn('--atomic', argv)
+        self.assertFalse([x for x in argv if 'made-up-token' in x or 'basic' in x], argv)
+        self.assertTrue(kw['env']['GIT_CONFIG_VALUE_0'].startswith('Authorization: basic '))
+        self.assertEqual(kw['timeout'], upstream.GIT_TRANSFER_TIMEOUT)
+
+    def test_push(self):
+        self.check(False)
+
+    def test_push_timeout_after_the_refs_landed(self):
+        self.check(True)
+
+
 if __name__ == '__main__':
     unittest.main()
