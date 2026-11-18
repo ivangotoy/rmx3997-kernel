@@ -138,5 +138,24 @@ class AtomicWrite(unittest.TestCase):
         self.assertNotIn('.write_text(', body)
 
 
+class GitTokenNotInArgv(unittest.TestCase):
+    """The job token reaches git through its environment, never its argv."""
+
+    def test_remote_refs_keeps_token_out_of_argv(self):
+        calls = []
+
+        def run(argv, **kw):
+            calls.append((argv, kw['env']))
+            return subprocess.CompletedProcess(argv, 0, 'a' * 40 + '\trefs/heads/main\n', '')
+
+        with mock.patch.object(upstream.subprocess, 'run', run):
+            upstream.remote_refs('https://forge.example/o/r.git', 'made-up-token', 'refs/heads/main')
+        argv, env = calls[0]
+        secret = upstream.base64.b64encode(b'x-access-token:made-up-token').decode()
+        self.assertFalse([x for x in argv if 'made-up-token' in x or secret in x], argv)
+        self.assertEqual(env.get('GIT_CONFIG_VALUE_0'), 'Authorization: basic ' + secret)
+        self.assertNotIn('GIT_CONFIG_VALUE_0', upstream.GIT_ENV)
+
+
 if __name__ == '__main__':
     unittest.main()

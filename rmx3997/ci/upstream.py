@@ -49,8 +49,8 @@ def die(msg):
     raise SystemExit(1)
 
 
-def git(*args, cwd=None, check=True, inp=None):
-    r = subprocess.run(['git', *args], cwd=cwd, env=GIT_ENV, input=inp,
+def git(*args, cwd=None, check=True, inp=None, env=None):
+    r = subprocess.run(['git', *args], cwd=cwd, env=dict(GIT_ENV, **(env or {})), input=inp,
                        capture_output=True, text=inp is None or isinstance(inp, str))
     if check and r.returncode:
         die('git %s: %s' % (' '.join(args[:3]), (r.stderr or '').strip()[-600:]))
@@ -383,14 +383,17 @@ def api(method, url, token, data=None):
 
 
 def auth(token):
+    """The job token as http.extraHeader in the environment of one git call:
+    never in argv (/proc/PID/cmdline) or in a FAIL line."""
     basic = base64.b64encode(('x-access-token:' + token).encode()).decode()
-    return ['-c', 'http.extraHeader=Authorization: basic ' + basic]
+    return {'GIT_CONFIG_COUNT': '1', 'GIT_CONFIG_KEY_0': 'http.extraHeader',
+            'GIT_CONFIG_VALUE_0': 'Authorization: basic ' + basic}
 
 
 def remote_refs(url, token, *patterns):
     """ls-remote with bounded retry; {refname: sha}, peeled tags as <name>^{}."""
     for attempt in range(1, TRIES + 1):
-        r = git(*auth(token), 'ls-remote', url, *patterns, check=False)
+        r = git('ls-remote', url, *patterns, check=False, env=auth(token))
         if not r.returncode:
             return {l.split('\t', 1)[1]: l.split('\t', 1)[0] for l in r.stdout.splitlines() if l}
         print('ls-remote attempt %d failed: %s' % (attempt, r.stderr.strip()[-300:]), flush=True)
@@ -542,9 +545,9 @@ def cmd_promote(a):
         if pushes:
             time.sleep(5 * pushes)
         pushes += 1
-        r = git(*auth(token), 'push', '-q', '--atomic', '--force-with-lease=refs/heads/main:' + base,
+        r = git('push', '-q', '--atomic', '--force-with-lease=refs/heads/main:' + base,
                 '--force-with-lease=refs/tags/%s:' % tag, a.repo_url, 'HEAD:refs/heads/main',
-                'refs/tags/%s:refs/tags/%s' % (tag, tag), cwd=ws, check=False)
+                'refs/tags/%s:refs/tags/%s' % (tag, tag), cwd=ws, check=False, env=auth(token))
         if r.returncode:
             print('push attempt %d failed: %s' % (pushes, r.stderr.strip()[-300:]), flush=True)
     (stage / 'promote.ok').write_text(head + '\n')
