@@ -844,5 +844,32 @@ class InstallerMessages(unittest.TestCase):
             self.assertIn('Package checksum verification failed', r.stderr)
 
 
+class BackendMessages(unittest.TestCase):
+    """update-binary says why it stops before any work (no getprop stub that passes)."""
+    SCRIPT = CI.parent / 'development/wk-anykernel/META-INF/com/google/android/update-binary'
+
+    def run_backend(self, d, env):
+        stubs = Path(d, 'stubs')
+        stubs.mkdir(exist_ok=True)
+        Path(stubs, 'getprop').write_text('#!/bin/sh\necho 0\n')
+        Path(stubs, 'getprop').chmod(0o755)
+        return subprocess.run(['sh', str(self.SCRIPT), '3', '1', str(Path(d, 'pkg.zip'))],
+                              capture_output=True, text=True, cwd=d,
+                              env=dict(env, PATH='%s:/usr/bin:/bin' % stubs))
+
+    def test_without_akhome(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = self.run_backend(d, {})
+        self.assertEqual(r.returncode, 1)
+        self.assertIn('Run install-on-device.sh: AKHOME is not set', r.stderr)
+
+    def test_not_booted(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = self.run_backend(d, {'AKHOME': str(Path(d, 'work'))})
+            self.assertFalse(Path(d, 'work').exists())
+        self.assertEqual(r.returncode, 1)
+        self.assertIn('A fully booted Android is required', r.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()

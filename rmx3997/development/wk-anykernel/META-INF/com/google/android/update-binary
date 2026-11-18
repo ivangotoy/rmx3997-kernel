@@ -16,8 +16,8 @@ $BOOTMODE || DIR=$(dirname "$ZIPFILE");
 [ -d /postinstall/tmp ] && POSTINSTALL=/postinstall;
 # This adaptation supports the rooted, booted Android path only. Never mount
 # recovery partitions or tmpfs; the launcher supplies a private on-disk AKHOME.
-[ "$AKHOME" ] || exit 1;
-[ "$(getprop sys.boot_completed)" = 1 ] || exit 1;
+[ "$AKHOME" ] || { echo "Run install-on-device.sh: AKHOME is not set" >&2; exit 1; };
+[ "$(getprop sys.boot_completed)" = 1 ] || { echo "A fully booted Android is required" >&2; exit 1; };
 BOOTMODE=true;
 [ "$ANDROID_ROOT" ] || ANDROID_ROOT=/system;
 
