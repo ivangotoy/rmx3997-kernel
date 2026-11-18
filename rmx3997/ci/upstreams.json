@@ -102,7 +102,7 @@
       "mode": "report",
       "url": "https://github.com/Bouteillepleine/kernel_patches",
       "ref": "main",
-      "pin": "713b1cbddd123c4d20a6f2a5848f3375c59f261e",
+      "pin": "3e7e48f0746fee8e131637f8e884ae4caaa539e6",
       "note": "donor common/bbrv3/0001-net-tcp-backport-BBRv3-to-android13-5.15.patch (hardened) plus 0003-net-tcp-bbr3-own-the-private-ctx-per-socket-5.10-6.6.patch; 0002 (debugfs, tunables) not taken; port by hand, the TCP struct changes need the layout review"
     },
     "anykernel3": {

@@ -22,12 +22,12 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
   package names; the added sus paths are hidden from every other app UID),
   and the SELinux hide path covers `setxattr` as it already covered
   `setprocattr`. The adbd socket hiding of the previous release is kept.
-- `bbrv3` donor: pin moved `f3544ee0`..`713b1cbd` after review; the BBRv3
+- `bbrv3` donor: pin moved `f3544ee0`..`3e7e48f0` after review; the BBRv3
   patches this kernel carries are unchanged there, so no code changed.
 - Component versions in this release: AOSP `android13-5.15-lts` `f181319b`
   (Linux 5.15.223), `android13-5.15` security branch `3540cf72`, BakaSU
   `5d6d1843` (35261), SUSFS `c1d1da42` (v2.4.0), NoMount `00e7c5d4`, Baseband
-  Guard `028ff7fd`, BBRv3 donor `713b1cbd`, AnyKernel3 `gki-2.0` `e1e9dce9`.
+  Guard `028ff7fd`, BBRv3 donor `3e7e48f0`, AnyKernel3 `gki-2.0` `e1e9dce9`.
 - `production.config`: unchanged.
 
 ## Kernel features
