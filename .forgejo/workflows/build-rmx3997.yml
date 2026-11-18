@@ -59,7 +59,7 @@ jobs:
         if: forgejo.ref_type == 'tag'
         run: |
           set -Eeuo pipefail
-          code=$(curl -sS --retry 5 --retry-delay 10 -o /dev/null -w '%{http_code}' \
+          code=$(curl -sS --connect-timeout 30 --max-time 60 --retry 5 --retry-delay 10 -o /dev/null -w '%{http_code}' \
             "$FORGEJO_API_URL/repos/$FORGEJO_REPOSITORY/releases/tags/$FORGEJO_REF_NAME")
           case "$code" in
             404) echo "no release for $FORGEJO_REF_NAME yet; building" ;;
