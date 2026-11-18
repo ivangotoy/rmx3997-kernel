@@ -127,7 +127,7 @@ performance or power claim.
 ## CI builds
 
 `.forgejo/workflows/build-rmx3997.yml` builds the kernel on the maintainer's
-own host runner (`aimax-rmx-host`). It runs only on manual dispatch or when an
+own host runner (`rmx3997-builder`). It runs only on manual dispatch or when an
 `rmx3997-*` tag is pushed. Both need write access to this repository, and
 there is no pull-request trigger, so outside code never runs on the runner.
 Forks and mirrors skip the job. A tag that already has a release (one the

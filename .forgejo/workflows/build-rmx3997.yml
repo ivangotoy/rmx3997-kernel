@@ -30,7 +30,7 @@ jobs:
   build:
     # Forks and mirrors never schedule jobs onto the host runner.
     if: forgejo.repository == 'ivangotoy/rmx3997-kernel'
-    runs-on: aimax-rmx-host
+    runs-on: rmx3997-builder
     timeout-minutes: 150
     steps:
       # Plain git instead of actions/checkout: that action logs host paths
