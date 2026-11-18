@@ -1,5 +1,5 @@
 {
-  "description": "Host-local CI inputs on the aimax runner. Never committed; identified by SHA-256 and verified before every build. Paths are relative to the runner user's home.",
+  "description": "Host-local CI inputs on the self-hosted runner. Never committed; identified by SHA-256 and verified before every build. Paths are relative to the runner user's home.",
   "files": {
     "zyc_clang": {
       "path": "~/.cache/zyc-clang-18.0.0git-20240124/extracted/bin/clang",
