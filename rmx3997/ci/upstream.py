@@ -24,6 +24,7 @@ released from a tree that has any component behind its live upstream.
 import argparse
 import base64
 import datetime
+import http.client
 import json
 import os
 from pathlib import Path
@@ -392,7 +393,17 @@ def api(method, url, token, data=None):
             if e.code == 429 and attempt < TRIES:
                 backoff(e.headers.get('Retry-After'), attempt)
                 continue
-            return e.code, None
+            if method == 'GET' and e.code in (500, 502, 503, 504) and attempt < TRIES:
+                why = 'HTTP %d' % e.code
+            else:
+                return e.code, None
+        except (OSError, http.client.HTTPException) as e:
+            # Repeat only a GET: a POST without an answer may already be applied.
+            why = str(getattr(e, 'reason', None) or e) or type(e).__name__
+            if method != 'GET' or attempt == TRIES:
+                die('%s %s failed: %s' % (method, url.split('?', 1)[0], why))
+        print('%s from %s, retrying in %d s' % (why, url.split('?', 1)[0], 10 * attempt), flush=True)
+        time.sleep(10 * attempt)
 
 
 def auth(token):

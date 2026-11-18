@@ -402,5 +402,41 @@ class ReleaseLeftoverMessages(unittest.TestCase):
         self.assertNotIn('FAIL', text)
 
 
+class UpstreamApiRetry(unittest.TestCase):
+    """upstream.py api() follows the same policy as rmx_ci.open_url()."""
+
+    def call(self, method, answers):
+        seen = []
+
+        def urlopen(req, timeout):
+            seen.append(req.get_method())
+            a = answers.pop(0)
+            if isinstance(a, BaseException):
+                raise a
+            return a
+
+        with mock.patch.object(upstream.urllib.request, 'urlopen', urlopen), \
+                mock.patch.object(upstream.time, 'sleep'), mock.patch('builtins.print') as p:
+            try:
+                res = upstream.api(method, 'https://forge.example/api/v1/x?page=1', 'made-up-token',
+                                   None if method == 'GET' else {'body': 'b'})
+            except SystemExit as e:
+                res = ('exit', e.code)
+        text = ' '.join(str(c[0][0]) for c in p.call_args_list)
+        self.assertNotIn('made-up-token', text)
+        return res, len(seen), text
+
+    def test_get_survives_reset_timeout_and_503(self):
+        res, n, _ = self.call('GET', [urllib.error.URLError(ConnectionResetError('reset')),
+                                      Reply(exc=TimeoutError('timed out')), http_error('u', 503),
+                                      Reply(200, b'[]')])
+        self.assertEqual((res, n), ((200, []), 4))
+
+    def test_post_without_answer_fails_cleanly_once(self):
+        res, n, text = self.call('POST', [urllib.error.URLError('reset')])
+        self.assertEqual((res, n), (('exit', 1), 1))
+        self.assertIn('FAIL: POST https://forge.example/api/v1/x failed: reset', text)
+
+
 if __name__ == '__main__':
     unittest.main()
