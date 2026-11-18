@@ -4,45 +4,31 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 ## Changes in this release
 
-- NoMount `7fce5e2c`..`6298d58a` (maxsteeel `dev`, 65 upstream commits), ported
-  by hand: hash-bucket child index, rules that follow their backing file,
-  refcounted leaves with RCU retirement, and upstream fixes for a NULL dentry
-  dereference on cross-superblock backing children, rebind type mismatch,
-  out-of-bounds readdir and positive whiteouts. The protocol stays 22. Install
-  the matching NoMount metamodule build, versionCode 713
-  (`NoMount-v2.2.0-dev-6298d58-713`), together with this kernel.
-- SUSFS: the adbd and `jdwp-control` sockets are hidden from app UIDs. Apps can
-  no longer connect to `@jdwp-control` or see `/dev/socket/adbd`. Side effect:
-  JDWP debugging of apps on the phone (the Android Studio debugger) does not
-  work with this kernel; `adb shell`, `logcat` and `install` are unaffected.
-- Scheduler: `select_idle_capacity()` starts its scan at the CPU after the
-  target (mainline `8589018acc65`).
-- Wakelocks: a userspace wakelock written to `/sys/power/wake_lock` without a
-  timeout now expires after 500 ms unless it is taken again; wakelocks with an
-  explicit timeout and kernel wakeup sources are unchanged.
-- fanotify: `CONFIG_FANOTIFY` and `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`
-  (`fanotify_init`, `fanotify_mark`, permission events, the
-  `fs.fanotify.*` and `user.max_fanotify_*` sysctls).
-- Device cgroup: `CONFIG_CGROUP_DEVICE`, the cgroup v1 `devices` controller
-  (`devices.allow`, `devices.deny`, `devices.list`) for container runtimes.
-- Bridge netfilter: `CONFIG_BRIDGE_NETFILTER`, `br_netfilter` built in, so
-  iptables, ip6tables and conntrack can see bridged traffic
-  (`net.bridge.bridge-nf-call-iptables` and related sysctls; they default
-  to 0, so bridged traffic is filtered only after they are set to 1). The xt
-  `physdev` match is not enabled.
-- These three options normally change the layout of kernel structs that the
-  stock vendor modules were built against. Here their extra state is stored
-  outside those structs, so every struct of the stock kernel keeps its
-  layout and the existing subsystem, counter and extension ids keep their
-  values.
+- `aosp-security` (`android13-5.15`): `3f0fd7f6`..`3540cf72`, 3 commits
+  applied (Bluetooth L2CAP: refuse `__l2cap_chan_add` if the channel already
+  has a connection; L2CAP: access `chan->conn` safely in get/setsockopt;
+  RFCOMM: connect the session socket without `rfcomm_mutex`).
+- `bakasu` (`main`): `548d1dda`..`5d6d1843`, 2 upstream commits, now BakaSU
+  35261 (fix the return type and header install path of preinit, check
+  `ksu_handle_vfs_fstat`).
+- `nomount` (`dev`): `6298d58a`..`00e7c5d4`, 25 upstream commits, now NoMount
+  protocol 23 (rules whose backing path is virtual are rejected, native files
+  resolved from their parent, out-of-bounds read fix when selecting a rule
+  from a single-element array, leaf reuse during revalidation). Install the
+  NoMount metamodule build with versionCode 737 together with this kernel.
+- `susfs` (`gki-android13-5.15`): `fe943d15`..`c1d1da42`, 3 upstream commits,
+  still SUSFS v2.4.0: new sus_path uid filter
+  (`CMD_SUSFS_SET_SUS_PATH_UID_FILTER` takes a comma-separated list of app
+  package names; the added sus paths are hidden from every other app UID),
+  and the SELinux hide path covers `setxattr` as it already covered
+  `setprocattr`. The adbd socket hiding of the previous release is kept.
+- `bbrv3` donor: pin moved `f3544ee0`..`713b1cbd` after review; the BBRv3
+  patches this kernel carries are unchanged there, so no code changed.
 - Component versions in this release: AOSP `android13-5.15-lts` `f181319b`
-  (Linux 5.15.223), `android13-5.15` security branch `3f0fd7f6`, BakaSU
-  `548d1dda` (35259), SUSFS `fe943d15` (v2.4.0), NoMount `6298d58a`, Baseband
-  Guard `028ff7fd`, BBRv3 donor `f3544ee0`, AnyKernel3 `gki-2.0` `e1e9dce9`.
-  Only NoMount changed since the previous release.
-- `production.config`: `CONFIG_FANOTIFY=y`,
-  `CONFIG_FANOTIFY_ACCESS_PERMISSIONS=y`, `CONFIG_CGROUP_DEVICE=y`,
-  `CONFIG_BRIDGE_NETFILTER=y`; no other option changed.
+  (Linux 5.15.223), `android13-5.15` security branch `3540cf72`, BakaSU
+  `5d6d1843` (35261), SUSFS `c1d1da42` (v2.4.0), NoMount `00e7c5d4`, Baseband
+  Guard `028ff7fd`, BBRv3 donor `713b1cbd`, AnyKernel3 `gki-2.0` `e1e9dce9`.
+- `production.config`: unchanged.
 
 ## Kernel features
 
