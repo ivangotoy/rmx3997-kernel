@@ -13,6 +13,11 @@ on:
         required: false
         default: ''
         type: string
+      github_release_tag:
+        description: Only copy the existing Forgejo release of this rmx3997-vN tag to GitHub (no build)
+        required: false
+        default: ''
+        type: string
   push:
     tags:
       - 'rmx3997-*'
@@ -49,6 +54,31 @@ jobs:
             git fetch -q --depth 1 --no-tags "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" "$FORGEJO_SHA"
           git checkout -q --detach FETCH_HEAD
           echo "checked out $(git rev-parse HEAD)"
+
+      # Recovery for a tag whose Forgejo release exists but whose GitHub copy
+      # failed: github_release_tag skips the build and runs only the copy.
+      # Only constants are written to FORGEJO_ENV; the tag is read from the
+      # input again by the copy step.
+      - name: GitHub copy only (github_release_tag input)
+        env:
+          RELEASE_TAG_INPUT: ${{ inputs.github_release_tag }}
+        run: |
+          set -Eeuo pipefail
+          [ -n "$RELEASE_TAG_INPUT" ] || exit 0
+          if ! [[ "$RELEASE_TAG_INPUT" =~ ^rmx3997-v[0-9]+$ ]]; then
+            echo 'FAIL: github_release_tag must be an rmx3997-vN tag'; exit 1
+          fi
+          echo "GitHub copy only for $RELEASE_TAG_INPUT; no build"
+          printf 'RMX_SKIP=1\nRMX_GH_ONLY=1\n' >> "$FORGEJO_ENV"
+
+      - name: Copy an existing release to GitHub (github_release_tag input)
+        if: env.RMX_GH_ONLY == '1'
+        env:
+          GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+          RELEASE_TAG_INPUT: ${{ inputs.github_release_tag }}
+        run: |
+          python3 -I rmx3997/ci/rmx_ci.py github-release --forgejo-api "$FORGEJO_API_URL" \
+            --repo "$FORGEJO_REPOSITORY" --github-repo ivangotoy/rmx3997-kernel --tag "$RELEASE_TAG_INPUT"
 
       # The upstream job pushes its tag with the job token, which does not start
       # workflows, and publishes the release in the same run. Both workflows

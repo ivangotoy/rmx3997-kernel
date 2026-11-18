@@ -168,6 +168,12 @@ One run does the following, and any failed gate fails the run:
 
 The kernel release string comes from the built commit (`-g<sha12>`).
 
+If a tag's Forgejo release is published but its GitHub copy failed, a manual
+dispatch with `github_release_tag` set to that `rmx3997-vN` tag runs only the
+copy (`rmx_ci.py github-release`), without building. It uploads only missing
+files to an existing GitHub release, changes nothing when the copy is already
+complete, and fails on a GitHub draft or any file that differs.
+
 Each run (and the weekly upstream run) first removes the build trees of
 earlier runs that failed more than 7 days ago (`rmx_ci.py prune-stages`);
 their logs, records and ZIPs stay.
