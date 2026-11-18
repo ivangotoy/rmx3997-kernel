@@ -2780,7 +2780,7 @@ static __poll_t wrapfd_dev_poll(struct file *file, struct poll_table_struct *wai
 	return mask;
 }
 
-#if IS_ENABLED(CONFIG_ANDROID_WRAPFD_KUNIT_TEST)
+#if IS_ENABLED(CONFIG_KUNIT)
 int create_wrapfd(int fd, int prot)
 {
 	return __create_wrapfd(fd, prot);
