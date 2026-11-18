@@ -8,6 +8,7 @@ identified by the SHA-256 pins in host-inputs.json and verified before use.
 """
 import argparse
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
@@ -570,22 +571,33 @@ TRIES = 6
 
 
 def open_url(req):
-    """urlopen with bounded retry on HTTP 429 (Forgejo rate-limits bursts).
-    A 429 is returned before the request is processed, so a POST is safe to repeat."""
+    """urlopen with bounded retry. HTTP 429 is returned before the request is
+    processed, so any method is repeated (Forgejo rate-limits bursts). A
+    connection error, timeout or HTTP 5xx is repeated only for GET: a POST or
+    PATCH may already have been applied. Returns (status, body) for every HTTP
+    answer; a request that gets none fails with a FAIL line."""
+    method, where = req.get_method(), req.full_url.split('?', 1)[0]
     for attempt in range(1, TRIES + 1):
         try:
             with urllib.request.urlopen(req, timeout=300) as r:
                 return r.status, r.read()
         except urllib.error.HTTPError as e:
-            if e.code != 429 or attempt == TRIES:
+            if not (e.code == 429 or (method == 'GET' and e.code in (500, 502, 503, 504))) \
+                    or attempt == TRIES:
                 return e.code, e.read()
             try:
                 wait = max(0, min(int(e.headers.get('Retry-After')), 300))
             except (TypeError, ValueError):
                 wait = 10 * attempt
-            print('HTTP 429 from %s, retrying in %d s' % (req.full_url.split('?', 1)[0], wait),
-                  flush=True)
-            time.sleep(wait)
+            why = 'HTTP %d' % e.code
+        except (OSError, http.client.HTTPException) as e:
+            # URLError, timeouts and resets are OSError; IncompleteRead is not.
+            why = str(getattr(e, 'reason', None) or e) or type(e).__name__
+            if method != 'GET' or attempt == TRIES:
+                die('%s %s failed: %s' % (method, where, why))
+            wait = 10 * attempt
+        print('%s from %s %s, retrying in %d s' % (why, method, where, wait), flush=True)
+        time.sleep(wait)
 
 
 def api(method, url, token, data=None, ctype='application/json'):

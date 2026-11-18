@@ -4,12 +4,16 @@
 Run: python3 -I rmx3997/ci/test_ci.py (temporary files go to $TMPDIR)
 No network, no host inputs: every HTTP call is stubbed.
 """
+import http.client
 import importlib.util
+import io
 import json
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+import urllib.error
+import urllib.request
 from unittest import mock
 
 CI = Path(__file__).resolve().parent
@@ -188,6 +192,80 @@ class GitNetworkTimeout(unittest.TestCase):
             lambda: upstream.remote_refs('https://forge.example/o/r.git', 'made-up-token', 'refs/heads/main'))
         self.assertIn('attempt 2 failed: timed out after 1 s', text)
         self.assertNotIn('made-up-token', text)
+
+
+class Reply:
+    """What a stubbed urlopen returns: status and body, or read() raising."""
+
+    def __init__(self, status=200, body=b'', exc=None):
+        self.status, self.body, self.exc = status, body, exc
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self):
+        if self.exc:
+            raise self.exc
+        return self.body
+
+
+def http_error(url, code):
+    return urllib.error.HTTPError(url, code, 'x', {}, io.BytesIO(b''))
+
+
+class OpenUrlRetry(unittest.TestCase):
+    """GETs survive transient network errors; other methods fail cleanly."""
+
+    def run_open_url(self, method, answers):
+        seen = []
+
+        def urlopen(req, timeout):
+            seen.append(req.get_method())
+            a = answers.pop(0)
+            if isinstance(a, BaseException):
+                raise a
+            return a
+
+        req = urllib.request.Request('https://forge.example/api/v1/x?token=made-up', method=method)
+        with mock.patch.object(rmx_ci.urllib.request, 'urlopen', urlopen), \
+                mock.patch.object(rmx_ci.time, 'sleep'), mock.patch('builtins.print') as p:
+            try:
+                res = rmx_ci.open_url(req)
+            except SystemExit as e:
+                res = ('exit', e.code)
+        text = ' '.join(str(c[0][0]) for c in p.call_args_list)
+        self.assertNotIn('made-up', text)
+        return res, len(seen), text
+
+    def test_get_retries_connection_errors_and_timeouts(self):
+        res, n, _ = self.run_open_url('GET', [
+            urllib.error.URLError(ConnectionRefusedError('refused')),
+            Reply(exc=TimeoutError('read timed out')),
+            Reply(exc=http.client.IncompleteRead(b'')),
+            http_error('u', 503),
+            Reply(200, b'ok')])
+        self.assertEqual((res, n), ((200, b'ok'), 5))
+
+    def test_get_gives_up_after_bounded_tries(self):
+        res, n, text = self.run_open_url('GET', [urllib.error.URLError('down')] * rmx_ci.TRIES)
+        self.assertEqual((res, n), (('exit', 1), rmx_ci.TRIES))
+        self.assertIn('FAIL: GET https://forge.example/api/v1/x failed: down', text)
+
+    def test_post_is_not_repeated_after_a_network_error(self):
+        res, n, text = self.run_open_url('POST', [urllib.error.URLError('reset')])
+        self.assertEqual((res, n), (('exit', 1), 1))
+        self.assertIn('FAIL: POST https://forge.example/api/v1/x failed: reset', text)
+
+    def test_post_returns_a_5xx_without_repeating(self):
+        res, n, _ = self.run_open_url('POST', [http_error('u', 502)])
+        self.assertEqual((res, n), ((502, b''), 1))
+
+    def test_post_repeats_429(self):
+        res, n, _ = self.run_open_url('POST', [http_error('u', 429), Reply(201, b'{}')])
+        self.assertEqual((res, n), ((201, b'{}'), 2))
 
 
 if __name__ == '__main__':
