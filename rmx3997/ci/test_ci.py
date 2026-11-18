@@ -694,5 +694,104 @@ class PruneStages(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
 
+class OtherChanges(unittest.TestCase):
+    """plan-release lists hand-landed commits between the previous tag and the base."""
+    ID = ['-c', 'user.name=Made Up', '-c', 'user.email=made-up@example.invalid']
+
+    def commit(self, ws, path, text, subject):
+        Path(ws, path).parent.mkdir(parents=True, exist_ok=True)
+        Path(ws, path).write_text(text)
+        upstream.git('add', path, cwd=ws)
+        upstream.git(*self.ID, 'commit', '-q', '-m', subject, cwd=ws)
+        return upstream.out('rev-parse', 'HEAD', cwd=ws)
+
+    def repo(self, d):
+        ws = Path(d, 'src')
+        ws.mkdir(parents=True)
+        upstream.git('init', '-q', cwd=ws)
+        return ws
+
+    def test_lists_hand_landed_commits_only(self):
+        with tempfile.TemporaryDirectory() as d:
+            ws = self.repo(d)
+            prev = self.commit(ws, 'a', '1', 'README and release notes: rmx3997-v1')
+            self.commit(ws, 'b', '2', 'upstream: nomount 1111..2222')
+            base = self.commit(ws, 'c', '3 {braces}', 'net: fix {a} thing')
+            self.commit(ws, 'd', '4', 'upstream: record pins (nomount)')
+            with mock.patch('builtins.print'):
+                got = upstream.other_changes(ws, prev, base)
+        self.assertEqual(got, ['net: fix {a} thing', 'upstream: nomount 1111..2222'])
+
+    def test_missing_history_is_silent(self):
+        with tempfile.TemporaryDirectory() as d:
+            ws = self.repo(d)
+            base = self.commit(ws, 'a', '1', 'x')
+            other = self.repo(Path(d, 'o'))
+            foreign = self.commit(other, 'z', '9', 'unrelated')
+            for prev in (None, 'f' * 40, foreign):
+                with mock.patch('builtins.print') as p:
+                    self.assertEqual(upstream.other_changes(ws, prev, base), [])
+                self.assertEqual(len(p.call_args_list), 1)
+                self.assertIn('no "Other changes" list', p.call_args[0][0])
+
+    def test_log_failure_is_silent(self):
+        with tempfile.TemporaryDirectory() as d:
+            ws = self.repo(d)
+            prev = self.commit(ws, 'a', '1', 'x')
+            base = self.commit(ws, 'b', '2', 'y')
+            real = upstream.git
+
+            def git(*a, **kw):
+                if a[0] == 'log':
+                    return subprocess.CompletedProcess(a, 128, '', 'fatal')
+                return real(*a, **kw)
+
+            with mock.patch.object(upstream, 'git', git), mock.patch('builtins.print') as p:
+                self.assertEqual(upstream.other_changes(ws, prev, base), [])
+        self.assertIn('no "Other changes" list', p.call_args[0][0])
+
+    def test_plan_release_writes_the_list(self):
+        notes = ('Kernel {kernel} at {commit}\n\n## Changes in this release\n\n- old\n\n'
+                 '## Kernel features\n\nLinux {version}\n')
+        readme = ('# made-up kernel - Linux 5.15.1\n\n| Kernel | Linux 5.15.1, GKI |\n\n'
+                  '| Release | Kernel | Change |\n| --- | --- | --- |\n| `rmx3997-v1` | 5.15.1 | first |\n')
+        manifest = {'components': {'nomount': {'mode': 'subtree', 'ref': 'dev', 'pin': '2' * 40}}}
+        with tempfile.TemporaryDirectory() as d:
+            ws = self.repo(Path(d, 'stage'))
+            stage = ws.parent
+            self.commit(ws, 'Makefile', 'VERSION = 5\nPATCHLEVEL = 15\nSUBLEVEL = 1\n', 'init')
+            self.commit(ws, 'README.md', readme, 'readme')
+            self.commit(ws, 'rmx3997/ci/release-notes.md', notes, 'notes')
+            prev = self.commit(ws, upstream.MANIFEST, json.dumps(manifest), 'README and release notes: rmx3997-v1')
+            self.commit(ws, 'fs/y.c', 'int y;\n', 'upstream: nomount 1111..2222')
+            base = self.commit(ws, 'fs/x.c', 'int x;\n', 'fs: hand-landed fix {1}')
+            self.commit(ws, 'fs/z.c', 'int z;\n', 'upstream: record pins (nomount)')
+            cand = {'base': base, 'changed': True, 'components': [
+                {'name': 'nomount', 'status': 'applied', 'pin': '1' * 40, 'tip': '2' * 40, 'count': 1}]}
+            (stage / 'candidate.json').write_text(json.dumps(cand))
+            env = {k: v for k, v in os.environ.items() if k not in ('FORGEJO_ENV', 'GITHUB_ENV')}
+            with mock.patch.object(upstream, 'next_tag', return_value=('rmx3997-v2', prev)), \
+                    mock.patch.object(upstream, 'IDENT', self.ID), \
+                    mock.patch.dict('os.environ', env, clear=True), mock.patch('builtins.print'):
+                upstream.cmd_plan_release(mock.Mock(stage=str(stage), repo_url='https://forge.example/o/r.git'))
+            text = (ws / 'rmx3997/ci/release-notes.md').read_text()
+        self.assertIn('- Other changes on main since the previous release:\n'
+                      '  - fs: hand-landed fix {{1}}\n  - upstream: nomount 1111..2222\n\n## Kernel', text)
+        self.assertNotIn('record pins', text)
+        self.assertIn('fs: hand-landed fix {1}', text.format(kernel='k', version='v', commit='c'))
+
+
+class NextTagPrevious(unittest.TestCase):
+    def test_peeled_commit_of_the_last_tag(self):
+        refs = {'refs/tags/rmx3997-v1': '1' * 40, 'refs/tags/rmx3997-v2': 't' * 40,
+                'refs/tags/rmx3997-v2^{}': 'c' * 40}
+        with mock.patch.object(upstream, 'remote_refs', return_value=refs):
+            self.assertEqual(upstream.next_tag('u', 't'), ('rmx3997-v3', 'c' * 40))
+
+    def test_lightweight_tag(self):
+        with mock.patch.object(upstream, 'remote_refs', return_value={'refs/tags/rmx3997-v1': 'a' * 40}):
+            self.assertEqual(upstream.next_tag('u', 't'), ('rmx3997-v2', 'a' * 40))
+
+
 if __name__ == '__main__':
     unittest.main()

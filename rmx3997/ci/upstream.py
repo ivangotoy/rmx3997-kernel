@@ -435,8 +435,10 @@ def remote_refs(url, token, *patterns):
 
 
 def next_tag(url, token):
+    """(next rmx3997-vN tag, commit of the previous one or None)."""
     nums = set()
-    for name in remote_refs(url, token, 'refs/tags/rmx3997-v*'):
+    refs = remote_refs(url, token, 'refs/tags/rmx3997-v*')
+    for name in refs:
         if name.endswith('^{}'):
             continue
         m = re.fullmatch(r'refs/tags/rmx3997-v([1-9][0-9]*)', name)
@@ -445,7 +447,25 @@ def next_tag(url, token):
         nums.add(int(m.group(1)))
     if not nums or nums != set(range(1, max(nums) + 1)):
         die('rmx3997-v tags on the server are not v1..vN without gaps: %s' % sorted(nums))
-    return 'rmx3997-v%d' % (max(nums) + 1)
+    prev = 'refs/tags/rmx3997-v%d' % max(nums)
+    return 'rmx3997-v%d' % (max(nums) + 1), refs.get(prev + '^{}') or refs.get(prev)
+
+
+def other_changes(ws, prev, base, limit=40):
+    """Subjects of the commits on main from the previous release tag to the
+    candidate base: changes landed by hand, never the job's own commits (they
+    all come after base). [] when that history is not in the workspace."""
+    if not prev or git('cat-file', '-e', prev + '^{commit}', cwd=ws, check=False).returncode \
+            or git('merge-base', '--is-ancestor', prev, base, cwd=ws, check=False).returncode:
+        print('previous release %s is not in the candidate history; no "Other changes" list'
+              % (prev or 'commit')[:12], flush=True)
+        return []
+    r = git('log', '--first-parent', '--format=%s', '%s..%s' % (prev, base), cwd=ws, check=False)
+    if r.returncode:
+        print('git log %s..%s failed; no "Other changes" list' % (prev[:12], base[:12]), flush=True)
+        return []
+    s = r.stdout.strip().splitlines()
+    return s[:limit] + (['... %d more' % (len(s) - limit)] if len(s) > limit else [])
 
 
 def sub_once(text, pat, rep, what):
@@ -468,7 +488,7 @@ def cmd_plan_release(a):
     ws = stage / 'src'
     if out('status', '--porcelain', cwd=ws):
         die('candidate tree is not clean')
-    tag = next_tag(a.repo_url, os.environ.get('TOKEN', ''))
+    tag, prev = next_tag(a.repo_url, os.environ.get('TOKEN', ''))
     mk = (ws / 'Makefile').read_text()
     version = '.'.join(makefile_field(mk, k) for k in ('VERSION', 'PATCHLEVEL', 'SUBLEVEL'))
     d = git('diff', '--quiet', cand['base'], 'HEAD', '--', 'rmx3997/config/production.config',
@@ -515,6 +535,10 @@ def cmd_plan_release(a):
         phrases.append('config refresh')
         bullets.append('- `production.config` refreshed with `olddefconfig` for the new upstream '
                        'code: only new symbols were added, no existing option changed.')
+    others = other_changes(ws, prev, cand['base'])
+    if others:
+        bullets.append('- Other changes on main since the previous release:\n' +
+                       '\n'.join('  - ' + x for x in others))
     summary = 'Upstream update: ' + ', '.join(phrases)
     rows = list(re.finditer(r'^\| `rmx3997-v(\d+)` \|.*\n', readme, re.M))
     if not rows or 'rmx3997-v%d' % (int(rows[-1].group(1)) + 1) != tag:

@@ -202,7 +202,8 @@ every component is current the run does nothing.
 `olddefconfig` may add new symbols; a change to any existing option fails the
 run. The run then picks the next `rmx3997-vN` tag and adds one commit with the
 README History row, the updated pins named in this README and the "Changes in
-this release" section of the release notes. That exact commit goes through the
+this release" section of the release notes, which also lists the subjects of
+commits landed on main by hand since the previous release tag. That exact commit goes through the
 same config, build and acceptance gates as a tag build, including the struct
 layout gate, and is packaged under the tag's name.
 
