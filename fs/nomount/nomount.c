@@ -1075,10 +1075,10 @@ static int nm_xattr_set(const struct xattr_handler *handler, IDMAP_ARG struct de
 static int nm_encode_fh(struct inode *inode, __u32 *fh, int *max_len, struct inode *parent)
 {
     struct nm_sop *nm_sop;
-    if (nm_inode_is_virtual(inode)) return -ESTALE;
+    if (nm_inode_is_virtual(inode)) return FILEID_INVALID;
     nm_sop = nm_get_nm_sop(smp_load_acquire(&inode->i_sb->s_op));
     if (!nm_sop || !nm_sop->orig_export_op || !nm_sop->orig_export_op->encode_fh)
-        return -EOPNOTSUPP;
+        return FILEID_INVALID;
     return nm_sop->orig_export_op->encode_fh(inode, fh, max_len, parent);
 }
 
