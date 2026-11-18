@@ -664,10 +664,12 @@ def cmd_release(a):
                    json.dumps({'draft': False}).encode())
     if st != 200 or json.loads(body).get('draft'):
         die('publishing release returned HTTP %d' % st)
+    # Read back anonymously, as users and github-release download it: the
+    # token is not sent to the web route or to a host it redirects to.
     for p in sorted(dist.iterdir()):
         url = '%s/%s/releases/download/%s/%s' % (a.api.rstrip('/').rsplit('/api/', 1)[0], a.repo,
                                                 urllib.parse.quote(tag), urllib.parse.quote(p.name))
-        st, data = api('GET', url, token)
+        st, data = fetch(url)
         if st != 200 or hashlib.sha256(data).hexdigest() != sha(p):
             die('published asset %s did not round-trip (HTTP %d)' % (p.name, st))
     print('published release %s (id %d), %d assets byte-verified: %s'

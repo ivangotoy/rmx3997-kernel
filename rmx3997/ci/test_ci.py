@@ -297,5 +297,80 @@ class GitHubCallsRetry(unittest.TestCase):
         self.assertEqual(res, ((200, b'zip'), 2))
 
 
+class FakeForgejo:
+    """Forgejo release API and download route for cmd_release, in memory."""
+    API = 'https://forge.example/api/v1'
+    BASE = API + '/repos/o/r'
+
+    def __init__(self, existing=None, fail=None):
+        self.existing, self.fail = existing, fail
+        self.requests, self.assets, self.draft = [], {}, None
+
+    def urlopen(self, req, timeout):
+        m, url = req.get_method(), req.full_url
+        self.requests.append((m, url, req.has_header('Authorization')))
+        if self.fail and self.fail(m, url):
+            raise http_error(url, 500)
+        js = lambda x, st=200: Reply(st, json.dumps(x).encode())
+        if m == 'GET' and url == self.BASE + '/releases/tags/rmx3997-v99':
+            if self.existing is None:
+                raise http_error(url, 404)
+            return js(self.existing)
+        if m == 'POST' and url == self.BASE + '/releases':
+            self.draft = True
+            return js({'id': 5}, 201)
+        if m == 'POST' and url.startswith(self.BASE + '/releases/5/assets?name='):
+            name = url.rsplit('=', 1)[1]
+            self.assets[name] = req.data
+            return js({'id': len(self.assets), 'name': name}, 201)
+        if m == 'GET' and url.startswith(self.BASE + '/releases/5/assets/'):
+            n = int(url.rsplit('/', 1)[1])
+            return js({'size': len(list(self.assets.values())[n - 1])})
+        if m == 'GET' and url == self.BASE + '/releases/5/assets':
+            return js([{'name': n} for n in self.assets])
+        if m == 'PATCH' and url == self.BASE + '/releases/5':
+            self.draft = False
+            return js({'draft': False})
+        if m == 'GET' and url.startswith('https://forge.example/o/r/releases/download/rmx3997-v99/'):
+            return Reply(200, self.assets[url.rsplit('/', 1)[1]])
+        raise AssertionError('unexpected request %s %s' % (m, url))
+
+
+def run_release(server):
+    """cmd_release against FakeForgejo; returns (exit code or None, printed text)."""
+    with tempfile.TemporaryDirectory() as d:
+        stage = Path(d)
+        dist = stage / 'dist'
+        dist.mkdir()
+        (dist / 'RMX3997-kernel-5.15.0-v99.zip').write_bytes(b'made-up zip')
+        (dist / 'RMX3997-kernel-5.15.0-v99.zip.sha256').write_text('00  x\n')
+        (stage / 'acceptance.json').write_text(json.dumps({'identity': {'release': '5.15.0-made-up'}}))
+        a = mock.Mock(api=FakeForgejo.API, repo='o/r', tag='rmx3997-v99', commit='c' * 40,
+                      dist=str(dist), run_url='https://forge.example/run/1')
+        with mock.patch.object(rmx_ci.urllib.request, 'urlopen', server.urlopen), \
+                mock.patch.object(rmx_ci.time, 'sleep'), \
+                mock.patch.dict('os.environ', {'RELEASE_TOKEN': 'made-up-token'}), \
+                mock.patch('builtins.print') as p:
+            try:
+                rmx_ci.cmd_release(a)
+                code = None
+            except SystemExit as e:
+                code = e.code
+    return code, '\n'.join(str(c[0][0]) for c in p.call_args_list)
+
+
+class ReleaseDownloadIsAnonymous(unittest.TestCase):
+    """The job token goes to the API only, never to the download route."""
+
+    def test_round_trip_without_token(self):
+        server = FakeForgejo()
+        code, text = run_release(server)
+        self.assertIsNone(code, text)
+        downloads = [r for r in server.requests if '/releases/download/' in r[1]]
+        self.assertEqual(len(downloads), 2)
+        self.assertFalse([r for r in downloads if r[2]], downloads)
+        self.assertTrue(all(r[2] for r in server.requests if r[1].startswith(FakeForgejo.API)))
+
+
 if __name__ == '__main__':
     unittest.main()
