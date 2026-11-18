@@ -731,6 +731,21 @@ class OtherChanges(unittest.TestCase):
                 got = upstream.other_changes(ws, prev, base)
         self.assertEqual(got, ['net: fix {a} thing', 'upstream: nomount 1111..2222'])
 
+    def test_lists_only_commits_that_change_shipped_files(self):
+        with tempfile.TemporaryDirectory() as d:
+            ws = self.repo(d)
+            prev = self.commit(ws, 'a', '1', 'README and release notes: rmx3997-v1')
+            self.commit(ws, 'rmx3997/ci/x.py', '2', 'ci: script fix')
+            self.commit(ws, '.forgejo/workflows/w.yml', '3', 'workflow: tweak')
+            self.commit(ws, 'README.md', '4', 'README: wording')
+            self.commit(ws, 'rmx3997/development/tool.py', '5', 'development: tool')
+            self.commit(ws, 'rmx3997/development/wk-anykernel/i.sh', '6', 'installer: message')
+            self.commit(ws, 'rmx3997/config/production.config', '7', 'config: option')
+            base = self.commit(ws, 'net/x.c', '8', 'net: fix')
+            with mock.patch('builtins.print'):
+                got = upstream.other_changes(ws, prev, base)
+        self.assertEqual(got, ['net: fix', 'config: option', 'installer: message'])
+
     def test_missing_history_is_silent(self):
         with tempfile.TemporaryDirectory() as d:
             ws = self.repo(d)

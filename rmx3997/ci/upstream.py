@@ -451,20 +451,35 @@ def next_tag(url, token):
     return 'rmx3997-v%d' % (max(nums) + 1), refs.get(prev + '^{}') or refs.get(prev)
 
 
+def shipped(path):
+    """True for files that reach the release ZIP: the kernel tree, the
+    production config and the packaged installer. CI scripts, workflows,
+    docs and development tools do not."""
+    if path.startswith(('rmx3997/config/', 'rmx3997/development/wk-anykernel/')):
+        return True
+    return not path.startswith(('rmx3997/', '.forgejo/')) and path not in ('README.md', '.gitignore')
+
+
 def other_changes(ws, prev, base, limit=40):
     """Subjects of the commits on main from the previous release tag to the
-    candidate base: changes landed by hand, never the job's own commits (they
-    all come after base). [] when that history is not in the workspace."""
+    candidate base that change shipped files: changes landed by hand, never the
+    job's own commits (they all come after base). [] when that history is not
+    in the workspace."""
     if not prev or git('cat-file', '-e', prev + '^{commit}', cwd=ws, check=False).returncode \
             or git('merge-base', '--is-ancestor', prev, base, cwd=ws, check=False).returncode:
         print('previous release %s is not in the candidate history; no "Other changes" list'
               % (prev or 'commit')[:12], flush=True)
         return []
-    r = git('log', '--first-parent', '--format=%s', '%s..%s' % (prev, base), cwd=ws, check=False)
+    r = git('log', '--first-parent', '--diff-merges=first-parent', '--name-only',
+            '--format=%x00%s', '%s..%s' % (prev, base), cwd=ws, check=False)
     if r.returncode:
         print('git log %s..%s failed; no "Other changes" list' % (prev[:12], base[:12]), flush=True)
         return []
-    s = r.stdout.strip().splitlines()
+    s = []
+    for entry in r.stdout.split('\0')[1:]:
+        subject, _, names = entry.partition('\n')
+        if any(shipped(f) for f in names.split()):
+            s.append(subject)
     return s[:limit] + (['... %d more' % (len(s) - limit)] if len(s) > limit else [])
 
 
