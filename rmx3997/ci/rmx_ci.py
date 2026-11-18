@@ -757,7 +757,6 @@ def gh_releases_for(base, tag, token):
 
 
 def cmd_github_release(a):
-    import time
     token = os.environ.get('GH_RELEASE_TOKEN', '')
     if not token and not a.dry_run:
         die('no GitHub release token in step environment')
