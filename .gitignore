@@ -95,6 +95,7 @@ modules.order
 !.cocciconfig
 !.get_maintainer.ignore
 !.gitattributes
+!.forgejo/
 !.gitignore
 !.mailmap
 
