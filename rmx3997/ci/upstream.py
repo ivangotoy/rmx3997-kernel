@@ -98,7 +98,10 @@ def cmd_check(a):
     m = load()
     rows, updates = [], 0
     for name, c in m['components'].items():
-        tip = latest_release(c['github']) if c['mode'] == 'release' else remote_head(c['url'], c['ref'])
+        try:
+            tip = latest_release(c['github']) if c['mode'] == 'release' else remote_head(c['url'], c['ref'])
+        except (OSError, KeyError, ValueError) as e:
+            die('%s lookup: %s' % (name, e))
         new = tip != c['pin']
         updates += new
         rows.append({'name': name, 'mode': c['mode'], 'pin': c['pin'], 'tip': tip, 'new': new})

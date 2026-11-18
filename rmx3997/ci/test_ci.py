@@ -438,5 +438,20 @@ class UpstreamApiRetry(unittest.TestCase):
         self.assertIn('FAIL: POST https://forge.example/api/v1/x failed: reset', text)
 
 
+class CheckLookupFailure(unittest.TestCase):
+    """A failed upstream lookup in "check" is a FAIL line naming the component."""
+
+    def test_rate_limited_release_lookup(self):
+        manifest = {'components': {'zyc-clang': {'mode': 'release', 'github': 'o/clang', 'pin': 'v1'}}}
+        err = urllib.error.HTTPError('u', 403, 'rate limit exceeded', {}, io.BytesIO(b''))
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch.object(upstream, 'load', return_value=manifest), \
+                mock.patch.object(upstream, 'latest_release', side_effect=err), \
+                mock.patch('builtins.print') as p, self.assertRaises(SystemExit) as e:
+            upstream.cmd_check(mock.Mock(stage=d))
+        self.assertEqual(e.exception.code, 1)
+        self.assertIn('FAIL: zyc-clang lookup: HTTP Error 403: rate limit exceeded', p.call_args[0][0])
+
+
 if __name__ == '__main__':
     unittest.main()
