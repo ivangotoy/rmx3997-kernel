@@ -157,5 +157,38 @@ class GitTokenNotInArgv(unittest.TestCase):
         self.assertNotIn('GIT_CONFIG_VALUE_0', upstream.GIT_ENV)
 
 
+class GitNetworkTimeout(unittest.TestCase):
+    """A hanging network git call fails on its own deadline, not the job timeout."""
+
+    def run_with_hanging_git(self, fn):
+        with tempfile.TemporaryDirectory() as d:
+            stub = Path(d, 'git')
+            stub.write_text('#!/bin/sh\nexec sleep 30\n')
+            stub.chmod(0o755)
+            env = dict(upstream.GIT_ENV, PATH=d + ':/usr/bin:/bin')
+            with mock.patch.object(upstream, 'GIT_ENV', env), \
+                    mock.patch.object(upstream, 'GIT_LS_REMOTE_TIMEOUT', 1, create=True), \
+                    mock.patch.object(upstream, 'TRIES', 2), \
+                    mock.patch.object(upstream.time, 'sleep'), \
+                    mock.patch('builtins.print') as p:
+                start = upstream.time.monotonic()
+                with self.assertRaises(SystemExit) as e:
+                    fn()
+                took = upstream.time.monotonic() - start
+        self.assertEqual(e.exception.code, 1)
+        self.assertLess(took, 15)
+        return ' '.join(str(c[0][0]) for c in p.call_args_list)
+
+    def test_ls_remote_times_out(self):
+        text = self.run_with_hanging_git(lambda: upstream.remote_head('https://forge.example/o/r.git', 'main'))
+        self.assertIn('timed out after 1 s', text)
+
+    def test_retried_ls_remote_times_out(self):
+        text = self.run_with_hanging_git(
+            lambda: upstream.remote_refs('https://forge.example/o/r.git', 'made-up-token', 'refs/heads/main'))
+        self.assertIn('attempt 2 failed: timed out after 1 s', text)
+        self.assertNotIn('made-up-token', text)
+
+
 if __name__ == '__main__':
     unittest.main()

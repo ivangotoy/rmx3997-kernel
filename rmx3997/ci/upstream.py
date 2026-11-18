@@ -49,9 +49,21 @@ def die(msg):
     raise SystemExit(1)
 
 
-def git(*args, cwd=None, check=True, inp=None, env=None):
-    r = subprocess.run(['git', *args], cwd=cwd, env=dict(GIT_ENV, **(env or {})), input=inp,
-                       capture_output=True, text=inp is None or isinstance(inp, str))
+# Network git calls get their own deadline instead of only the job timeout.
+GIT_LS_REMOTE_TIMEOUT = 120
+GIT_TRANSFER_TIMEOUT = 1800
+
+
+def git(*args, cwd=None, check=True, inp=None, env=None, timeout=None):
+    text = inp is None or isinstance(inp, str)
+    try:
+        r = subprocess.run(['git', *args], cwd=cwd, env=dict(GIT_ENV, **(env or {})), input=inp,
+                           capture_output=True, text=text, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        if check:
+            die('git %s: timed out after %d s' % (' '.join(args[:3]), timeout))
+        empty = '' if text else b''
+        return subprocess.CompletedProcess(['git', *args], 124, empty, 'timed out after %d s' % timeout)
     if check and r.returncode:
         die('git %s: %s' % (' '.join(args[:3]), (r.stderr or '').strip()[-600:]))
     return r
@@ -66,7 +78,8 @@ def load(src=REPO):
 
 
 def remote_head(url, ref):
-    lines = out('ls-remote', url, 'refs/heads/' + ref).splitlines()
+    lines = git('ls-remote', url, 'refs/heads/' + ref,
+                timeout=GIT_LS_REMOTE_TIMEOUT).stdout.strip().splitlines()
     if len(lines) != 1:
         die('ls-remote %s %s returned %d refs' % (url, ref, len(lines)))
     return lines[0].split()[0]
@@ -138,7 +151,7 @@ def cache(name, url, refs, shallow_since=None):
     if name == 'bakasu':
         # bakasu_identity() needs the release tags for git describe
         specs.append('+refs/tags/*:refs/tags/*')
-    git(*args, url, *specs)
+    git(*args, url, *specs, timeout=GIT_TRANSFER_TIMEOUT)
     return d
 
 
@@ -393,7 +406,8 @@ def auth(token):
 def remote_refs(url, token, *patterns):
     """ls-remote with bounded retry; {refname: sha}, peeled tags as <name>^{}."""
     for attempt in range(1, TRIES + 1):
-        r = git('ls-remote', url, *patterns, check=False, env=auth(token))
+        r = git('ls-remote', url, *patterns, check=False, env=auth(token),
+                timeout=GIT_LS_REMOTE_TIMEOUT)
         if not r.returncode:
             return {l.split('\t', 1)[1]: l.split('\t', 1)[0] for l in r.stdout.splitlines() if l}
         print('ls-remote attempt %d failed: %s' % (attempt, r.stderr.strip()[-300:]), flush=True)
@@ -547,7 +561,8 @@ def cmd_promote(a):
         pushes += 1
         r = git('push', '-q', '--atomic', '--force-with-lease=refs/heads/main:' + base,
                 '--force-with-lease=refs/tags/%s:' % tag, a.repo_url, 'HEAD:refs/heads/main',
-                'refs/tags/%s:refs/tags/%s' % (tag, tag), cwd=ws, check=False, env=auth(token))
+                'refs/tags/%s:refs/tags/%s' % (tag, tag), cwd=ws, check=False, env=auth(token),
+                timeout=GIT_TRANSFER_TIMEOUT)
         if r.returncode:
             print('push attempt %d failed: %s' % (pushes, r.stderr.strip()[-300:]), flush=True)
     (stage / 'promote.ok').write_text(head + '\n')
