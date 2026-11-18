@@ -630,6 +630,9 @@ def cmd_release(a):
     tag = a.tag
     st, body = api('GET', '%s/releases/tags/%s' % (base, urllib.parse.quote(tag)), token)
     if st == 200:
+        if json.loads(body or b'{}').get('draft'):
+            die('an unpublished draft release for %s (id %s) exists, left by an earlier failed run; '
+                'delete it on the server, then run again' % (tag, json.loads(body).get('id')))
         die('a release for %s already exists; refusing to modify it' % tag)
     if st != 404:
         die('release lookup returned HTTP %d' % st)
@@ -640,38 +643,49 @@ def cmd_release(a):
     if st not in (200, 201):
         die('draft release creation returned HTTP %d: %s' % (st, body[:300]))
     rel = json.loads(body)
-    dist = Path(a.dist)
-    uploaded = []
-    for p in sorted(dist.iterdir()):
-        url = '%s/releases/%d/assets?name=%s' % (base, rel['id'], urllib.parse.quote(p.name))
-        st, body = api('POST', url, token, p.read_bytes(), 'application/octet-stream')
-        if st not in (200, 201):
-            die('asset upload %s returned HTTP %d' % (p.name, st))
-        asset = json.loads(body)
-        # The job token cannot download draft-release files (web route, 404),
-        # so verify the stored size through the API here. Byte-level checks
-        # are done by the owner before publishing (sha256 files are attached).
-        st, body = api('GET', '%s/releases/%d/assets/%d' % (base, rel['id'], asset['id']), token)
-        if st != 200 or json.loads(body).get('size') != p.stat().st_size:
-            die('asset %s: stored size does not match (HTTP %d)' % (p.name, st))
-        uploaded.append(p.name)
-    st, body = api('GET', '%s/releases/%d/assets' % (base, rel['id']), token)
-    names = sorted(a['name'] for a in json.loads(body)) if st == 200 else []
-    if names != sorted(uploaded):
-        die('release asset list differs from uploaded files')
-    # All gates passed and the assets are complete: publish.
-    st, body = api('PATCH', '%s/releases/%d' % (base, rel['id']), token,
-                   json.dumps({'draft': False}).encode())
-    if st != 200 or json.loads(body).get('draft'):
-        die('publishing release returned HTTP %d' % st)
-    # Read back anonymously, as users and github-release download it: the
-    # token is not sent to the web route or to a host it redirects to.
-    for p in sorted(dist.iterdir()):
-        url = '%s/%s/releases/download/%s/%s' % (a.api.rstrip('/').rsplit('/api/', 1)[0], a.repo,
-                                                urllib.parse.quote(tag), urllib.parse.quote(p.name))
-        st, data = fetch(url)
-        if st != 200 or hashlib.sha256(data).hexdigest() != sha(p):
-            die('published asset %s did not round-trip (HTTP %d)' % (p.name, st))
+    state = 'draft'
+    try:
+        dist = Path(a.dist)
+        uploaded = []
+        for p in sorted(dist.iterdir()):
+            url = '%s/releases/%d/assets?name=%s' % (base, rel['id'], urllib.parse.quote(p.name))
+            st, body = api('POST', url, token, p.read_bytes(), 'application/octet-stream')
+            if st not in (200, 201):
+                die('asset upload %s returned HTTP %d' % (p.name, st))
+            asset = json.loads(body)
+            # The job token cannot download draft-release files (web route, 404),
+            # so verify the stored size through the API here. Byte-level checks
+            # are done by the owner before publishing (sha256 files are attached).
+            st, body = api('GET', '%s/releases/%d/assets/%d' % (base, rel['id'], asset['id']), token)
+            if st != 200 or json.loads(body).get('size') != p.stat().st_size:
+                die('asset %s: stored size does not match (HTTP %d)' % (p.name, st))
+            uploaded.append(p.name)
+        st, body = api('GET', '%s/releases/%d/assets' % (base, rel['id']), token)
+        names = sorted(a['name'] for a in json.loads(body)) if st == 200 else []
+        if names != sorted(uploaded):
+            die('release asset list differs from uploaded files')
+        # All gates passed and the assets are complete: publish.
+        state = 'publishing'
+        st, body = api('PATCH', '%s/releases/%d' % (base, rel['id']), token,
+                       json.dumps({'draft': False}).encode())
+        if st != 200 or json.loads(body).get('draft'):
+            die('publishing release returned HTTP %d' % st)
+        state = 'published'
+        # Read back anonymously, as users and github-release download it: the
+        # token is not sent to the web route or to a host it redirects to.
+        for p in sorted(dist.iterdir()):
+            url = '%s/%s/releases/download/%s/%s' % (a.api.rstrip('/').rsplit('/api/', 1)[0], a.repo,
+                                                    urllib.parse.quote(tag), urllib.parse.quote(p.name))
+            st, data = fetch(url)
+            if st != 200 or hashlib.sha256(data).hexdigest() != sha(p):
+                die('published asset %s did not round-trip (HTTP %d)' % (p.name, st))
+    except BaseException:
+        # No automatic delete: the owner decides what happens to the release.
+        print('FAIL: release %s (id %d) %s' % (tag, rel['id'], {
+            'draft': 'is left on the server as an unpublished draft; delete it before running again',
+            'publishing': 'may or may not be published; check it on the server before running again',
+            'published': 'is already published'}[state]), flush=True)
+        raise
     print('published release %s (id %d), %d assets byte-verified: %s'
           % (tag, rel['id'], len(uploaded), ', '.join(uploaded)))
 

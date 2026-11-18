@@ -372,5 +372,35 @@ class ReleaseDownloadIsAnonymous(unittest.TestCase):
         self.assertTrue(all(r[2] for r in server.requests if r[1].startswith(FakeForgejo.API)))
 
 
+class ReleaseLeftoverMessages(unittest.TestCase):
+    """A failed release run says what it left on the server; it never deletes."""
+
+    def check(self, server, want):
+        code, text = run_release(server)
+        self.assertEqual(code, 1, text)
+        self.assertIn(want, text)
+        self.assertFalse([r for r in server.requests if r[0] == 'DELETE'])
+        return text
+
+    def test_draft_found_on_rerun(self):
+        self.check(FakeForgejo(existing={'id': 4, 'draft': True, 'tag_name': 'rmx3997-v99'}),
+                   'unpublished draft release for rmx3997-v99 (id 4) exists')
+
+    def test_failure_after_draft_creation_names_the_draft(self):
+        server = FakeForgejo(fail=lambda m, url: m == 'POST' and '/assets?name=' in url)
+        self.check(server, 'release rmx3997-v99 (id 5) is left on the server as an unpublished draft')
+        self.assertTrue(server.draft)
+
+    def test_failure_after_publishing_says_published(self):
+        server = FakeForgejo(fail=lambda m, url: '/releases/download/' in url)
+        text = self.check(server, 'release rmx3997-v99 (id 5) is already published')
+        self.assertNotIn('draft', text)
+
+    def test_clean_run_reports_no_leftover(self):
+        code, text = run_release(FakeForgejo())
+        self.assertIsNone(code, text)
+        self.assertNotIn('FAIL', text)
+
+
 if __name__ == '__main__':
     unittest.main()
