@@ -30,7 +30,8 @@ jobs:
     steps:
       # Plain git instead of actions/checkout: that action logs host paths
       # (workspace, HOME, credential helper files) into the public run log.
-      # The job token is passed only as an in-memory header; the user's global
+      # The job token is passed only as a header in git's environment (not its
+      # argv, which other processes can read); the user's global
       # and system git config (and its credential helper) are not consulted.
       - name: Checkout
         env:
@@ -44,8 +45,8 @@ jobs:
           find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           git init -q .
           auth=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
-          git -c http.extraHeader="Authorization: basic $auth" fetch -q --depth 1 --no-tags \
-            "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" "$FORGEJO_SHA"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader GIT_CONFIG_VALUE_0="Authorization: basic $auth" \
+            git fetch -q --depth 1 --no-tags "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" "$FORGEJO_SHA"
           git checkout -q --detach FETCH_HEAD
           echo "checked out $(git rev-parse HEAD)"
 

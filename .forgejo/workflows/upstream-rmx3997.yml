@@ -42,8 +42,8 @@ jobs:
           find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           git init -q .
           auth=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
-          git -c http.extraHeader="Authorization: basic $auth" fetch -q --depth 1 --no-tags \
-            "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" "$FORGEJO_SHA"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader GIT_CONFIG_VALUE_0="Authorization: basic $auth" \
+            git fetch -q --depth 1 --no-tags "$FORGEJO_SERVER_URL/$FORGEJO_REPOSITORY.git" "$FORGEJO_SHA"
           git checkout -q --detach FETCH_HEAD
           echo "checked out $(git rev-parse HEAD)"
 
