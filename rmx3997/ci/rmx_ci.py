@@ -596,7 +596,7 @@ def cmd_prune_stages(a):
         keep = Path(a.keep).resolve() if a.keep else None
         cutoff = time.time() - a.days * 86400
         stages = sorted(root.iterdir()) if root.is_dir() else []
-    except OSError as e:
+    except Exception as e:
         print('WARN: prune-stages: %s; the build continues' % e, flush=True)
         return
     pruned = 0
@@ -608,7 +608,7 @@ def cmd_prune_stages(a):
             if stage.stat().st_mtime > cutoff:
                 continue
             removed = prune_stage(stage, m.group(1))
-        except OSError as e:
+        except Exception as e:
             print('WARN: prune-stages: %s: %s; the build continues' % (stage.name, e), flush=True)
             continue
         if removed:

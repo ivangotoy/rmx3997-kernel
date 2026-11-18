@@ -683,6 +683,14 @@ class PruneStages(unittest.TestCase):
                 text = self.run_prune(root)
             self.assertIn('WARN: prune-stages: run-5-1: denied; the build continues', text)
 
+    def test_unexpected_error_is_a_warning(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self.make(root, 'run-5-1', ['out'], 10)
+            with mock.patch.object(rmx_ci, 'prune_stage', side_effect=ValueError('odd')):
+                text = self.run_prune(root)
+            self.assertIn('WARN: prune-stages: run-5-1: odd; the build continues', text)
+
     def test_missing_root(self):
         with tempfile.TemporaryDirectory() as d:
             text = self.run_prune(Path(d, 'absent'))
