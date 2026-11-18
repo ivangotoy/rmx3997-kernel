@@ -24,7 +24,7 @@ come from Forgejo Actions; see Releases for downloads.
 | Kernel | Linux 5.15.223, Android13-5.15 GKI KMI8 |
 | Compiler | ZyC Clang 18.0.0git (LLVM `3dea0aa8`), Full LTO, strict CFI |
 | Default TCP congestion control | `bbr3` (BBRv3 backport); upstream `bbr` still available |
-| Metamodule support | NoMount protocol 23 (metamodule versionCode 737) |
+| Metamodule support | NoMount protocol 23 (metamodule versionCode 775) |
 
 ## Features
 

@@ -11,11 +11,15 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 - `bakasu` (`main`): `548d1dda`..`5d6d1843`, 2 upstream commits, now BakaSU
   35261 (fix the return type and header install path of preinit, check
   `ksu_handle_vfs_fstat`).
-- `nomount` (`dev`): `6298d58a`..`00e7c5d4`, 25 upstream commits, now NoMount
+- `nomount` (`dev`): `6298d58a`..`9ff48a32`, 63 upstream commits, now NoMount
   protocol 23 (rules whose backing path is virtual are rejected, native files
   resolved from their parent, out-of-bounds read fix when selecting a rule
-  from a single-element array, leaf reuse during revalidation). Install the
-  NoMount metamodule build with versionCode 737 together with this kernel.
+  from a single-element array, leaf reuse during revalidation; file handles
+  are not encoded for virtual inodes, rename targets and hardlinks on virtual
+  inodes are refused, async direct I/O on virtual files is rejected, rule
+  paths, flags and UID ranges are validated, dot path components are
+  rejected, readdir reports the real file type). Install the NoMount
+  metamodule build with versionCode 775 together with this kernel.
 - `susfs` (`gki-android13-5.15`): `fe943d15`..`c1d1da42`, 3 upstream commits,
   still SUSFS v2.4.0: new sus_path uid filter
   (`CMD_SUSFS_SET_SUS_PATH_UID_FILTER` takes a comma-separated list of app
@@ -26,7 +30,7 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
   patches this kernel carries are unchanged there, so no code changed.
 - Component versions in this release: AOSP `android13-5.15-lts` `f181319b`
   (Linux 5.15.223), `android13-5.15` security branch `3540cf72`, BakaSU
-  `5d6d1843` (35261), SUSFS `c1d1da42` (v2.4.0), NoMount `00e7c5d4`, Baseband
+  `5d6d1843` (35261), SUSFS `c1d1da42` (v2.4.0), NoMount `9ff48a32`, Baseband
   Guard `028ff7fd`, BBRv3 donor `3e7e48f0`, AnyKernel3 `gki-2.0` `e1e9dce9`.
 - `production.config`: unchanged.
 
