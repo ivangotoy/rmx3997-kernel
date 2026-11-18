@@ -3,11 +3,11 @@
 set -eu
 [ "$(id -u)" = 0 ] || { echo 'Root required'; exit 1; }
 [ "$#" = 1 ] || { echo 'Usage: sh install-on-device.sh PACKAGE.zip'; exit 1; }
-ZIP=$(readlink -f "$1")
-[ -f "$ZIP" ] || exit 1
+ZIP=$(readlink -f "$1") || { echo "Package not found: $1" >&2; exit 1; }
+[ -f "$ZIP" ] || { echo "Package not found: $1" >&2; exit 1; }
 umask 077
 BASE=/data/adb/rmx3997-ak3
-[ ! -L "$BASE" ] || exit 1
+[ ! -L "$BASE" ] || { echo "$BASE is a symlink; refusing to install" >&2; exit 1; }
 mkdir -p "$BASE"
 chmod 700 "$BASE"
 # Explicitly reject RAM filesystems even if /data was mounted unusually.
@@ -17,6 +17,6 @@ mkdir "$AKHOME"
 unzip -oq "$ZIP" -d "$AKHOME"
 cd "$AKHOME"
 chmod 700 tools/busybox
-tools/busybox sha256sum -c SHA256SUMS || exit 1
+tools/busybox sha256sum -c SHA256SUMS || { echo 'Package checksum verification failed' >&2; exit 1; }
 # The actual pinned WK backend initializes BusyBox and executes anykernel.sh.
 exec /system/bin/sh META-INF/com/google/android/update-binary 3 1 "$ZIP"

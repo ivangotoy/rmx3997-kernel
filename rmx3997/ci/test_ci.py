@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -791,6 +792,56 @@ class NextTagPrevious(unittest.TestCase):
     def test_lightweight_tag(self):
         with mock.patch.object(upstream, 'remote_refs', return_value={'refs/tags/rmx3997-v1': 'a' * 40}):
             self.assertEqual(upstream.next_tag('u', 't'), ('rmx3997-v2', 'a' * 40))
+
+
+class InstallerMessages(unittest.TestCase):
+    """install-on-device.sh says why it stops; never runs past BASE on the host."""
+    SCRIPT = CI.parent / 'development/wk-anykernel/install-on-device.sh'
+
+    def run_sh(self, d, script, *args):
+        stubs = Path(d, 'stubs')
+        stubs.mkdir(exist_ok=True)
+        Path(stubs, 'id').write_text('#!/bin/sh\necho 0\n')
+        Path(stubs, 'id').chmod(0o755)
+        return subprocess.run(['sh', str(script), *args], capture_output=True, text=True, cwd=d,
+                              env={'PATH': '%s:/usr/bin:/bin' % stubs})
+
+    def copy_with_base(self, d):
+        base = Path(d, 'base')
+        text = self.SCRIPT.read_text()
+        self.assertEqual(text.count('BASE=/data/adb/rmx3997-ak3\n'), 1)
+        script = Path(d, 'install-on-device.sh')
+        script.write_text(text.replace('BASE=/data/adb/rmx3997-ak3\n', 'BASE=%s\n' % base))
+        return script, base
+
+    def test_missing_package(self):
+        with tempfile.TemporaryDirectory() as d:
+            for arg in (str(Path(d, 'absent.zip')), str(Path(d, 'no/such/dir/x.zip'))):
+                r = self.run_sh(d, self.SCRIPT, arg)
+                self.assertEqual(r.returncode, 1)
+                self.assertIn('Package not found: ' + arg, r.stderr)
+
+    def test_symlinked_base(self):
+        with tempfile.TemporaryDirectory() as d:
+            script, base = self.copy_with_base(d)
+            Path(d, 'pkg.zip').write_bytes(b'')
+            Path(d, 'elsewhere').mkdir()
+            base.symlink_to(Path(d, 'elsewhere'))
+            r = self.run_sh(d, script, 'pkg.zip')
+            self.assertEqual(r.returncode, 1)
+            self.assertIn('is a symlink; refusing to install', r.stderr)
+            self.assertEqual(list(Path(d, 'elsewhere').iterdir()), [])
+
+    @unittest.skipUnless(shutil.which('unzip'), 'unzip not installed')
+    def test_checksum_failure(self):
+        with tempfile.TemporaryDirectory() as d:
+            script, base = self.copy_with_base(d)
+            with zipfile.ZipFile(Path(d, 'pkg.zip'), 'w') as z:
+                z.writestr('tools/busybox', '#!/bin/sh\nexit 1\n')
+                z.writestr('SHA256SUMS', '00  x\n')
+            r = self.run_sh(d, script, 'pkg.zip')
+            self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+            self.assertIn('Package checksum verification failed', r.stderr)
 
 
 if __name__ == '__main__':
