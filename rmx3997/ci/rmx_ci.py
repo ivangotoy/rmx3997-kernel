@@ -106,7 +106,6 @@ def cmd_preflight(a):
     rows = oem_manifest(oem['dirs'])
     if len(rows) != oem['count'] or manifest_digest(rows) != oem['manifest_sha256']:
         bad.append('oem_modules: corpus differs (%d files)' % len(rows))
-    import shutil
     if not shutil.which('bpftool'):
         bad.append('bpftool: not installed (struct layout gate)')
     for tool in ('avbtool', 'lz4'):
