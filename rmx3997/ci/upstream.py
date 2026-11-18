@@ -53,6 +53,10 @@ def die(msg):
 # Network git calls get their own deadline instead of only the job timeout.
 GIT_LS_REMOTE_TIMEOUT = 120
 GIT_TRANSFER_TIMEOUT = 1800
+# ls-remote only: git's HTTP layer aborts a transfer that stays below 1000 B/s
+# for 60 s, so a stalled remote helper ends itself before the timeout. Not for
+# fetch/push: a large fetch can be quiet while the server packs.
+LS_REMOTE_ENV = {'GIT_HTTP_LOW_SPEED_LIMIT': '1000', 'GIT_HTTP_LOW_SPEED_TIME': '60'}
 
 
 def git(*args, cwd=None, check=True, inp=None, env=None, timeout=None):
@@ -79,7 +83,7 @@ def load(src=REPO):
 
 
 def remote_head(url, ref):
-    lines = git('ls-remote', url, 'refs/heads/' + ref,
+    lines = git('ls-remote', url, 'refs/heads/' + ref, env=LS_REMOTE_ENV,
                 timeout=GIT_LS_REMOTE_TIMEOUT).stdout.strip().splitlines()
     if len(lines) != 1:
         die('ls-remote %s %s returned %d refs' % (url, ref, len(lines)))
@@ -420,7 +424,7 @@ def auth(token):
 def remote_refs(url, token, *patterns):
     """ls-remote with bounded retry; {refname: sha}, peeled tags as <name>^{}."""
     for attempt in range(1, TRIES + 1):
-        r = git('ls-remote', url, *patterns, check=False, env=auth(token),
+        r = git('ls-remote', url, *patterns, check=False, env=dict(auth(token), **LS_REMOTE_ENV),
                 timeout=GIT_LS_REMOTE_TIMEOUT)
         if not r.returncode:
             return {l.split('\t', 1)[1]: l.split('\t', 1)[0] for l in r.stdout.splitlines() if l}

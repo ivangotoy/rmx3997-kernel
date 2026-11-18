@@ -575,12 +575,52 @@ class PromotePush(unittest.TestCase):
         self.assertFalse([x for x in argv if 'made-up-token' in x or 'basic' in x], argv)
         self.assertTrue(kw['env']['GIT_CONFIG_VALUE_0'].startswith('Authorization: basic '))
         self.assertEqual(kw['timeout'], upstream.GIT_TRANSFER_TIMEOUT)
+        self.assertNotIn('GIT_HTTP_LOW_SPEED_LIMIT', kw['env'])
+        self.assertNotIn('GIT_HTTP_LOW_SPEED_TIME', kw['env'])
 
     def test_push(self):
         self.check(False)
 
     def test_push_timeout_after_the_refs_landed(self):
         self.check(True)
+
+
+class LsRemoteStallAbort(unittest.TestCase):
+    """ls-remote carries git's low-speed abort; fetch and push do not."""
+    LOW = {'GIT_HTTP_LOW_SPEED_LIMIT': '1000', 'GIT_HTTP_LOW_SPEED_TIME': '60'}
+
+    def capture(self, fn):
+        calls = []
+
+        def run(argv, **kw):
+            calls.append((argv, kw['env']))
+            return subprocess.CompletedProcess(argv, 0, 'a' * 40 + '\trefs/heads/main\n', '')
+
+        with mock.patch.object(upstream.subprocess, 'run', run), mock.patch('builtins.print'):
+            fn()
+        return calls
+
+    def assert_low_speed(self, env, present):
+        for k, v in self.LOW.items():
+            self.assertEqual(env.get(k), v if present else None, k)
+
+    def test_remote_head(self):
+        (argv, env), = self.capture(lambda: upstream.remote_head('https://forge.example/o/r.git', 'main'))
+        self.assertEqual(argv[1], 'ls-remote')
+        self.assert_low_speed(env, True)
+
+    def test_remote_refs_keeps_auth(self):
+        (argv, env), = self.capture(lambda: upstream.remote_refs('https://forge.example/o/r.git', 't', 'refs/heads/main'))
+        self.assert_low_speed(env, True)
+        self.assertTrue(env['GIT_CONFIG_VALUE_0'].startswith('Authorization: basic '))
+
+    def test_cache_fetch_has_no_low_speed_abort(self):
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(upstream, 'CACHE', Path(d)):
+            Path(d, 'made-up.git').mkdir()
+            calls = self.capture(lambda: upstream.cache('made-up', 'https://forge.example/o/r.git', ['main']))
+        fetches = [env for argv, env in calls if 'fetch' in argv]
+        self.assertEqual(len(fetches), 1)
+        self.assert_low_speed(fetches[0], False)
 
 
 if __name__ == '__main__':
