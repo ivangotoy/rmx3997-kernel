@@ -7,7 +7,9 @@ No network, no host inputs: every HTTP call is stubbed.
 import http.client
 import importlib.util
 import io
+import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -15,6 +17,7 @@ import unittest
 import urllib.error
 import urllib.request
 from unittest import mock
+import zipfile
 
 CI = Path(__file__).resolve().parent
 
@@ -451,6 +454,71 @@ class CheckLookupFailure(unittest.TestCase):
             upstream.cmd_check(mock.Mock(stage=d))
         self.assertEqual(e.exception.code, 1)
         self.assertIn('FAIL: zyc-clang lookup: HTTP Error 403: rate limit exceeded', p.call_args[0][0])
+
+
+class PackageOffline(unittest.TestCase):
+    """rmx_ci.py package with a made-up Image: complete, closed ZIP and its checksum.
+    Host inputs (boot template, avbtool, lz4) are stubbed; the AnyKernel3
+    members and their pins are the real ones from wk-anykernel."""
+
+    MEMBERS = {
+        'Image', 'LICENSE', 'META-INF/com/google/android/update-binary',
+        'META-INF/com/google/android/updater-script', 'SHA256SUMS', 'anykernel.sh',
+        'install-on-device.sh', 'manifest.json', 'tools/ak3-core.sh', 'tools/avbroot',
+        'tools/avbroot-LICENSE', 'tools/avbroot-provenance.json', 'tools/busybox',
+        'tools/busybox-LICENSE', 'tools/busybox-provenance.json', 'tools/magiskboot',
+        'tools/magiskboot-LICENSE', 'tools/magiskboot-provenance.json', 'tools/rmx-avb.sh'}
+
+    def test_package(self):
+        ident = {'Image_sha256': 'a' * 64, 'vmlinux_sha256': 'b' * 64, 'config_sha256': 'c' * 64,
+                 'release': '5.15.0-android13-8-gmadeup'}
+        image_bytes = b'made-up kernel Image ' * 64
+        packager = rmx_ci.load_packager()
+
+        def boot(template, image, out_img, work):
+            Path(out_img).write_bytes(b'made-up boot image')
+            return {'kernel_lz4_bytes': 1}
+
+        with tempfile.TemporaryDirectory() as d:
+            stage = Path(d, 'stage')
+            (stage / 'out/arch/arm64/boot').mkdir(parents=True)
+            (stage / 'out/arch/arm64/boot/Image').write_bytes(image_bytes)
+            (stage / 'acceptance.json').write_text(json.dumps(
+                {'identity': ident, 'oem_crc': {'status': 'PASS'}}))
+            (stage / 'toolchain.txt').write_text('clang: made-up 18\n')
+            a = mock.Mock(stage=str(stage), label='rmx3997-v99', commit='c' * 40,
+                          run_url='https://forge.example/run/1', private_dir=str(Path(d, 'private')))
+            pins = {'files': {'boot_b_layout_template': {'path': str(Path(d, 'no-template'))}}}
+            with mock.patch.object(packager, 'inspect', return_value=ident), \
+                    mock.patch.object(rmx_ci, 'load_packager', return_value=packager), \
+                    mock.patch.object(rmx_ci, 'load_pins', return_value=pins), \
+                    mock.patch.object(rmx_ci, 'build_boot_image', boot), \
+                    mock.patch.object(rmx_ci, 'verify_boot_image', return_value={'avb_digest_verified': True}), \
+                    mock.patch('builtins.print'):
+                rmx_ci.cmd_package(a)
+            base = 'RMX3997-kernel-5.15.0-v99'
+            zpath = stage / 'dist' / (base + '.zip')
+            self.assertEqual(sorted(x.name for x in (stage / 'dist').iterdir()),
+                             [base + '.zip', base + '.zip.sha256'])
+            self.assertEqual((stage / 'dist' / (base + '.zip.sha256')).read_text(),
+                             '%s  %s\n' % (hashlib.sha256(zpath.read_bytes()).hexdigest(), zpath.name))
+            open_fds = [os.readlink('/proc/self/fd/' + f) for f in os.listdir('/proc/self/fd')
+                        if os.path.islink('/proc/self/fd/' + f)]
+            self.assertNotIn(str(zpath), open_fds)
+            with zipfile.ZipFile(zpath) as z:
+                self.assertIsNone(z.testzip())
+                self.assertEqual(set(z.namelist()), self.MEMBERS)
+                data = {n: z.read(n) for n in z.namelist()}
+            self.assertEqual(data['Image'], image_bytes)
+            sums = dict(reversed(l.split('  ', 1)) for l in data['SHA256SUMS'].decode().splitlines())
+            self.assertEqual(set(sums), self.MEMBERS - {'SHA256SUMS'})
+            for name, digest in sums.items():
+                self.assertEqual(hashlib.sha256(data[name]).hexdigest(), digest, name)
+            manifest = json.loads(data['manifest.json'])
+            self.assertEqual((manifest['source_commit'], manifest['release']), ('c' * 40, ident['release']))
+            self.assertEqual((stage / 'dist.env').read_text(),
+                             'RMX_DIST=%s\nRMX_BASE=%s\n' % (stage / 'dist', base))
+            self.assertTrue(Path(d, 'private', base, base + '.provenance.json').is_file())
 
 
 if __name__ == '__main__':
