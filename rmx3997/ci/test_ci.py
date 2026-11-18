@@ -268,5 +268,34 @@ class OpenUrlRetry(unittest.TestCase):
         self.assertEqual((res, n), ((201, b'{}'), 2))
 
 
+class GitHubCallsRetry(unittest.TestCase):
+    """GitHub API calls and anonymous downloads use the same retry policy."""
+
+    def call(self, fn, answers):
+        seen = []
+
+        def urlopen(req, timeout):
+            seen.append(req.get_method())
+            a = answers.pop(0)
+            if isinstance(a, BaseException):
+                raise a
+            return a
+
+        with mock.patch.object(rmx_ci.urllib.request, 'urlopen', urlopen), \
+                mock.patch.object(rmx_ci.time, 'sleep'), mock.patch('builtins.print'):
+            return fn(), len(seen)
+
+    def test_gh_get_survives_a_reset_and_429(self):
+        res = self.call(lambda: rmx_ci.gh('GET', 'https://api.github.example/r', 'made-up'),
+                        [urllib.error.URLError(ConnectionResetError('reset')),
+                         http_error('u', 429), Reply(200, b'[]')])
+        self.assertEqual(res, ((200, b'[]'), 3))
+
+    def test_fetch_survives_a_timeout(self):
+        res = self.call(lambda: rmx_ci.fetch('https://forge.example/f.zip'),
+                        [Reply(exc=TimeoutError('timed out')), Reply(200, b'zip')])
+        self.assertEqual(res, ((200, b'zip'), 2))
+
+
 if __name__ == '__main__':
     unittest.main()

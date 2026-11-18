@@ -684,11 +684,7 @@ GH_API = 'https://api.github.com'
 
 def fetch(url):
     """Anonymous GET (redirects followed); no credential can leave the host."""
-    req = urllib.request.Request(url, headers={'User-Agent': 'rmx3997-ci'})
-    try:
-        return open_url(req)
-    except urllib.error.URLError as e:
-        die('GET %s failed: %s' % (url.split('?', 1)[0], e.reason))
+    return open_url(urllib.request.Request(url, headers={'User-Agent': 'rmx3997-ci'}))
 
 
 def gh(method, url, token, payload=None, raw=None, ctype='application/json'):
@@ -701,13 +697,7 @@ def gh(method, url, token, payload=None, raw=None, ctype='application/json'):
         req.add_header('Authorization', 'Bearer ' + token)
     if data is not None:
         req.add_header('Content-Type', ctype)
-    try:
-        with urllib.request.urlopen(req, timeout=300) as r:
-            return r.status, r.read()
-    except urllib.error.HTTPError as e:
-        return e.code, e.read()
-    except urllib.error.URLError as e:
-        die('%s %s failed: %s' % (method, url.split('?', 1)[0], e.reason))
+    return open_url(req)
 
 
 def gh_json(method, url, token, want=(200,), what='GitHub request', **kw):
