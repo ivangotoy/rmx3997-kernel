@@ -4,35 +4,32 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 ## Changes in this release
 
-- `aosp-security` (`android13-5.15`): `3f0fd7f6`..`3540cf72`, 3 commits
-  applied (Bluetooth L2CAP: refuse `__l2cap_chan_add` if the channel already
-  has a connection; L2CAP: access `chan->conn` safely in get/setsockopt;
-  RFCOMM: connect the session socket without `rfcomm_mutex`).
-- `bakasu` (`main`): `548d1dda`..`5d6d1843`, 2 upstream commits, now BakaSU
-  35261 (fix the return type and header install path of preinit, check
-  `ksu_handle_vfs_fstat`).
-- `nomount` (`dev`): `6298d58a`..`9ff48a32`, 63 upstream commits, now NoMount
-  protocol 23 (rules whose backing path is virtual are rejected, native files
-  resolved from their parent, out-of-bounds read fix when selecting a rule
-  from a single-element array, leaf reuse during revalidation; file handles
-  are not encoded for virtual inodes, rename targets and hardlinks on virtual
-  inodes are refused, async direct I/O on virtual files is rejected, rule
-  paths, flags and UID ranges are validated, dot path components are
-  rejected, readdir reports the real file type). Install the NoMount
-  metamodule build with versionCode 775 together with this kernel.
-- `susfs` (`gki-android13-5.15`): `fe943d15`..`c1d1da42`, 3 upstream commits,
-  still SUSFS v2.4.0: new sus_path uid filter
-  (`CMD_SUSFS_SET_SUS_PATH_UID_FILTER` takes a comma-separated list of app
-  package names; the added sus paths are hidden from every other app UID),
-  and the SELinux hide path covers `setxattr` as it already covered
-  `setprocattr`. The adbd socket hiding of the previous release is kept.
-- `bbrv3` donor: pin moved `f3544ee0`..`3e7e48f0` after review; the BBRv3
-  patches this kernel carries are unchanged there, so no code changed.
-- Component versions in this release: AOSP `android13-5.15-lts` `f181319b`
-  (Linux 5.15.223), `android13-5.15` security branch `3540cf72`, BakaSU
-  `5d6d1843` (35261), SUSFS `c1d1da42` (v2.4.0), NoMount `9ff48a32`, Baseband
-  Guard `028ff7fd`, BBRv3 donor `3e7e48f0`, AnyKernel3 `gki-2.0` `e1e9dce9`.
-- `production.config`: unchanged.
+- `bakasu` (`main`): `5d6d1843`..`7b65bde0`, 1 upstream commit.
+- `production.config` refreshed with `olddefconfig` for the new upstream code: only new symbols were added, no existing option changed.
+- Other changes on main since the previous release:
+  - can: keep the stock can_skb_priv and uniqframe layouts
+  - tipc: keep the stock tipc_crypto layout
+  - pinctrl: sunxi: keep the stock sunxi_pinctrl layout
+  - strparser: keep the stock strparser flag bitfields
+  - HID: steam: keep the stock steam_device layout
+  - netlink: keep the stock netlink_compare_arg layout
+  - kprobes: keep the stock kprobe_blacklist_entry layout
+  - tracing: keep the stock field_var_hist layout
+  - f2fs: keep the gc_thread pointer layout of f2fs_sb_info
+  - genetlink: keep the stock ctrl_dump_policy_ctx layout
+  - bridge: keep the stock net_bridge and br_frame_type layouts
+  - cdc-acm: keep the stock struct acm layout
+  - Merge AOSP android13-5.15-lts 0d108e1e8c7b (5.15.225)
+  - nomount: report encode_fh failure as FILEID_INVALID
+  - upstream: nomount 00e7c5d4fdbf..9ff48a329f36
+  - update-binary: say why the backend stops before any work
+  - install-on-device.sh: say why the installer stops
+  - susfs: update to gki-android13-5.15 c1d1da42 (v2.4.0)
+  - upstream: nomount 6298d58af34a..00e7c5d4fdbf
+  - upstream: bakasu 548d1dda060c..5d6d1843c893
+  - UPSTREAM: Bluetooth: L2CAP: refuse __l2cap_chan_add if chan already has conn
+  - UPSTREAM: Bluetooth: L2CAP: access chan->conn safely in get/setsockopt
+  - UPSTREAM: Bluetooth: RFCOMM: connect the session socket without rfcomm_mutex
 
 ## Kernel features
 
