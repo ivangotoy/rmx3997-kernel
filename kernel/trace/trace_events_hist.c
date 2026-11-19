@@ -494,9 +494,23 @@ struct field_var {
 };
 
 struct field_var_hist {
-	struct trace_event_file		*file;
+	struct hist_trigger_data	*hist_data;	/* unused, stock RMX3997 layout */
 	char				*cmd;
 };
+
+/*
+ * The event file is kept behind struct field_var_hist in the same
+ * allocation, so field_var_hist keeps the stock RMX3997 layout.
+ */
+struct field_var_hist_alloc {
+	struct field_var_hist		var_hist;
+	struct trace_event_file		*file;
+};
+
+static struct trace_event_file **field_var_hist_file(struct field_var_hist *var_hist)
+{
+	return &container_of(var_hist, struct field_var_hist_alloc, var_hist)->file;
+}
 
 struct hist_trigger_data {
 	struct hist_field               *fields[HIST_FIELDS_MAX];
@@ -2915,7 +2929,7 @@ create_field_var_hist(struct hist_trigger_data *target_hist_data,
 	if (!IS_ERR_OR_NULL(event_var))
 		return event_var;
 
-	var_hist = kzalloc(sizeof(*var_hist), GFP_KERNEL);
+	var_hist = kzalloc(sizeof(struct field_var_hist_alloc), GFP_KERNEL);
 	if (!var_hist)
 		return ERR_PTR(-ENOMEM);
 
@@ -2957,7 +2971,7 @@ create_field_var_hist(struct hist_trigger_data *target_hist_data,
 	}
 
 	/* Needed to remove the histogram when the target goes away */
-	var_hist->file = file;
+	*field_var_hist_file(var_hist) = file;
 
 	/* Create the new histogram with our variable */
 	ret = event_hist_trigger_func(&trigger_hist_cmd, file,
@@ -5747,7 +5761,7 @@ static void unregister_field_var_hists(struct hist_trigger_data *hist_data)
 	int ret;
 
 	for (i = 0; i < hist_data->n_field_var_hists; i++) {
-		file = hist_data->field_var_hists[i]->file;
+		file = *field_var_hist_file(hist_data->field_var_hists[i]);
 		cmd = hist_data->field_var_hists[i]->cmd;
 		ret = event_hist_trigger_func(&trigger_hist_cmd, file,
 					      "!hist", "hist", cmd);
