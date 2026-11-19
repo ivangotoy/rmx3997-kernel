@@ -863,6 +863,10 @@ class InstallerMessages(unittest.TestCase):
         stubs.mkdir(exist_ok=True)
         Path(stubs, 'id').write_text('#!/bin/sh\necho 0\n')
         Path(stubs, 'id').chmod(0o755)
+        # The installer refuses a RAM filesystem (tmpfs/ramfs) for its work
+        # dir; report ext4 so the tests do not depend on where TMPDIR lives.
+        Path(stubs, 'stat').write_text('#!/bin/sh\necho ef53\n')
+        Path(stubs, 'stat').chmod(0o755)
         return subprocess.run(['sh', str(script), *args], capture_output=True, text=True, cwd=d,
                               env={'PATH': '%s:/usr/bin:/bin' % stubs})
 
