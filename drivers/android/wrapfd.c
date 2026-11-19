@@ -2398,8 +2398,11 @@ static long wrapfd_dev_add_monitor(struct file *file, unsigned long arg)
 		return -EINVAL;
 
 	monitors = &params.monitors;
-	if (!monitors->len || monitors->len > WRAPFD_MAX_NR_MONITORS || !monitors->results)
+	if (!monitors->len || monitors->len > WRAPFD_MAX_NR_MONITORS)
 		return -EINVAL;
+
+	if (!monitors->arr || !monitors->results)
+		return -EFAULT;
 
 	arr = memdup_array_user(u64_to_user_ptr(monitors->arr), monitors->len, sizeof(*arr));
 	if (IS_ERR(arr))
@@ -2511,8 +2514,11 @@ static long wrapfd_dev_del_monitor(struct file *file, unsigned long arg)
 		return -EINVAL;
 
 	monitors = &params.monitors;
-	if (!monitors->len || monitors->len > WRAPFD_MAX_NR_MONITORS || !monitors->results)
+	if (!monitors->len || monitors->len > WRAPFD_MAX_NR_MONITORS)
 		return -EINVAL;
+
+	if (!monitors->arr || !monitors->results)
+		return -EFAULT;
 
 	arr = memdup_array_user(u64_to_user_ptr(monitors->arr), monitors->len, sizeof(*arr));
 	if (IS_ERR(arr))
