@@ -454,6 +454,8 @@ enum net_bridge_opts {
 struct net_bridge {
 	spinlock_t			lock;
 	spinlock_t			hash_lock;
+	/* unused since CFM/MRP use option bits; keeps the stock RMX3997 layout */
+	struct hlist_head		frame_type_list;
 	struct net_device		*dev;
 	unsigned long			options;
 	/* These fields are accessed on each packet */
@@ -861,6 +863,14 @@ int nbp_backup_change(struct net_bridge_port *p, struct net_device *backup_dev);
 /* br_input.c */
 int br_handle_frame_finish(struct net *net, struct sock *sk, struct sk_buff *skb);
 rx_handler_func_t *br_get_rx_handler(const struct net_device *dev);
+
+/* No users left; kept so the stock RMX3997 BTF type stays present. */
+struct br_frame_type {
+	__be16			type;
+	int			(*frame_handler)(struct net_bridge_port *port,
+						 struct sk_buff *skb);
+	struct hlist_node	list;
+};
 
 static inline bool br_rx_handler_check_rcu(const struct net_device *dev)
 {

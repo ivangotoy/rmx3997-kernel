@@ -13,6 +13,7 @@
 #include <linux/etherdevice.h>
 #include <linux/ethtool.h>
 #include <linux/list.h>
+#include <linux/btf.h>
 #include <linux/netfilter_bridge.h>
 
 #include <linux/uaccess.h>
@@ -506,6 +507,8 @@ void br_dev_setup(struct net_device *dev)
 	spin_lock_init(&br->lock);
 	INIT_LIST_HEAD(&br->port_list);
 	INIT_HLIST_HEAD(&br->fdb_list);
+	INIT_HLIST_HEAD(&br->frame_type_list);
+	BTF_TYPE_EMIT(struct br_frame_type);
 #if IS_ENABLED(CONFIG_BRIDGE_MRP)
 	INIT_HLIST_HEAD(&br->mrp_list);
 #endif
