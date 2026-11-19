@@ -114,19 +114,37 @@ struct steam_device {
 	spinlock_t lock;
 	struct hid_device *hdev, *client_hdev;
 	struct mutex mutex;
-	struct mutex registration_mutex;
-	unsigned long client_opened;
+	bool client_opened;	/* unused, stock layout; see steam_device_ext */
 	struct input_dev __rcu *input;
 	unsigned long quirks;
 	struct work_struct work_connect;
 	bool connected;
-	bool registered;
 	char serial_no[STEAM_SERIAL_LEN + 1];
 	struct power_supply_desc battery_desc;
 	struct power_supply __rcu *battery;
 	u8 battery_charge;
 	u16 voltage;
 };
+
+/*
+ * State added by the LTS fixes, kept behind struct steam_device in the same
+ * allocation so steam_device keeps the stock RMX3997 layout.
+ */
+struct steam_device_ext {
+	struct mutex registration_mutex;
+	unsigned long client_opened;
+	bool registered;
+};
+
+struct steam_device_alloc {
+	struct steam_device steam;
+	struct steam_device_ext ext;
+};
+
+static inline struct steam_device_ext *steam_ext(struct steam_device *steam)
+{
+	return &container_of(steam, struct steam_device_alloc, steam)->ext;
+}
 
 static int steam_recv_report(struct steam_device *steam,
 		u8 *data, int size)
@@ -299,7 +317,7 @@ static int steam_input_open(struct input_dev *dev)
 	bool client_opened;
 
 	spin_lock_irqsave(&steam->lock, flags);
-	client_opened = steam->client_opened;
+	client_opened = steam_ext(steam)->client_opened;
 	spin_unlock_irqrestore(&steam->lock, flags);
 	mutex_lock(&steam->mutex);
 	if (!client_opened && lizard_mode)
@@ -315,7 +333,7 @@ static void steam_input_close(struct input_dev *dev)
 	bool client_opened;
 
 	spin_lock_irqsave(&steam->lock, flags);
-	client_opened = steam->client_opened;
+	client_opened = steam_ext(steam)->client_opened;
 	spin_unlock_irqrestore(&steam->lock, flags);
 	mutex_lock(&steam->mutex);
 	if (!client_opened && lizard_mode)
@@ -524,15 +542,15 @@ static int steam_register(struct steam_device *steam)
 {
 	int ret;
 
-	mutex_lock(&steam->registration_mutex);
+	mutex_lock(&steam_ext(steam)->registration_mutex);
 	/*
 	 * This function can be called several times in a row with the
 	 * wireless adaptor, without steam_unregister() between them, because
 	 * another client send a get_connection_status command, for example.
 	 * The battery and serial number are set just once per device.
 	 */
-	if (steam->registered) {
-		mutex_unlock(&steam->registration_mutex);
+	if (steam_ext(steam)->registered) {
+		mutex_unlock(&steam_ext(steam)->registration_mutex);
 		return 0;
 	}
 
@@ -559,8 +577,8 @@ static int steam_register(struct steam_device *steam)
 	if (ret != 0)
 		goto steam_register_input_fail;
 
-	steam->registered = true;
-	mutex_unlock(&steam->registration_mutex);
+	steam_ext(steam)->registered = true;
+	mutex_unlock(&steam_ext(steam)->registration_mutex);
 	mutex_lock(&steam_devices_lock);
 	if (list_empty(&steam->list))
 		list_add(&steam->list, &steam_devices);
@@ -569,22 +587,22 @@ static int steam_register(struct steam_device *steam)
 
 steam_register_input_fail:
 	steam_battery_unregister(steam);
-	mutex_unlock(&steam->registration_mutex);
+	mutex_unlock(&steam_ext(steam)->registration_mutex);
 	return ret;
 }
 
 static void steam_unregister(struct steam_device *steam)
 {
-	if (!steam->registered)
+	if (!steam_ext(steam)->registered)
 		return;
 
 	hid_info(steam->hdev, "Steam Controller '%s' disconnected",
 			steam->serial_no);
-	mutex_lock(&steam->registration_mutex);
-	steam->registered = false;
+	mutex_lock(&steam_ext(steam)->registration_mutex);
+	steam_ext(steam)->registered = false;
 	steam_battery_unregister(steam);
 	steam_input_unregister(steam);
-	mutex_unlock(&steam->registration_mutex);
+	mutex_unlock(&steam_ext(steam)->registration_mutex);
 	mutex_lock(&steam_devices_lock);
 	list_del_init(&steam->list);
 	mutex_unlock(&steam_devices_lock);
@@ -601,7 +619,7 @@ static void steam_work_connect_cb(struct work_struct *work)
 	int ret;
 
 	spin_lock_irqsave(&steam->lock, flags);
-	opened = steam->client_opened;
+	opened = steam_ext(steam)->client_opened;
 	connected = steam->connected;
 	spin_unlock_irqrestore(&steam->lock, flags);
 
@@ -658,7 +676,7 @@ static int steam_client_ll_open(struct hid_device *hdev)
 	unsigned long flags;
 
 	spin_lock_irqsave(&steam->lock, flags);
-	steam->client_opened++;
+	steam_ext(steam)->client_opened++;
 	spin_unlock_irqrestore(&steam->lock, flags);
 
 	schedule_work(&steam->work_connect);
@@ -672,7 +690,7 @@ static void steam_client_ll_close(struct hid_device *hdev)
 	unsigned long flags;
 
 	spin_lock_irqsave(&steam->lock, flags);
-	steam->client_opened--;
+	steam_ext(steam)->client_opened--;
 	spin_unlock_irqrestore(&steam->lock, flags);
 
 	schedule_work(&steam->work_connect);
@@ -753,7 +771,7 @@ static int steam_probe(struct hid_device *hdev,
 	if (!steam_is_valve_interface(hdev))
 		return hid_hw_start(hdev, HID_CONNECT_DEFAULT);
 
-	steam = devm_kzalloc(&hdev->dev, sizeof(*steam), GFP_KERNEL);
+	steam = devm_kzalloc(&hdev->dev, sizeof(struct steam_device_alloc), GFP_KERNEL);
 	if (!steam) {
 		ret = -ENOMEM;
 		goto steam_alloc_fail;
@@ -762,7 +780,7 @@ static int steam_probe(struct hid_device *hdev,
 	hid_set_drvdata(hdev, steam);
 	spin_lock_init(&steam->lock);
 	mutex_init(&steam->mutex);
-	mutex_init(&steam->registration_mutex);
+	mutex_init(&steam_ext(steam)->registration_mutex);
 	steam->quirks = id->driver_data;
 	INIT_WORK(&steam->work_connect, steam_work_connect_cb);
 	INIT_LIST_HEAD(&steam->list);
@@ -842,7 +860,7 @@ static void steam_remove(struct hid_device *hdev)
 	hid_hw_close(hdev);
 	hid_destroy_device(steam->client_hdev);
 	steam->client_hdev = NULL;
-	steam->client_opened = 0;
+	steam_ext(steam)->client_opened = 0;
 	cancel_work_sync(&steam->work_connect);
 	if (steam->quirks & STEAM_QUIRK_WIRELESS) {
 		hid_info(hdev, "Steam wireless receiver disconnected");
@@ -1050,7 +1068,7 @@ static int steam_raw_event(struct hid_device *hdev,
 		return 0;
 
 	spin_lock_irqsave(&steam->lock, flags);
-	if (steam->client_opened)
+	if (steam_ext(steam)->client_opened)
 		hid_input_report(steam->client_hdev, HID_FEATURE_REPORT,
 				data, size, 0);
 	/*
@@ -1074,7 +1092,7 @@ static int steam_raw_event(struct hid_device *hdev,
 
 	switch (data[2]) {
 	case STEAM_EV_INPUT_DATA:
-		if (steam->client_opened)
+		if (steam_ext(steam)->client_opened)
 			goto out;
 		rcu_read_lock();
 		input = rcu_dereference(steam->input);
@@ -1133,7 +1151,7 @@ static int steam_param_set_lizard_mode(const char *val,
 	mutex_lock(&steam_devices_lock);
 	list_for_each_entry(steam, &steam_devices, list) {
 		spin_lock_irqsave(&steam->lock, flags);
-		client_opened = steam->client_opened;
+		client_opened = steam_ext(steam)->client_opened;
 		spin_unlock_irqrestore(&steam->lock, flags);
 		if (!client_opened) {
 			mutex_lock(&steam->mutex);
