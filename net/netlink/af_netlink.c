@@ -463,7 +463,7 @@ netlink_unlock_table(void)
 
 struct netlink_compare_arg
 {
-	u64 net_cookie;
+	possible_net_t pnet;
 	u32 portid;
 };
 
@@ -478,15 +478,27 @@ static inline int netlink_compare(struct rhashtable_compare_arg *arg,
 	const struct netlink_sock *nlk = ptr;
 
 	return nlk->portid != x->portid ||
-	       sock_net(&nlk->sk)->net_cookie != x->net_cookie;
+	       sock_net(&nlk->sk)->net_cookie != read_pnet(&x->pnet)->net_cookie;
 }
 
 static void netlink_compare_arg_init(struct netlink_compare_arg *arg,
 				     struct net *net, u32 portid)
 {
 	memset(arg, 0, sizeof(*arg));
-	arg->net_cookie = net->net_cookie;
+	write_pnet(&arg->pnet, net);
 	arg->portid = portid;
+}
+
+/*
+ * Keys and objects are hashed by (netns cookie, portid), never by the
+ * netns pointer; struct netlink_compare_arg keeps the stock RMX3997 layout.
+ */
+static u32 netlink_compare_arg_hash(const struct netlink_compare_arg *arg, u32 seed)
+{
+	u64 cookie = read_pnet(&arg->pnet)->net_cookie;
+	u32 k[3] = { lower_32_bits(cookie), upper_32_bits(cookie), arg->portid };
+
+	return jhash2(k, ARRAY_SIZE(k), seed);
 }
 
 static struct sock *__netlink_lookup(struct netlink_table *table, u32 portid,
@@ -2852,12 +2864,18 @@ static inline u32 netlink_hash(const void *data, u32 len, u32 seed)
 	struct netlink_compare_arg arg;
 
 	netlink_compare_arg_init(&arg, sock_net(&nlk->sk), nlk->portid);
-	return jhash2((u32 *)&arg, netlink_compare_arg_len / sizeof(u32), seed);
+	return netlink_compare_arg_hash(&arg, seed);
+}
+
+static inline u32 netlink_key_hash(const void *data, u32 len, u32 seed)
+{
+	return netlink_compare_arg_hash(data, seed);
 }
 
 static const struct rhashtable_params netlink_rhashtable_params = {
 	.head_offset = offsetof(struct netlink_sock, node),
 	.key_len = netlink_compare_arg_len,
+	.hashfn = netlink_key_hash,
 	.obj_hashfn = netlink_hash,
 	.obj_cmpfn = netlink_compare,
 	.automatic_shrinking = true,
