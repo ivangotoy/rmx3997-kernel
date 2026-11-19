@@ -64,7 +64,7 @@ KSU_SRC := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
 # This kernel tracks the reviewed driver blobs in its own history.
 BAKASU_UPSTREAM := $(shell cat $(KSU_SRC)/UPSTREAM_COMMIT 2>/dev/null)
-ifneq ($(BAKASU_UPSTREAM),5d6d1843c8937f5ff2a145dc89a0cf46030ae6f8)
+ifneq ($(BAKASU_UPSTREAM),7b65bde0710b5e7c6f755545cb15a4abd417f3a8)
 $(error Missing or incorrect vendored BakaSU source identity)
 endif
 
@@ -72,12 +72,12 @@ ifdef KBUILD_EXTMOD
 include $(KSU_SRC)/tools/ddk_compatible.mk
 endif
 
-# Vendored upstream identity: Baka-SU/BakaSU 5d6d1843c8937f5ff2a145dc89a0cf46030ae6f8.
+# Vendored upstream identity: Baka-SU/BakaSU 7b65bde0710b5e7c6f755545cb15a4abd417f3a8.
 # Full upstream history count verified before vendoring; never fetch during builds.
-KSU_LOCAL_VERSION := 4561
-KSU_VERSION := 35261
+KSU_LOCAL_VERSION := 4562
+KSU_VERSION := 35262
 KSU_TAG_NAME := v4.2.0-rc3
-KSU_COMMIT_SHA := 5d6d1843
+KSU_COMMIT_SHA := 7b65bde0
 KSU_BRANCH_NAME := main
 
 # call subst to process placeholders
