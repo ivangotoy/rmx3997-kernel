@@ -776,14 +776,18 @@ class OtherChanges(unittest.TestCase):
 
     def test_plan_release_writes_the_list(self):
         notes = ('Kernel {kernel} at {commit}\n\n## Changes in this release\n\n- old\n\n'
-                 '## Kernel features\n\nLinux {version}\n')
-        readme = ('# made-up kernel - Linux 5.15.1\n\n| Kernel | Linux 5.15.1, GKI |\n\n'
+                 '## Kernel features\n\nLinux {version}\n'
+                 '| Module mounting | NoMount, protocol 1 (metamodule versionCode 10) |\n')
+        readme = ('# made-up kernel - Linux 5.15.1\n\n| Kernel | Linux 5.15.1, GKI |\n'
+                  '| Metamodule support | NoMount protocol 1 (metamodule versionCode 10) |\n\n'
+                  '- NoMount on the upstream track (example `dev`), protocol 1\n\n'
                   '| Release | Kernel | Change |\n| --- | --- | --- |\n| `rmx3997-v1` | 5.15.1 | first |\n')
         manifest = {'components': {'nomount': {'mode': 'subtree', 'ref': 'dev', 'pin': '2' * 40}}}
         with tempfile.TemporaryDirectory() as d:
             ws = self.repo(Path(d, 'stage'))
             stage = ws.parent
             self.commit(ws, 'Makefile', 'VERSION = 5\nPATCHLEVEL = 15\nSUBLEVEL = 1\n', 'init')
+            self.commit(ws, 'fs/nomount/nomount.h', '#define NOMOUNT_BASE_VERSION "2"\n', 'nomount')
             self.commit(ws, 'README.md', readme, 'readme')
             self.commit(ws, 'rmx3997/ci/release-notes.md', notes, 'notes')
             prev = self.commit(ws, upstream.MANIFEST, json.dumps(manifest), 'README and release notes: rmx3997-v1')
@@ -796,9 +800,15 @@ class OtherChanges(unittest.TestCase):
             env = {k: v for k, v in os.environ.items() if k not in ('FORGEJO_ENV', 'GITHUB_ENV')}
             with mock.patch.object(upstream, 'next_tag', return_value=('rmx3997-v2', prev)), \
                     mock.patch.object(upstream, 'IDENT', self.ID), \
-                    mock.patch.dict('os.environ', env, clear=True), mock.patch('builtins.print'):
+                    mock.patch.dict('os.environ', env, clear=True), mock.patch('builtins.print'), \
+                    mock.patch.object(upstream, 'metamodule_code', return_value=42) as mc:
                 upstream.cmd_plan_release(mock.Mock(stage=str(stage), repo_url='https://forge.example/o/r.git'))
             text = (ws / 'rmx3997/ci/release-notes.md').read_text()
+            new_readme = (ws / 'README.md').read_text()
+        mc.assert_called_once_with('2' * 40)
+        self.assertIn('| Metamodule support | NoMount protocol 2 (metamodule versionCode 42) |', new_readme)
+        self.assertIn('(example `dev`), protocol 2\n', new_readme)
+        self.assertIn('| Module mounting | NoMount, protocol 2 (metamodule versionCode 42) |', text)
         self.assertIn('- Other changes on main since the previous release:\n'
                       '  - fs: hand-landed fix {{1}}\n  - upstream: nomount 1111..2222\n\n## Kernel', text)
         self.assertNotIn('record pins', text)

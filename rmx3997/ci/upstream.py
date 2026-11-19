@@ -490,6 +490,19 @@ def sub_once(text, pat, rep, what):
     return new
 
 
+def metamodule_code(tip):
+    """versionCode of the NoMount metamodule build for commit tip: upstream's
+    build workflow sets it to `git rev-list --count HEAD`."""
+    return int(out('-C', str(CACHE / 'nomount.git'), 'rev-list', '--count', tip))
+
+
+NOMOUNT_ROWS = (
+    ('README.md', r'^(\| Metamodule support \| NoMount protocol )\d+( \(metamodule versionCode )\d+(\) \|)$'),
+    ('rmx3997/ci/release-notes.md',
+     r'^(\| Module mounting \| NoMount, protocol )\d+( \(metamodule versionCode )\d+(\) \|)$'),
+)
+
+
 def save_candidate(stage, cand):
     (stage / 'candidate.json').write_text(json.dumps(cand, indent=2) + '\n')
 
@@ -514,6 +527,7 @@ def cmd_plan_release(a):
     m = load(ws)
     readme = (ws / 'README.md').read_text()
     phrases, bullets = [], []
+    nomount = None
     for r in cand['components']:
         if r['status'] != 'applied':
             continue
@@ -530,6 +544,15 @@ def cmd_plan_release(a):
                               lambda x: x.group(1) + r['version'] + x.group(2), 'README status')
         elif name == 'aosp-security':
             phrase = '%s update' % DISPLAY[name]
+        elif name == 'nomount':
+            pv = re.search(r'^#define NOMOUNT_BASE_VERSION "(\d+)"$',
+                           (ws / 'fs/nomount/nomount.h').read_text(), re.M)
+            if not pv:
+                die('NOMOUNT_BASE_VERSION not found in fs/nomount/nomount.h')
+            nomount = (pv.group(1), metamodule_code(new))
+            extra = ', now NoMount protocol %s (metamodule versionCode %d)' % nomount
+            readme = sub_once(readme, r'^(- NoMount on the upstream track .*, protocol )\d+$',
+                              lambda x: x.group(1) + nomount[0], 'README NoMount protocol')
         elif name == 'susfs':
             sv = re.search(r'^#define SUSFS_VERSION "(v[^"]+)"$',
                            (ws / 'include/linux/susfs.h').read_text(), re.M)
@@ -567,6 +590,11 @@ def cmd_plan_release(a):
                        flags=re.M | re.S)
     if n != 1:
         die('release-notes.md: "## Changes in this release" section not found exactly once')
+    if nomount:
+        # The status rows name the metamodule build to install with the kernel.
+        rep = lambda x: x.group(1) + nomount[0] + x.group(2) + str(nomount[1]) + x.group(3)
+        readme = sub_once(readme, NOMOUNT_ROWS[0][1], rep, 'README metamodule row')
+        notes = sub_once(notes, NOMOUNT_ROWS[1][1], rep, 'release-notes metamodule row')
     notes.format(kernel='k', version='v', commit='c')
     (ws / 'README.md').write_text(readme)
     notes_path.write_text(notes)
