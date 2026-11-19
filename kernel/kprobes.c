@@ -72,6 +72,15 @@ kprobe_opcode_t * __weak kprobe_lookup_name(const char *name,
 }
 
 /* Blacklist -- list of struct kprobe_blacklist_entry */
+
+/*
+ * The RCU head is kept behind struct kprobe_blacklist_entry in the same
+ * allocation, so the entry keeps the stock RMX3997 layout.
+ */
+struct kprobe_blacklist_rcu_entry {
+	struct kprobe_blacklist_entry ent;
+	struct rcu_head rcu;
+};
 static LIST_HEAD(kprobe_blacklist);
 
 #ifdef __ARCH_WANT_KPROBES_INSN_SLOT
@@ -2263,7 +2272,7 @@ int kprobe_add_ksym_blacklist(unsigned long entry)
 	    !kallsyms_lookup_size_offset(entry, &size, &offset))
 		return -EINVAL;
 
-	ent = kmalloc(sizeof(*ent), GFP_KERNEL);
+	ent = kmalloc(sizeof(struct kprobe_blacklist_rcu_entry), GFP_KERNEL);
 	if (!ent)
 		return -ENOMEM;
 	ent->start_addr = entry;
@@ -2299,7 +2308,7 @@ static void kprobe_remove_area_blacklist(unsigned long start, unsigned long end)
 		if (ent->start_addr < start || ent->start_addr >= end)
 			continue;
 		list_del_rcu(&ent->list);
-		kfree_rcu(ent, rcu);
+		kfree_rcu(container_of(ent, struct kprobe_blacklist_rcu_entry, ent), rcu);
 	}
 }
 
