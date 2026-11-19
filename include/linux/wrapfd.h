@@ -127,7 +127,7 @@ int wrapfd_add_listener(struct file *file, struct device *dev,
 int wrapfd_del_listener(void *handle);
 
 /*
- * Take file ownersip.
+ * Take file ownership.
  * Function does not take file references, therefore the caller should
  * ensure the file is stable until wrapfd_put_ownership() is called.
  *
@@ -166,6 +166,16 @@ int wrapfd_release_ownership(struct file *file, struct device *dev);
 int create_wrapfd(int fd, int prot);
 int empty_wrapfd(struct file *file, struct device *dev);
 #endif /* CONFIG_ANDROID_WRAPFD_KUNIT_TEST */
+
+/*
+ * Check if the file is a wrapfd file.
+ *
+ * file: file structure to check.
+ *
+ * Returns true if @file is non-NULL and refers to a wrap file, or false
+ * otherwise (including when the wrapfd driver is not enabled).
+ */
+bool is_wrapfd_file(struct file *file);
 
 #else /* CONFIG_ANDROID_WRAPFD */
 
@@ -206,6 +216,11 @@ static inline int wrapfd_acquire_ownership(struct file *file, struct device *dev
 static inline int wrapfd_release_ownership(struct file *file, struct device *dev)
 {
 	return -EOPNOTSUPP;
+}
+
+static inline bool is_wrapfd_file(struct file *file)
+{
+	return false;
 }
 
 #endif /* CONFIG_ANDROID_WRAPFD */
