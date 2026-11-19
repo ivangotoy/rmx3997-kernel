@@ -1000,14 +1000,14 @@ static inline bool is_owner_task(struct wrap_ctx *ctx,
 {
 	struct task_struct *owner_task = get_valid_owner(ctx);
 
-	return owner_task && task->group_leader == owner_task;
+	return owner_task && task && task->group_leader == owner_task;
 }
 
 static inline bool is_owner_dev(struct wrap_ctx *ctx,
 				struct device *dev)
 {
 	assert_spin_locked(&ctx->lock);
-	return ctx->owner.dev == dev;
+	return dev && ctx->owner.dev == dev;
 }
 
 static void put_content(struct wrap_content *content)
@@ -1200,8 +1200,7 @@ static int can_modify(struct wrap_ctx *ctx, struct task_struct *task,
 		      struct device *dev, bool check_content)
 {
 	assert_spin_locked(&ctx->lock);
-	if (!is_owner_task(ctx, task) &&
-	    !(dev && is_owner_dev(ctx, dev)))
+	if (!is_owner_task(ctx, task) && !is_owner_dev(ctx, dev))
 		return -EBUSY;
 
 	if (ctx->map_count > 0 || ctx->use_count > 0)
@@ -1736,15 +1735,28 @@ unlock:
 	return ret;
 }
 
-static int wrap_file_allow_guests(struct wrap_ctx *ctx, bool allow)
+static int wrap_file_allow_guests(struct wrap_ctx *ctx, bool allow, struct task_struct *task,
+				  struct device *dev)
 {
 	int ret = 0;
 
 	spin_lock(&ctx->lock);
 
-	ret = can_modify(ctx, current, NULL, true);
-	if (ret)
-		goto unlock;
+	if (allow) {
+		if (!is_owner_task(ctx, task) && !is_owner_dev(ctx, dev)) {
+			ret = -EBUSY;
+			goto unlock;
+		}
+
+		if (!ctx->content) {
+			ret = -ENOENT;
+			goto unlock;
+		}
+	} else {
+		ret = can_modify(ctx, task, dev, false);
+		if (ret)
+			goto unlock;
+	}
 
 	ctx->allow_guests = allow;
 unlock:
@@ -1932,10 +1944,10 @@ static long wrap_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		ret = wrap_file_empty(ctx, NULL);
 		break;
 	case WRAPFD_DEV_IOC_ALLOW_GUESTS:
-		ret = wrap_file_allow_guests(ctx, true);
+		ret = wrap_file_allow_guests(ctx, true, current, NULL);
 		break;
 	case WRAPFD_DEV_IOC_PROHIBIT_GUESTS:
-		ret = wrap_file_allow_guests(ctx, false);
+		ret = wrap_file_allow_guests(ctx, false, current, NULL);
 		break;
 	default:
 		ret = wrap_file_ioctl(ctx, cmd, arg);
@@ -2286,6 +2298,29 @@ bool is_wrapfd_file(struct file *file)
 	return file && file->f_op == &wrap_fops;
 }
 EXPORT_SYMBOL_GPL(is_wrapfd_file);
+
+static int __wrapfd_allow_guests(struct file *file, struct device *dev, bool allow)
+{
+	if (!is_wrapfd_file(file))
+		return -EBADF;
+
+	if (!dev)
+		return -ENODEV;
+
+	return wrap_file_allow_guests(file->private_data, allow, NULL, dev);
+}
+
+int wrapfd_allow_guests(struct file *file, struct device *dev)
+{
+	return __wrapfd_allow_guests(file, dev, true);
+}
+EXPORT_SYMBOL_GPL(wrapfd_allow_guests);
+
+int wrapfd_prohibit_guests(struct file *file, struct device *dev)
+{
+	return __wrapfd_allow_guests(file, dev, false);
+}
+EXPORT_SYMBOL_GPL(wrapfd_prohibit_guests);
 
 static const struct file_operations wrap_fops = {
 	.owner		= THIS_MODULE,
