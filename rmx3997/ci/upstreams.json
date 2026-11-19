@@ -5,8 +5,8 @@
       "mode": "lts-merge",
       "url": "https://android.googlesource.com/kernel/common",
       "ref": "android13-5.15-lts",
-      "pin": "f181319b13edc6e68c367bc247e36bc255097483",
-      "snapshot": "e76192159b60faf5b839b6616c8547a76062a4dd"
+      "pin": "0d108e1e8c7b51616fafc1e0c9bef100c9d97d86",
+      "snapshot": "15cb85695a82632c10394fcb855762d55ab17aeb"
     },
     "aosp-security": {
       "mode": "security-backports",
