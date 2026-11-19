@@ -33,6 +33,28 @@ static inline struct _strp_msg *_strp_msg(struct sk_buff *skb)
 		offsetof(struct sk_skb_cb, strp));
 }
 
+/*
+ * The strparser flags are bitfields sharing one word (stock RMX3997
+ * layout), so concurrent writers (strp_stop() against strp_pause() or
+ * strp_unpause()) would lose updates; serialise every flag write.
+ */
+static DEFINE_SPINLOCK(strp_flags_lock);
+
+#define strp_set_flag(strp, flag, val)					\
+do {									\
+	unsigned long __flags;						\
+									\
+	spin_lock_irqsave(&strp_flags_lock, __flags);			\
+	(strp)->flag = (val);						\
+	spin_unlock_irqrestore(&strp_flags_lock, __flags);		\
+} while (0)
+
+void __strp_pause(struct strparser *strp)
+{
+	strp_set_flag(strp, paused, 1);
+}
+EXPORT_SYMBOL_GPL(__strp_pause);
+
 /* Lower lock held */
 static void strp_abort_strp(struct strparser *strp, int err)
 {
@@ -43,7 +65,7 @@ static void strp_abort_strp(struct strparser *strp, int err)
 	if (strp->stopped)
 		return;
 
-	strp->stopped = 1;
+	strp_set_flag(strp, stopped, 1);
 
 	if (strp->skb_head) {
 		kfree_skb(strp->skb_head);
@@ -234,9 +256,9 @@ static int __strp_recv(read_descriptor_t *desc, struct sk_buff *orig_skb,
 			} else if (len < 0) {
 				if (len == -ESTRPIPE && stm->accum_len) {
 					len = -ENODATA;
-					strp->unrecov_intr = 1;
+					strp_set_flag(strp, unrecov_intr, 1);
 				} else {
-					strp->interrupted = 1;
+					strp_set_flag(strp, interrupted, 1);
 				}
 				strp_parser_err(strp, len, desc);
 				break;
@@ -489,7 +511,7 @@ EXPORT_SYMBOL_GPL(strp_init);
 /* Sock process lock held (lock_sock) */
 void __strp_unpause(struct strparser *strp)
 {
-	strp->paused = 0;
+	strp_set_flag(strp, paused, 0);
 
 	if (strp->need_bytes) {
 		if (strp_peek_len(strp) < strp->need_bytes)
@@ -501,7 +523,7 @@ EXPORT_SYMBOL_GPL(__strp_unpause);
 
 void strp_unpause(struct strparser *strp)
 {
-	strp->paused = 0;
+	strp_set_flag(strp, paused, 0);
 
 	/* Sync setting paused with RX work */
 	smp_mb();
@@ -533,7 +555,7 @@ EXPORT_SYMBOL_GPL(strp_done);
 
 void strp_stop(struct strparser *strp)
 {
-	strp->stopped = 1;
+	strp_set_flag(strp, stopped, 1);
 }
 EXPORT_SYMBOL_GPL(strp_stop);
 

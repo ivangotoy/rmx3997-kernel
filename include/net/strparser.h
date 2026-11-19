@@ -86,11 +86,16 @@ static inline struct strp_msg *strp_msg(struct sk_buff *skb)
 struct strparser {
 	struct sock *sk;
 
-	u8 stopped;
-	u8 paused;
-	u8 aborted;
-	u8 interrupted;
-	u8 unrecov_intr;
+	/*
+	 * Stock RMX3997 layout: these share one word, so every write goes
+	 * through strp_set_flag() (net/strparser/strparser.c), which
+	 * serialises writers instead of the upstream u8 split.
+	 */
+	u32 stopped : 1;
+	u32 paused : 1;
+	u32 aborted : 1;
+	u32 interrupted : 1;
+	u32 unrecov_intr : 1;
 
 	struct sk_buff **skb_nextp;
 	struct sk_buff *skb_head;
@@ -101,10 +106,12 @@ struct strparser {
 	struct strp_callbacks cb;
 };
 
+void __strp_pause(struct strparser *strp);
+
 /* Must be called with lock held for attached socket */
 static inline void strp_pause(struct strparser *strp)
 {
-	strp->paused = 1;
+	__strp_pause(strp);
 }
 
 /* May be called without holding lock for attached socket */
