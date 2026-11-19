@@ -567,6 +567,18 @@ def cmd_plan_release(a):
         bullets.append('- `%s` (`%s`): `%s`..`%s`, %d upstream commit%s%s%s.' % (
             name, c['ref'], old[:8], new[:8], r['count'], '' if r['count'] == 1 else 's',
             extra, detail))
+    # An LTS merge landed by hand on main (layout-preserving port) is not an
+    # applied component here, so name the Linux version change explicitly.
+    if prev and not any(r['name'] == 'aosp-lts' and r['status'] == 'applied'
+                        for r in cand['components']):
+        pm = git('show', prev + ':Makefile', cwd=ws, check=False)
+        if pm.returncode == 0:
+            old_version = '.'.join(makefile_field(pm.stdout, k)
+                                   for k in ('VERSION', 'PATCHLEVEL', 'SUBLEVEL'))
+            if old_version != version:
+                phrases.insert(0, 'Linux %s (from %s)' % (version, old_version))
+                bullets.insert(0, '- Linux %s to %s, merged on main before this job '
+                                  '(see Other changes).' % (old_version, version))
     if not bullets:
         die('no applied component to describe')
     if config_changed:

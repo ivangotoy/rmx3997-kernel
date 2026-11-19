@@ -815,6 +815,33 @@ class OtherChanges(unittest.TestCase):
         self.assertIn('fs: hand-landed fix {1}', text.format(kernel='k', version='v', commit='c'))
 
 
+    def test_plan_release_names_a_hand_landed_linux_update(self):
+        notes = 'Kernel {kernel}\n\n## Changes in this release\n\n- old\n\n## Kernel features\n'
+        readme = ('# made-up kernel - Linux 5.15.2\n\n| Kernel | Linux 5.15.2, GKI |\n\n'
+                  '| Release | Kernel | Change |\n| --- | --- | --- |\n| `rmx3997-v1` | 5.15.1 | first |\n')
+        manifest = {'components': {'bakasu': {'mode': 'subtree', 'ref': 'main', 'pin': '2' * 40}}}
+        with tempfile.TemporaryDirectory() as d:
+            ws = self.repo(Path(d, 'stage'))
+            stage = ws.parent
+            self.commit(ws, 'Makefile', 'VERSION = 5\nPATCHLEVEL = 15\nSUBLEVEL = 1\n', 'init')
+            self.commit(ws, 'rmx3997/ci/release-notes.md', notes, 'notes')
+            prev = self.commit(ws, upstream.MANIFEST, json.dumps(manifest), 'README and release notes: rmx3997-v1')
+            self.commit(ws, 'Makefile', 'VERSION = 5\nPATCHLEVEL = 15\nSUBLEVEL = 2\n', 'Merge LTS (5.15.2)')
+            base = self.commit(ws, 'README.md', readme, 'README: Linux 5.15.2')
+            cand = {'base': base, 'changed': True, 'components': [
+                {'name': 'bakasu', 'status': 'applied', 'pin': '1' * 40, 'tip': '2' * 40, 'count': 1}]}
+            (stage / 'candidate.json').write_text(json.dumps(cand))
+            env = {k: v for k, v in os.environ.items() if k not in ('FORGEJO_ENV', 'GITHUB_ENV')}
+            with mock.patch.object(upstream, 'next_tag', return_value=('rmx3997-v2', prev)), \
+                    mock.patch.object(upstream, 'IDENT', self.ID), \
+                    mock.patch.dict('os.environ', env, clear=True), mock.patch('builtins.print'):
+                upstream.cmd_plan_release(mock.Mock(stage=str(stage), repo_url='https://forge.example/o/r.git'))
+            text = (ws / 'rmx3997/ci/release-notes.md').read_text()
+            new_readme = (ws / 'README.md').read_text()
+        self.assertIn('| `rmx3997-v2` | 5.15.2 | Upstream update: Linux 5.15.2 (from 5.15.1), BakaSU `22222222` |',
+                      new_readme)
+        self.assertIn('- Linux 5.15.1 to 5.15.2, merged on main before this job (see Other changes).', text)
+
 class NextTagPrevious(unittest.TestCase):
     def test_peeled_commit_of_the_last_tag(self):
         refs = {'refs/tags/rmx3997-v1': '1' * 40, 'refs/tags/rmx3997-v2': 't' * 40,
