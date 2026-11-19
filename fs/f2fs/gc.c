@@ -31,9 +31,9 @@ static unsigned int count_bits(const unsigned long *addr,
 static int gc_thread_func(void *data)
 {
 	struct f2fs_sb_info *sbi = data;
-	struct f2fs_gc_kthread *gc_th = &sbi->gc_thread;
-	wait_queue_head_t *wq = &sbi->gc_thread.gc_wait_queue_head;
-	wait_queue_head_t *fggc_wq = &sbi->gc_thread.fggc_wq;
+	struct f2fs_gc_kthread *gc_th = sbi->gc_thread;
+	wait_queue_head_t *wq = &sbi->gc_thread->gc_wait_queue_head;
+	wait_queue_head_t *fggc_wq = &sbi->gc_thread->fggc_wq;
 	unsigned int wait_ms;
 
 	wait_ms = gc_th->min_sleep_time;
@@ -158,7 +158,7 @@ next:
 
 int f2fs_start_gc_thread(struct f2fs_sb_info *sbi)
 {
-	struct f2fs_gc_kthread *gc_th = &sbi->gc_thread;
+	struct f2fs_gc_kthread *gc_th = sbi->gc_thread;
 	dev_t dev = sbi->sb->s_bdev->bd_dev;
 	int err = 0;
 
@@ -182,7 +182,7 @@ int f2fs_start_gc_thread(struct f2fs_sb_info *sbi)
 
 void f2fs_stop_gc_thread(struct f2fs_sb_info *sbi)
 {
-	struct f2fs_gc_kthread *gc_th = &sbi->gc_thread;
+	struct f2fs_gc_kthread *gc_th = sbi->gc_thread;
 
 	if (!gc_th->f2fs_gc_task)
 		return;

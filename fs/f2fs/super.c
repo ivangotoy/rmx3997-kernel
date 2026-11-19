@@ -2536,11 +2536,11 @@ static int f2fs_remount(struct super_block *sb, int *flags, char *data)
 	if ((*flags & SB_RDONLY) ||
 			(F2FS_OPTION(sbi).bggc_mode == BGGC_MODE_OFF &&
 			!test_opt(sbi, GC_MERGE))) {
-		if (sbi->gc_thread.f2fs_gc_task) {
+		if (sbi->gc_thread->f2fs_gc_task) {
 			f2fs_stop_gc_thread(sbi);
 			need_restart_gc = true;
 		}
-	} else if (!sbi->gc_thread.f2fs_gc_task) {
+	} else if (!sbi->gc_thread->f2fs_gc_task) {
 		err = f2fs_start_gc_thread(sbi);
 		if (err)
 			goto restore_opts;
@@ -4297,12 +4297,18 @@ try_onemore:
 	valid_super_block = -1;
 	recovery = 0;
 
-	/* allocate memory for f2fs-specific super block info */
-	sbi = kzalloc(sizeof(struct f2fs_sb_info), GFP_KERNEL);
+	/*
+	 * allocate memory for f2fs-specific super block info; the GC thread
+	 * state lives behind it with the same lifetime, so f2fs_sb_info keeps
+	 * the stock RMX3997 gc_thread pointer layout
+	 */
+	sbi = kzalloc(sizeof(struct f2fs_sb_info) +
+		      sizeof(struct f2fs_gc_kthread), GFP_KERNEL);
 	if (!sbi)
 		return -ENOMEM;
 
 	sbi->sb = sb;
+	sbi->gc_thread = (struct f2fs_gc_kthread *)(sbi + 1);
 
 	/* Load the checksum driver */
 	sbi->s_chksum_driver = crypto_alloc_shash("crc32", 0, 0);
