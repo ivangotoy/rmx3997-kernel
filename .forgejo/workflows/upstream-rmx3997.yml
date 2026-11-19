@@ -61,6 +61,13 @@ jobs:
       - name: Prune old stage build trees
         run: python3 -I rmx3997/ci/rmx_ci.py prune-stages --keep "$STAGE"
 
+      # Offline unit tests of the CI scripts themselves (stubbed APIs, seconds).
+      - name: CI script tests
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 "$STAGE/tmp"
+          TMPDIR="$STAGE/tmp" PYTHONPYCACHEPREFIX="$STAGE/pycache" python3 -I rmx3997/ci/test_ci.py
+
       - name: Check upstreams
         run: python3 -I rmx3997/ci/upstream.py check --stage "$STAGE"
 
