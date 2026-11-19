@@ -1105,13 +1105,26 @@ static int genl_ctrl_event(int event, const struct genl_family *family,
 struct ctrl_dump_policy_ctx {
 	struct netlink_policy_dump_state *state;
 	const struct genl_family *rt;
-	struct module *owner;
 	unsigned int opidx;
 	u32 op;
 	u16 fam_id;
 	u8 policies:1,
 	   single_op:1;
 };
+
+/*
+ * The pinned family module is kept beside the context in cb->ctx, so
+ * struct ctrl_dump_policy_ctx keeps the stock RMX3997 layout.
+ */
+struct ctrl_dump_policy_cb {
+	struct ctrl_dump_policy_ctx ctx;
+	struct module *owner;
+};
+
+static struct module **ctrl_dump_policy_owner(struct netlink_callback *cb)
+{
+	return &((struct ctrl_dump_policy_cb *)cb->ctx)->owner;
+}
 
 static const struct nla_policy ctrl_policy_policy[] = {
 	[CTRL_ATTR_FAMILY_ID]	= { .type = NLA_U16 },
@@ -1129,7 +1142,7 @@ static int ctrl_dumppolicy_start(struct netlink_callback *cb)
 	struct genl_ops op;
 	int err, i;
 
-	BUILD_BUG_ON(sizeof(*ctx) > sizeof(cb->ctx));
+	BUILD_BUG_ON(sizeof(struct ctrl_dump_policy_cb) > sizeof(cb->ctx));
 
 	if (!tb[CTRL_ATTR_FAMILY_ID] && !tb[CTRL_ATTR_FAMILY_NAME])
 		return -EINVAL;
@@ -1149,8 +1162,8 @@ static int ctrl_dumppolicy_start(struct netlink_callback *cb)
 		return -ENOENT;
 
 	ctx->rt = rt;
-	ctx->owner = rt->module;
-	if (!try_module_get(ctx->owner))
+	*ctrl_dump_policy_owner(cb) = rt->module;
+	if (!try_module_get(*ctrl_dump_policy_owner(cb)))
 		return -ENOENT;
 
 	if (tb[CTRL_ATTR_OP]) {
@@ -1196,7 +1209,7 @@ static int ctrl_dumppolicy_start(struct netlink_callback *cb)
 err_free_state:
 	netlink_policy_dump_free(ctx->state);
 err_put_owner:
-	module_put(ctx->owner);
+	module_put(*ctrl_dump_policy_owner(cb));
 	return err;
 }
 
@@ -1331,7 +1344,7 @@ static int ctrl_dumppolicy_done(struct netlink_callback *cb)
 	struct ctrl_dump_policy_ctx *ctx = (void *)cb->ctx;
 
 	netlink_policy_dump_free(ctx->state);
-	module_put(ctx->owner);
+	module_put(*ctrl_dump_policy_owner(cb));
 	return 0;
 }
 
