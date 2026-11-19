@@ -1562,7 +1562,7 @@ static int wrap_file_load(struct wrap_ctx *ctx,
 	buf_offs = wrapfd_load.buf_offs;
 	len = wrapfd_load.len;
 
-	if (file_offs < 0 || buf_offs < 0 || len < 0)
+	if (file_offs < 0 || buf_offs < 0 || len <= 0)
 		return -EINVAL;
 
 	if (wrapfd_load.reserved || wrapfd_load.pad)
