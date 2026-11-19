@@ -161,15 +161,25 @@ struct sunxi_pinctrl {
 	int				*irq;
 	unsigned			*irq_array;
 	raw_spinlock_t			lock;
-	/*
-	 * Output latch shadow, one word per bank.  Seeded lockless at
-	 * probe before the pinctrl device registers, protected by @lock
-	 * afterwards.
-	 */
-	u32				*dat_shadow;
 	struct pinctrl_dev		*pctl_dev;
 	unsigned long			variant;
 };
+
+/*
+ * Output latch shadow, one word per bank.  Seeded lockless at probe before
+ * the pinctrl device registers, protected by @lock afterwards.  Kept behind
+ * struct sunxi_pinctrl in the same allocation, so sunxi_pinctrl keeps the
+ * stock RMX3997 layout.
+ */
+struct sunxi_pinctrl_alloc {
+	struct sunxi_pinctrl	pctl;
+	u32			*dat_shadow;
+};
+
+static inline u32 **sunxi_dat_shadow(struct sunxi_pinctrl *pctl)
+{
+	return &container_of(pctl, struct sunxi_pinctrl_alloc, pctl)->dat_shadow;
+}
 
 #define SUNXI_PIN(_pin, ...)					\
 	{							\

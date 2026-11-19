@@ -786,7 +786,7 @@ static void sunxi_pmx_set(struct pinctrl_dev *pctldev,
 	 * driving their pre-existing level.
 	 */
 	if (config == SUN4I_FUNC_OUTPUT) {
-		u32 *shadow = &pctl->dat_shadow[pin / PINS_PER_BANK];
+		u32 *shadow = &(*sunxi_dat_shadow(pctl))[pin / PINS_PER_BANK];
 
 		sunxi_data_reg(pin, &reg, &shift, &mask);
 		*shadow = (*shadow & ~mask) |
@@ -944,7 +944,7 @@ static void sunxi_pinctrl_gpio_set(struct gpio_chip *chip,
 				unsigned offset, int value)
 {
 	struct sunxi_pinctrl *pctl = gpiochip_get_data(chip);
-	u32 *shadow = &pctl->dat_shadow[offset / PINS_PER_BANK];
+	u32 *shadow = &(*sunxi_dat_shadow(pctl))[offset / PINS_PER_BANK];
 	u32 reg, shift, mask;
 	unsigned long flags;
 
@@ -1490,7 +1490,7 @@ int sunxi_pinctrl_init_with_variant(struct platform_device *pdev,
 	int i, ret, last_pin, pin_idx, nbanks;
 	struct clk *clk;
 
-	pctl = devm_kzalloc(&pdev->dev, sizeof(*pctl), GFP_KERNEL);
+	pctl = devm_kzalloc(&pdev->dev, sizeof(struct sunxi_pinctrl_alloc), GFP_KERNEL);
 	if (!pctl)
 		return -ENOMEM;
 	platform_set_drvdata(pdev, pctl);
@@ -1531,16 +1531,16 @@ int sunxi_pinctrl_init_with_variant(struct platform_device *pdev,
 	last_pin = pctl->desc->pins[pctl->desc->npins - 1].pin.number;
 	nbanks = DIV_ROUND_UP(last_pin + 1 - pctl->desc->pin_base,
 			      PINS_PER_BANK);
-	pctl->dat_shadow = devm_kcalloc(&pdev->dev, nbanks,
-					sizeof(*pctl->dat_shadow), GFP_KERNEL);
-	if (!pctl->dat_shadow)
+	*sunxi_dat_shadow(pctl) = devm_kcalloc(&pdev->dev, nbanks,
+					sizeof(u32), GFP_KERNEL);
+	if (!*sunxi_dat_shadow(pctl))
 		return -ENOMEM;
 
 	for (i = 0; i < nbanks; i++) {
 		u32 reg, shift, mask;
 
 		sunxi_data_reg(i * PINS_PER_BANK, &reg, &shift, &mask);
-		pctl->dat_shadow[i] = readl(pctl->membase + reg);
+		(*sunxi_dat_shadow(pctl))[i] = readl(pctl->membase + reg);
 	}
 
 	ret = sunxi_pinctrl_build_state(pdev);
