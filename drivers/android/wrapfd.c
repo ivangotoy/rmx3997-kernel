@@ -136,36 +136,36 @@ static int dmabuf_content_create_wrap(struct wrap_content *content,
 				      struct wrap_ctx *ctx)
 {
 	struct wrap_content_dmabuf *dmabuf_content;
-	struct fd f;
+	struct file *file;
 	int fd;
 
 	dmabuf_content = container_of(content, struct wrap_content_dmabuf,
 				      content);
 
-	fd = anon_inode_getfd_secure("[wrapfd]", &wrap_fops, ctx,
-				     dmabuf_content->writable ? O_RDWR : O_RDONLY, NULL);
+	fd = get_unused_fd_flags(0);
 	if (fd < 0)
 		return fd;
 
-	f = fdget(fd);
-	if (!f.file) {
-		close_fd(fd);
-		return -EBADF;
+	file = anon_inode_getfile_secure("[wrapfd]", &wrap_fops, ctx,
+					 dmabuf_content->writable ? O_RDWR : O_RDONLY, NULL);
+	if (IS_ERR(file)) {
+		put_unused_fd(fd);
+		return PTR_ERR(file);
 	}
 
 	/*
 	 * Wraps are seekable unless the underlying buffer is not. Since dmabufs are seekable,
 	 * mark the wrap as seekable.
 	 */
-	f.file->f_mode |= FMODE_LSEEK;
+	file->f_mode |= FMODE_LSEEK;
 
 	/*
 	 * Anonymous inodes are created with size == 0. To ensure that calls
 	 * like fstat() work as expected, copy the size from the buffer we are
 	 * wrapping.
 	 */
-	i_size_write(file_inode(f.file), dmabuf_content->dmabuf->size);
-	fdput(f);
+	i_size_write(file_inode(file), dmabuf_content->dmabuf->size);
+	fd_install(fd, file);
 
 	return fd;
 }
