@@ -970,8 +970,16 @@ static struct wrap_ctx *create_wrap_ctx(void)
 static inline void reset_owner(struct wrap_ctx *ctx)
 {
 	assert_spin_locked(&ctx->lock);
-	put_task_struct(ctx->owner.task);
-	ctx->owner.task = NULL;
+	if (ctx->owner.task) {
+		put_task_struct(ctx->owner.task);
+		ctx->owner.task = NULL;
+	} else {
+		/*
+		 * The caller is responsible for releasing their reference on `ctx->owner.dev` via
+		 * put_device() outside of the spinlock.
+		 */
+		ctx->owner.dev = NULL;
+	}
 	ctx->allow_guests = false;
 	generate_event(ctx, WRAPFD_EVENT_UNOWN);
 }
@@ -2164,8 +2172,7 @@ int wrapfd_release_ownership(struct file *file, struct device *dev)
 		goto unlock;
 	}
 
-	ctx->owner.dev = NULL;
-	generate_event(ctx, WRAPFD_EVENT_UNOWN);
+	reset_owner(ctx);
 	ret = 0;
 unlock:
 	spin_unlock(&ctx->lock);
