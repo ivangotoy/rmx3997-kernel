@@ -130,6 +130,9 @@ static int wrapfd_test_init(struct kunit *test)
 	int empty_fd;
 	int wrap_fd;
 
+	kunit_skip(test,
+		   "b/590561996: create_owned_wrap() cannot be called from kernel security domain");
+
 	memset(&test_data, 0, sizeof(test_data));
 
 	dmabuf = create_test_dmabuf();
