@@ -14,6 +14,7 @@
 #include <linux/fdtable.h>
 #include <linux/file.h>
 #include <linux/fs.h>
+#include <linux/limits.h>
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
 #include <linux/mman.h>
@@ -26,6 +27,7 @@
 #include <linux/spinlock.h>
 #include <linux/uaccess.h>
 #include <linux/uio.h>
+#include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/wrapfd.h>
 #include <uapi/linux/wrapfd.h>
@@ -33,8 +35,14 @@
 /* 1 buffer for the start, and at most 2 at the end. */
 #define MAX_NR_BOUNCE_BUFS 3
 
-/* 1 per bounce page (3), and 1 for content read directly into the buffer. */
-#define MAX_NR_KVECS (MAX_NR_BOUNCE_BUFS + 1)
+/*
+ * The block layer stores iter->nr_segs in bio->bi_vcnt (u16). Since it's the nr_segs, and in the
+ * worst case, each segment is one page, the maximum request size becomes USHRT_MAX * PAGE_SIZE.
+ *
+ * When PAGE_SIZE is 64 KB, USHRT_MAX is greater than MAX_RW_COUNT, so we compute this at compile
+ * time rather than hardcoding it to USHRT_MAX * PAGE_SIZE.
+ */
+#define MAX_BYTES_PER_REQ min_t(size_t, MAX_RW_COUNT, (size_t)USHRT_MAX * PAGE_SIZE)
 
 struct wrap_ctx;
 struct wrap_content;
@@ -113,6 +121,7 @@ struct wrap_io_ctx {
 	struct data_segment dio_buf_seg;
 	long ret;
 	size_t bytes_read;
+	struct bio_vec *bvecs;
 	struct wrap_io_req *reqs;
 	unsigned int nr_reqs;
 	spinlock_t lock;
@@ -122,7 +131,7 @@ struct wrap_io_ctx {
 struct wrap_io_req {
 	struct kiocb kiocb;
 	struct iov_iter iter;
-	struct kvec iov[MAX_NR_KVECS];
+	struct bio_vec *bvec;
 	struct data_segment file_seg;
 	struct wrap_io_ctx *io_ctx;
 };
@@ -250,8 +259,60 @@ static void async_io_complete(struct kiocb *kiocb, long ret, long ret2)
 	spin_unlock_irqrestore(&io_ctx->lock, flags);
 }
 
-static void init_io_req(struct wrap_io_ctx *io_ctx, struct wrap_io_req *req, loff_t req_file_offs,
-			size_t req_len)
+static struct page *va_to_page(const void *addr)
+{
+	return is_vmalloc_addr(addr) ? vmalloc_to_page(addr) : virt_to_page(addr);
+}
+
+static bool can_merge_page_into_bvec(const struct bio_vec *bvec, struct page *page)
+{
+	struct page *next_page = bvec->bv_page + (bvec->bv_len / PAGE_SIZE);
+	phys_addr_t next_phys = page_to_phys(bvec->bv_page) + bvec->bv_len;
+
+	/*
+	 * bio_vec helpers pages index pages via pointer arithmetic (bv_page + n), so merging
+	 * requires both physical contiguity (for DMA) and virtually contiguous struct page
+	 * pointers.
+	 *
+	 * Under SPARSEMEM without SPARSEMEM_VMEMMAP, each memory section allocates its own mem_map
+	 * array, so two physically adjacent pages straddling a section boundary may not have
+	 * adjacent struct page pointers. It's also possible for two mem_map arrays for non-adjacent
+	 * sections to have their struct pages be virtually adjacent, but the pages they refer
+	 * to are not.
+	 */
+	return page == next_page && page_to_phys(page) == next_phys;
+}
+
+/*
+ * Add a page-aligned kernel buffer [buf, buf + len) to bvecs, coalescing physically contiguous
+ * pages with virtually contiguous struct pages into a single bio_vec.
+ */
+static unsigned int append_va_to_bvecs(struct bio_vec *bvecs, unsigned int nr_segs,
+				       const u8 *buf, size_t len)
+{
+	while (len) {
+		struct page *page = va_to_page(buf);
+
+		if (nr_segs > 0 && can_merge_page_into_bvec(&bvecs[nr_segs - 1], page)) {
+			bvecs[nr_segs - 1].bv_len += PAGE_SIZE;
+		} else {
+			bvecs[nr_segs] = (struct bio_vec){
+				.bv_page = page,
+				.bv_len = PAGE_SIZE,
+				.bv_offset = 0,
+			};
+			nr_segs++;
+		}
+
+		buf += PAGE_SIZE;
+		len -= PAGE_SIZE;
+	}
+
+	return nr_segs;
+}
+
+static void init_io_req(struct wrap_io_ctx *io_ctx, struct wrap_io_req *req,
+			struct bio_vec *bvec_slice, loff_t req_file_offs, size_t req_len)
 {
 	unsigned int nr_segs = 0;
 	loff_t global_file_offset;
@@ -269,6 +330,7 @@ static void init_io_req(struct wrap_io_ctx *io_ctx, struct wrap_io_req *req, lof
 	req->kiocb.ki_pos = req_file_offs;
 	req->kiocb.ki_flags |= IOCB_DIRECT;
 	req->kiocb.ki_complete = async_io_complete;
+	req->bvec = bvec_slice;
 	req->file_seg.offs = req_file_offs;
 	req->file_seg.len = req_len;
 	req->io_ctx = io_ctx;
@@ -278,11 +340,10 @@ static void init_io_req(struct wrap_io_ctx *io_ctx, struct wrap_io_req *req, lof
 	 * request.
 	 */
 	if (io_ctx->start_bounce_len && (req_file_offs == global_file_offset)) {
-		req->iov[nr_segs].iov_base = io_ctx->bounce_bufs[0];
-		req->iov[nr_segs].iov_len = io_ctx->start_bounce_len;
+		nr_segs = append_va_to_bvecs(req->bvec, nr_segs, io_ctx->bounce_bufs[0],
+					     io_ctx->start_bounce_len);
 		req_len -= io_ctx->start_bounce_len;
 		req_file_offs += io_ctx->start_bounce_len;
-		nr_segs++;
 	}
 
 	/*
@@ -291,6 +352,7 @@ static void init_io_req(struct wrap_io_ctx *io_ctx, struct wrap_io_req *req, lof
 	 */
 	if (req_len && io_ctx->dio_buf_seg.len && global_dio_file_offset <= req_file_offs &&
 	    req_file_offs < global_dio_file_offset + io_ctx->dio_buf_seg.len) {
+		u8 *dio_buf;
 		size_t dio_len;
 
 		/*
@@ -298,8 +360,8 @@ static void init_io_req(struct wrap_io_ctx *io_ctx, struct wrap_io_req *req, lof
 		 * reading directly into it, plus how much we've already read into the region in
 		 * previous requests.
 		 */
-		req->iov[nr_segs].iov_base = io_ctx->dst_buf + io_ctx->dio_buf_seg.offs +
-					     (req_file_offs - global_dio_file_offset);
+		dio_buf = io_ctx->dst_buf + io_ctx->dio_buf_seg.offs +
+			  (req_file_offs - global_dio_file_offset);
 		/*
 		 * The amount of data to read is the smaller of the two terms:
 		 *
@@ -310,10 +372,9 @@ static void init_io_req(struct wrap_io_ctx *io_ctx, struct wrap_io_req *req, lof
 		 */
 		dio_len = min_t(size_t, req_len, global_dio_file_offset + io_ctx->dio_buf_seg.len -
 				req_file_offs);
-		req->iov[nr_segs].iov_len = dio_len;
+		nr_segs = append_va_to_bvecs(req->bvec, nr_segs, dio_buf, dio_len);
 		req_len -= dio_len;
 		req_file_offs += dio_len;
-		nr_segs++;
 	}
 
 	if (req_len && io_ctx->end_bounce_len) {
@@ -342,55 +403,75 @@ static void init_io_req(struct wrap_io_ctx *io_ctx, struct wrap_io_req *req, lof
 		WARN_ON(req_len > PAGE_SIZE * 2);
 
 		while (req_len) {
-			req->iov[nr_segs].iov_base = io_ctx->bounce_bufs[start_bounce_idx];
-			req->iov[nr_segs].iov_len = PAGE_SIZE;
+			nr_segs = append_va_to_bvecs(req->bvec, nr_segs,
+						     io_ctx->bounce_bufs[start_bounce_idx],
+						     PAGE_SIZE);
 			req_len -= PAGE_SIZE;
-			nr_segs++;
 			start_bounce_idx++;
 		}
 	}
 
 	WARN_ON(req_len);
 
-	iov_iter_kvec(&req->iter, ITER_DEST, req->iov, nr_segs, req->file_seg.len);
+	iov_iter_bvec(&req->iter, ITER_DEST, req->bvec, nr_segs, req->file_seg.len);
 }
 
 static int prepare_read_reqs(struct wrap_io_ctx *io_ctx)
 {
 	struct wrap_io_req *reqs;
+	struct bio_vec *bvecs, *cur_bvec;
 	unsigned int nr_reqs, i;
 	loff_t cur_file_offs;
 	size_t remaining_len = dio_aligned_len(io_ctx->file_seg.offs, io_ctx->file_seg.len);
+	size_t min_req_len = min_t(size_t, min_bytes_per_req, MAX_BYTES_PER_REQ);
 	size_t len_per_req;
 
 	/*
-	 * Try to split the I/O request evenly into MAX_NR_LOAD_REQS pieces, as long as each piece
-	 * is at least MIN_BYTES_PER_REQ in size, but no larger than MAX_RW_COUNT, since the VFS
-	 * layer cannot handle anything larger than that in one invocation.
+	 * Try to split the I/O request evenly into max_nr_load_reqs pieces, as long as each piece
+	 * is at least min_bytes_per_req in size, but no larger than MAX_BYTES_PER_REQ. Doing so
+	 * ensures that the request respects the bio_vec segment and VFS limits.
 	 *
 	 * PAGE_ALIGN the length to ensure direct I/O requirements are upheld.
 	 */
 	len_per_req = PAGE_ALIGN(clamp_t(size_t, remaining_len / max_nr_load_reqs,
-					 min_bytes_per_req, MAX_RW_COUNT));
+					 min_req_len, MAX_BYTES_PER_REQ));
 
 	nr_reqs = DIV_ROUND_UP(remaining_len, len_per_req);
 
-	/* nr_reqs could be large, so use kvcalloc() just in case. */
+	/* nr_reqs and the page count could be large, so use kvcalloc() just in case. */
 	reqs = kvcalloc(nr_reqs, sizeof(*reqs), GFP_KERNEL);
 	if (!reqs)
 		return -ENOMEM;
 
+	/*
+	 * Allocate enough for the worst case scenario (i.e. a buffer entirely composed of order-0
+	 * pages. The alternative would be to compute the number of physically contiguous ranges the
+	 * buffer is already composed of, but that would require 2x the number of calls to
+	 * vmalloc_to_page() in the worst case (i.e. if the direct I/O falls entirely within a
+	 * vmap'ed buffer).
+	 *
+	 * One call to calculate the number of ranges, and another call to record the struct page.
+	 */
+	bvecs = kvcalloc(remaining_len / PAGE_SIZE, sizeof(*bvecs), GFP_KERNEL);
+	if (!bvecs) {
+		kvfree(reqs);
+		return -ENOMEM;
+	}
+
 	cur_file_offs = PAGE_ALIGN_DOWN(io_ctx->file_seg.offs);
+	cur_bvec = bvecs;
 
 	for (i = 0; i < nr_reqs; i++) {
 		size_t req_len = min(len_per_req, remaining_len);
 
-		init_io_req(io_ctx, &reqs[i], cur_file_offs, req_len);
+		init_io_req(io_ctx, &reqs[i], cur_bvec, cur_file_offs, req_len);
+		cur_bvec += req_len / PAGE_SIZE;
 		cur_file_offs += req_len;
 		remaining_len -= req_len;
 	}
 
 	io_ctx->reqs = reqs;
+	io_ctx->bvecs = bvecs;
 	io_ctx->nr_reqs = nr_reqs;
 	return 0;
 }
@@ -592,6 +673,7 @@ static void wrap_io_complete(struct wrap_io_ctx *io_ctx)
 	WARN_ON(tot_len);
 
 out:
+	kvfree(io_ctx->bvecs);
 	kvfree(io_ctx->reqs);
 	for (i = 0; i < ((io_ctx->start_bounce_len + io_ctx->end_bounce_len) / PAGE_SIZE); i++)
 		free_page((unsigned long)io_ctx->bounce_bufs[i]);
