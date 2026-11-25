@@ -289,7 +289,8 @@ static void init_io_req(struct wrap_io_ctx *io_ctx, struct wrap_io_req *req, lof
 	 * Handle the case where the sub-request pertains to data copied directly from the file to
 	 * the destination buffer.
 	 */
-	if (req_len && io_ctx->dio_buf_seg.len && global_dio_file_offset <= req_file_offs) {
+	if (req_len && io_ctx->dio_buf_seg.len && global_dio_file_offset <= req_file_offs &&
+	    req_file_offs < global_dio_file_offset + io_ctx->dio_buf_seg.len) {
 		size_t dio_len;
 
 		/*
