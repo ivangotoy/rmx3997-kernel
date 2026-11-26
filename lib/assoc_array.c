@@ -470,6 +470,30 @@ static bool assoc_array_insert_in_empty_tree(struct assoc_array_edit *edit)
 }
 
 /*
+ * A second excised metadata pointer: a shortcut that is replaced together
+ * with the node at its end. It lives behind struct assoc_array_edit in the
+ * same allocation, so struct assoc_array_edit keeps the stock RMX3997
+ * layout (excised_meta[1]). Every edit is allocated by
+ * assoc_array_alloc_edit().
+ */
+struct assoc_array_edit_alloc {
+	struct assoc_array_edit edit;
+	struct assoc_array_ptr *excised_shortcut;
+};
+
+static struct assoc_array_edit *assoc_array_alloc_edit(void)
+{
+	struct assoc_array_edit_alloc *a = kzalloc(sizeof(*a), GFP_KERNEL);
+
+	return a ? &a->edit : NULL;
+}
+
+static struct assoc_array_ptr **assoc_array_excised_shortcut(struct assoc_array_edit *edit)
+{
+	return &container_of(edit, struct assoc_array_edit_alloc, edit)->excised_shortcut;
+}
+
+/*
  * The pointer that leads to a node or shortcut with the given back pointer
  * and parent slot: the root, a slot in a node, or a shortcut's next node.
  */
@@ -739,7 +763,7 @@ assoc_array_insert_shortcut(struct assoc_array_edit *edit,
 
 		new_s0->back_pointer = above->back_pointer;
 		new_s0->parent_slot = above->parent_slot;
-		edit->excised_meta[1] = node->back_pointer;
+		*assoc_array_excised_shortcut(edit) = node->back_pointer;
 	}
 	new_s0->next_node = assoc_array_node_to_ptr(new_n0);
 	new_n0->back_pointer = assoc_array_shortcut_to_ptr(new_s0);
@@ -1056,7 +1080,7 @@ struct assoc_array_edit *assoc_array_insert(struct assoc_array *array,
 	 */
 	BUG_ON(assoc_array_ptr_is_meta(object));
 
-	edit = kzalloc(sizeof(struct assoc_array_edit), GFP_KERNEL);
+	edit = assoc_array_alloc_edit();
 	if (!edit)
 		return ERR_PTR(-ENOMEM);
 	edit->array = array;
@@ -1168,7 +1192,7 @@ struct assoc_array_edit *assoc_array_delete(struct assoc_array *array,
 
 	pr_devel("-->%s()\n", __func__);
 
-	edit = kzalloc(sizeof(struct assoc_array_edit), GFP_KERNEL);
+	edit = assoc_array_alloc_edit();
 	if (!edit)
 		return ERR_PTR(-ENOMEM);
 	edit->array = array;
@@ -1360,7 +1384,7 @@ struct assoc_array_edit *assoc_array_clear(struct assoc_array *array,
 	if (!array->root)
 		return NULL;
 
-	edit = kzalloc(sizeof(struct assoc_array_edit), GFP_KERNEL);
+	edit = assoc_array_alloc_edit();
 	if (!edit)
 		return ERR_PTR(-ENOMEM);
 	edit->array = array;
@@ -1389,6 +1413,8 @@ static void assoc_array_rcu_cleanup(struct rcu_head *head)
 	for (i = 0; i < ARRAY_SIZE(edit->excised_meta); i++)
 		if (edit->excised_meta[i])
 			kfree(assoc_array_ptr_to_node(edit->excised_meta[i]));
+	if (*assoc_array_excised_shortcut(edit))
+		kfree(assoc_array_ptr_to_shortcut(*assoc_array_excised_shortcut(edit)));
 
 	if (edit->excised_subtree) {
 		BUG_ON(assoc_array_ptr_is_leaf(edit->excised_subtree));
@@ -1548,7 +1574,7 @@ int assoc_array_gc(struct assoc_array *array,
 	if (!array->root)
 		return 0;
 
-	edit = kzalloc(sizeof(struct assoc_array_edit), GFP_KERNEL);
+	edit = assoc_array_alloc_edit();
 	if (!edit)
 		return -ENOMEM;
 	edit->array = array;
