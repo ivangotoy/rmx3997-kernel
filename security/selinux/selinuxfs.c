@@ -745,12 +745,12 @@ out:
 extern int susfs_security_context_to_sid(struct selinux_state *state,
 			    const char *scontext, u32 scontext_len, u32 *sid,
 			    gfp_t gfp);
+extern int ksu_susfs_check_context(const char *, u32, char **, u32 *);
+extern int ksu_susfs_access(const char *, const char *, u16, struct av_decision *);
 static ssize_t susfs_sel_write_context(struct file *file, char *buf, size_t size)
 {
-	struct selinux_fs_info *fsi = file_inode(file)->i_sb->s_fs_info;
-	struct selinux_state *state = fsi->state;
 	char *canon = NULL;
-	u32 sid, len;
+	u32 len;
 	ssize_t length;
 
 	length = avc_has_perm(&selinux_state,
@@ -759,11 +759,7 @@ static ssize_t susfs_sel_write_context(struct file *file, char *buf, size_t size
 	if (length)
 		goto out;
 
-	length = susfs_security_context_to_sid(state, buf, size, &sid, GFP_KERNEL);
-	if (length)
-		goto out;
-
-	length = security_sid_to_context(state, sid, &canon, &len);
+	length = ksu_susfs_check_context(buf, size, &canon, &len);
 	if (length)
 		goto out;
 
@@ -1049,10 +1045,7 @@ out:
 #ifdef CONFIG_KSU_SUSFS
 static ssize_t susfs_sel_write_access(struct file *file, char *buf, size_t size)
 {
-	struct selinux_fs_info *fsi = file_inode(file)->i_sb->s_fs_info;
-	struct selinux_state *state = fsi->state;
 	char *scon = NULL, *tcon = NULL;
-	u32 ssid, tsid;
 	u16 tclass;
 	struct av_decision avd;
 	ssize_t length;
@@ -1077,15 +1070,9 @@ static ssize_t susfs_sel_write_access(struct file *file, char *buf, size_t size)
 	if (sscanf(buf, "%s %s %hu", scon, tcon, &tclass) != 3)
 		goto out;
 
-	length = susfs_security_context_str_to_sid(state, scon, &ssid, GFP_KERNEL);
+	length = ksu_susfs_access(scon, tcon, tclass, &avd);
 	if (length)
 		goto out;
-
-	length = susfs_security_context_str_to_sid(state, tcon, &tsid, GFP_KERNEL);
-	if (length)
-		goto out;
-
-	susfs_security_compute_av_user(state, ssid, tsid, tclass, &avd);
 
 	length = scnprintf(buf, SIMPLE_TRANSACTION_LIMIT,
 			  "%x %x %x %x %u %x",

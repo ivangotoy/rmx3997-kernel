@@ -1817,8 +1817,8 @@ static DEFINE_MUTEX(susfs_mutex_lock_priority_uid_filter);
  * Protected by susfs_mutex_lock_priority_uid_filter.
  */
 static char *susfs_priority_app_strings = NULL;
-/* Ensures that there is only one resolving thread running at the same time */
-static atomic_t susfs_priority_app_strings_running = ATOMIC_INIT(0);
+/* Protected by susfs_mutex_lock_priority_uid_filter. */
+static u64 susfs_priority_app_strings_generation;
 
 /*
  * Checks whether the given string is a valid app package name.
@@ -2082,6 +2082,7 @@ void susfs_set_priority_uid_filter(void __user **user_info) {
 	new_bitmap = NULL;
 	kvfree(susfs_priority_app_strings);
 	susfs_priority_app_strings = new_app_strings;
+	susfs_priority_app_strings_generation++;
 	new_app_strings = NULL;
 	if (!is_uid_filter_set_before)
 		is_uid_filter_set_before = true;
@@ -2112,11 +2113,12 @@ out_copy_to_user:
  * so that the filter stays up to date when the apps are installed or
  * uninstalled, because the uid of an app changes when it is reinstalled.
  */
-static int susfs_priority_app_strings_worker(void *data) {
+static void susfs_priority_app_strings_worker(struct work_struct *work) {
 	struct susfs_priority_uid_filter_bitmap *new_bitmap = NULL;
 	struct susfs_priority_uid_filter_bitmap *old_bitmap = NULL;
 	struct cred *orig_cred = NULL;
 	char *app_strings = NULL;
+	u64 generation;
 	size_t app_str_len = 0;
 	int ret = 0;
 
@@ -2131,6 +2133,7 @@ static int susfs_priority_app_strings_worker(void *data) {
 
 	/* take a snapshot of the stored app package names */
 	mutex_lock(&susfs_mutex_lock_priority_uid_filter);
+	generation = susfs_priority_app_strings_generation;
 	if (susfs_priority_app_strings) {
 		app_str_len = strlen(susfs_priority_app_strings);
 		app_strings = kvmalloc(app_str_len + 1, GFP_KERNEL | __GFP_ZERO);
@@ -2156,6 +2159,11 @@ static int susfs_priority_app_strings_worker(void *data) {
 	 * the new one, which is then published to the readers.
 	 */
 	mutex_lock(&susfs_mutex_lock_priority_uid_filter);
+	/* A successful setter owns the newer list and bitmap. */
+	if (generation != susfs_priority_app_strings_generation) {
+		mutex_unlock(&susfs_mutex_lock_priority_uid_filter);
+		goto out_restore_creds;
+	}
 	old_bitmap = rcu_dereference_protected(priority_uid_filter_bitmap, lockdep_is_held(&susfs_mutex_lock_priority_uid_filter));
 	rcu_assign_pointer(priority_uid_filter_bitmap, new_bitmap);
 	new_bitmap = NULL;
@@ -2173,25 +2181,18 @@ out:
 		kfree(new_bitmap);
 	if (app_strings)
 		kvfree(app_strings);
-	atomic_set(&susfs_priority_app_strings_running, 0);
 
-	return ret;
 }
 
 /*
- * Resolves the uids of the stored app package names again in a new thread,
- * because the resolving of the uids requires the KernelSU selinux domain,
- * which must not be applied to the calling process.
+ * One non-reentrant work item coalesces requests while pending and can be
+ * queued again while running. Each invocation makes one resolution attempt;
+ * no filesystem lookup or credential change runs in the caller's context.
  */
-void susfs_parse_priority_app_strings(void) {
-	/* do not spawn a new thread if there is already one running */
-	if (atomic_cmpxchg(&susfs_priority_app_strings_running, 0, 1))
-		return;
+static DECLARE_WORK(susfs_priority_app_strings_work, susfs_priority_app_strings_worker);
 
-	if (IS_ERR(kthread_run(susfs_priority_app_strings_worker, NULL, "susfs_gpsp_appstr"))) {
-		atomic_set(&susfs_priority_app_strings_running, 0);
-		SUSFS_LOGE("failed to create the thread susfs_priority_app_strings\n");
-	}
+void susfs_parse_priority_app_strings(void) {
+	schedule_work(&susfs_priority_app_strings_work);
 }
 
 /*

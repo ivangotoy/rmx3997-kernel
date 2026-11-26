@@ -264,7 +264,7 @@ int ksu_setup_preinit_file(struct filename **filename_ptr, struct user_arg_ptr *
 int ksu_preinit_handle_post_execveat(int *fd, struct filename **filename_ptr, void *argv_user, void *envp_user,
                                      int *flags, int *retval, int *preinit_fd)
 {
-    if (*retval && *preinit_fd > 0) {
+    if (*retval && *preinit_fd >= 0) {
         ksu_close_fd(*preinit_fd);
         memset((void *)(*filename_ptr)->name, 0, strlen((*filename_ptr)->name));
         memcpy((void *)(*filename_ptr)->name, INIT_PATH, strlen(INIT_PATH));

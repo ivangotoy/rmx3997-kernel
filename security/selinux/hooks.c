@@ -6865,6 +6865,7 @@ abort_change:
 }
 
 #ifdef CONFIG_KSU_SUSFS
+extern int ksu_susfs_current_sid(const char *, u32, u32 *);
 static int susfs_selinux_setprocattr(const char *name, void *value, size_t size)
 {
 	struct task_security_struct *tsec;
@@ -6907,8 +6908,7 @@ static int susfs_selinux_setprocattr(const char *name, void *value, size_t size)
 			str[size-1] = 0;
 			size--;
 		}
-		error = susfs_security_context_to_sid(&selinux_state, value, size,
-						&sid, GFP_KERNEL);
+		error = ksu_susfs_current_sid(value, size, &sid);
 		if (error == -EINVAL && !strcmp(name, "fscreate")) {
 			if (!has_cap_mac_admin(true)) {
 				struct audit_buffer *ab;

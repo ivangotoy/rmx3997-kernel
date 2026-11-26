@@ -63,6 +63,10 @@ static int ksu_selinux_hide_hook(void)
 {
     int ret;
 
+    ret = ksu_selinux_hide_resolve_av_fns();
+    if (ret)
+        return ret;
+
     if (access_write)
         return 0;
 

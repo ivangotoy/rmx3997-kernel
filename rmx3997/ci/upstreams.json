@@ -24,12 +24,16 @@
       },
       "local_modified": [
         "drivers/kernelsu/Kbuild",
+        "drivers/kernelsu/feature/selinux_hide/selinux_hide.c",
+        "drivers/kernelsu/feature/selinux_hide/selinux_hide_auto.c",
+        "drivers/kernelsu/feature/selinux_hide/selinux_hide_susfs.c",
         "drivers/kernelsu/feature/sucompat.c",
         "drivers/kernelsu/hook/setuid_hook.c",
         "drivers/kernelsu/preinit/preinit.c",
         "drivers/kernelsu/runtime/ksud_integration.c",
         "drivers/kernelsu/selinux/rules.c",
-        "drivers/kernelsu/supercall/supercall.c"
+        "drivers/kernelsu/supercall/supercall.c",
+        "drivers/kernelsu/tools/code_generation/preinit_runner/preinit_runner.mk"
       ]
     },
     "susfs": {

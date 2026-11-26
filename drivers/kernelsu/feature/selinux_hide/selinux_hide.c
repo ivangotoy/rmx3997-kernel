@@ -66,10 +66,9 @@ enum sel_inos {
     SEL_INO_NEXT, /* The next inode number to use */
 };
 
+#include "selinux_hide_auto.c"
 #ifdef KSU_COMPAT_HAS_SUSFS_FEATURE_SELINUX_HIDE
 #include "selinux_hide_susfs.c"
-#else
-#include "selinux_hide_auto.c"
 #endif
 
 static int ksu_selinux_hide_enable()

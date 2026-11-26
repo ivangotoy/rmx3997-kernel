@@ -26,6 +26,11 @@ KSU_RUNNER_CFLAGS := $(CLANG_FLAGS) -std=gnu11 -Os -Wall \
 	-fno-asynchronous-unwind-tables -fno-unwind-tables \
 	-ffunction-sections -fdata-sections
 
+KSU_RUNNER_UAPI_OK := $(shell $(CC) $(KSU_RUNNER_CFLAGS) -E $(KSU_RUNNER_SRC)/runner.c -o /dev/null >/dev/null 2>&1 && echo yes)
+ifneq ($(KSU_RUNNER_UAPI_OK),yes)
+$(error required target UAPI headers cannot preprocess preinit runner at $(KSU_UAPI_INC))
+endif
+
 KSU_RUNNER_LIBS :=
 ifeq ($(ARCH),arm)
 KSU_RUNNER_LIBS := $(shell $(CC) $(CLANG_FLAGS) -print-libgcc-file-name)
@@ -56,7 +61,6 @@ targets += preinit/runner.elf
 $(obj)/preinit/blob.o: $(KSU_RUNNER_TARGET)
 asflags-y += -DKSU_PREINIT_RUNNER_BIN=\"$(KSU_RUNNER_BIN)\"
 else
-$(warning -- $(REPO_NAME): $(KSU_UAPI_INC) not found, preinit disabled)
-ccflags-y += -DKSU_NO_PREINIT
+$(error required target UAPI headers unavailable at $(KSU_UAPI_INC))
 endif
 

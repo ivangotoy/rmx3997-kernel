@@ -137,6 +137,90 @@ static void security_compute_av_user_with_policy(struct selinux_policy *policy, 
 }
 #endif
 
+// Resolve the policy compute helpers the backup-policy queries use.
+static int ksu_selinux_hide_resolve_av_fns(void)
+{
+    // clang-format off
+#ifdef CONFIG_KALLSYMS_ALL
+    #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0) || defined(KSU_COMPAT_USE_SELINUX_STATE)
+        security_dump_masked_av_fn = ksu_resolve_symbol_for_functable_hook("security_dump_masked_av");
+        if (!security_dump_masked_av_fn) {
+            pr_warn("security_dump_masked_av not found!\n");
+        }
+        context_struct_compute_av_fn = ksu_resolve_symbol_for_functable_hook("context_struct_compute_av");
+        if (!context_struct_compute_av_fn) {
+            pr_warn("context_struct_compute_av not found!\n");
+        }
+    #else
+        legacy_security_dump_masked_av_fn = ksu_resolve_symbol_for_functable_hook("security_dump_masked_av");
+        if (!legacy_security_dump_masked_av_fn) {
+            pr_warn("security_dump_masked_av not found!\n");
+        }
+        legacy_context_struct_compute_av_fn = ksu_resolve_symbol_for_functable_hook("context_struct_compute_av");
+        if (!legacy_context_struct_compute_av_fn) {
+            pr_warn("context_struct_compute_av not found!\n");
+        }
+    #endif
+
+    #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0) && !defined(KSU_COMPAT_USE_SELINUX_STATE)
+        sidtab_ptr = ksu_resolve_symbol_for_functable_hook("sidtab");
+        if (!sidtab_ptr) {
+            pr_err("sidtab can not find!");
+            return -EFAULT;
+        }
+    #endif
+#else
+    #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0) || defined(KSU_COMPAT_USE_SELINUX_STATE)
+        extern void security_dump_masked_av(struct policydb * policydb, struct context * scontext,
+                                            struct context * tcontext, u16 tclass, u32 permissions, const char *reason);
+        extern void context_struct_compute_av(struct policydb * policydb, struct context * scontext,
+                                            struct context * tcontext, u16 tclass, struct av_decision * avd,
+                                            struct extended_perms * xperms);
+
+        security_dump_masked_av_fn = &security_dump_masked_av;
+        if (!security_dump_masked_av_fn) {
+            pr_warn("security_dump_masked_av not found!\n");
+        }
+
+        context_struct_compute_av_fn = &context_struct_compute_av;
+        if (!context_struct_compute_av_fn) {
+            pr_warn("context_struct_compute_av not found!\n");
+        }
+    #else
+        extern void security_dump_masked_av(struct context *scontext, struct context *tcontext,
+                                                        u16 tclass, u32 permissions, const char *reason);
+        #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0) || defined(KSU_COMPAT_HAS_EXTENDED_PERMS)
+        extern void context_struct_compute_av(struct context *scontext,
+                                                struct context *tcontext, u16 tclass, struct av_decision *avd,
+                                                struct extended_perms *xperms);
+        #else
+        extern void context_struct_compute_av(struct context *scontext, 
+                                                struct context *tcontext, u16 tclass, struct av_decision *avd);
+        #endif
+
+        legacy_security_dump_masked_av_fn = &security_dump_masked_av;
+        if (!legacy_security_dump_masked_av_fn) {
+            pr_warn("security_dump_masked_av not found!\n");
+        }
+
+        legacy_context_struct_compute_av_fn = &context_struct_compute_av;
+        if (!legacy_context_struct_compute_av_fn) {
+            pr_warn("context_struct_compute_av not found!\n");
+        }
+    #endif
+
+    #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0) && !defined(KSU_COMPAT_USE_SELINUX_STATE)
+        extern struct sidtab sidtab;
+
+        sidtab_ptr = &sidtab;
+    #endif
+#endif
+    // clang-format on
+    return 0;
+}
+
+// The SUSFS build keeps SUSFS's hooks and uses only the backup-policy queries below.
+#ifndef KSU_COMPAT_HAS_SUSFS_FEATURE_SELINUX_HIDE
 // 6.6+ or 4.14-
 // android has backport in 4.14
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0) ||                                                                   \
@@ -740,82 +824,9 @@ static int ksu_selinux_hide_hook(void)
 {
     int ret;
 
-    // clang-format off
-#ifdef CONFIG_KALLSYMS_ALL
-    #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0) || defined(KSU_COMPAT_USE_SELINUX_STATE)
-        security_dump_masked_av_fn = ksu_resolve_symbol_for_functable_hook("security_dump_masked_av");
-        if (!security_dump_masked_av_fn) {
-            pr_warn("security_dump_masked_av not found!\n");
-        }
-        context_struct_compute_av_fn = ksu_resolve_symbol_for_functable_hook("context_struct_compute_av");
-        if (!context_struct_compute_av_fn) {
-            pr_warn("context_struct_compute_av not found!\n");
-        }
-    #else
-        legacy_security_dump_masked_av_fn = ksu_resolve_symbol_for_functable_hook("security_dump_masked_av");
-        if (!legacy_security_dump_masked_av_fn) {
-            pr_warn("security_dump_masked_av not found!\n");
-        }
-        legacy_context_struct_compute_av_fn = ksu_resolve_symbol_for_functable_hook("context_struct_compute_av");
-        if (!legacy_context_struct_compute_av_fn) {
-            pr_warn("context_struct_compute_av not found!\n");
-        }
-    #endif
-
-    #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0) && !defined(KSU_COMPAT_USE_SELINUX_STATE)
-        sidtab_ptr = ksu_resolve_symbol_for_functable_hook("sidtab");
-        if (!sidtab_ptr) {
-            pr_err("sidtab can not find!");
-            return -EFAULT;
-        }
-    #endif
-#else
-    #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0) || defined(KSU_COMPAT_USE_SELINUX_STATE)
-        extern void security_dump_masked_av(struct policydb * policydb, struct context * scontext,
-                                            struct context * tcontext, u16 tclass, u32 permissions, const char *reason);
-        extern void context_struct_compute_av(struct policydb * policydb, struct context * scontext,
-                                            struct context * tcontext, u16 tclass, struct av_decision * avd,
-                                            struct extended_perms * xperms);
-
-        security_dump_masked_av_fn = &security_dump_masked_av;
-        if (!security_dump_masked_av_fn) {
-            pr_warn("security_dump_masked_av not found!\n");
-        }
-
-        context_struct_compute_av_fn = &context_struct_compute_av;
-        if (!context_struct_compute_av_fn) {
-            pr_warn("context_struct_compute_av not found!\n");
-        }
-    #else
-        extern void security_dump_masked_av(struct context *scontext, struct context *tcontext,
-                                                        u16 tclass, u32 permissions, const char *reason);
-        #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0) || defined(KSU_COMPAT_HAS_EXTENDED_PERMS)
-        extern void context_struct_compute_av(struct context *scontext,
-                                                struct context *tcontext, u16 tclass, struct av_decision *avd,
-                                                struct extended_perms *xperms);
-        #else
-        extern void context_struct_compute_av(struct context *scontext, 
-                                                struct context *tcontext, u16 tclass, struct av_decision *avd);
-        #endif
-
-        legacy_security_dump_masked_av_fn = &security_dump_masked_av;
-        if (!legacy_security_dump_masked_av_fn) {
-            pr_warn("security_dump_masked_av not found!\n");
-        }
-
-        legacy_context_struct_compute_av_fn = &context_struct_compute_av;
-        if (!legacy_context_struct_compute_av_fn) {
-            pr_warn("context_struct_compute_av not found!\n");
-        }
-    #endif
-
-    #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0) && !defined(KSU_COMPAT_USE_SELINUX_STATE)
-        extern struct sidtab sidtab;
-
-        sidtab_ptr = &sidtab;
-    #endif
-#endif
-    // clang-format on
+    ret = ksu_selinux_hide_resolve_av_fns();
+    if (ret)
+        return ret;
 
     ret = selinux_hide_init_setxattr();
     if (ret) {
@@ -951,6 +962,7 @@ static bool ksu_selinux_hide_backup_in_use(void)
 {
     return ksu_selinux_hide_keep_backup;
 }
+#endif // #ifndef KSU_COMPAT_HAS_SUSFS_FEATURE_SELINUX_HIDE
 
 /*
  * Caveat:  Mutates scontext.
@@ -1936,3 +1948,109 @@ allow:
     avd->allowed = 0xffffffff;
     goto out;
 }
+
+#if defined(KSU_COMPAT_HAS_SUSFS_FEATURE_SELINUX_HIDE) && LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+int ksu_susfs_context_to_sid(const char *context, u32 len, u32 *sid, gfp_t flags)
+{
+    int rc = -EAGAIN;
+    mutex_lock(&selinux_state.policy_mutex);
+    mutex_lock(&selinux_hide_mutex);
+    if (ksu_selinux_hide_running && backup_sepolicy && backup_sepolicy->sidtab &&
+        rcu_access_pointer(selinux_state.policy))
+        rc = security_context_to_sid_with_policy(backup_sepolicy, context, len,
+                                                 sid, SECSID_NULL, flags, NULL, NULL);
+    mutex_unlock(&selinux_hide_mutex);
+    mutex_unlock(&selinux_state.policy_mutex);
+    return rc;
+}
+
+int ksu_susfs_sid_to_context(u32 sid, char **context, u32 *len)
+{
+    int rc = -EAGAIN;
+    mutex_lock(&selinux_state.policy_mutex);
+    mutex_lock(&selinux_hide_mutex);
+    if (ksu_selinux_hide_running && backup_sepolicy && backup_sepolicy->sidtab)
+        rc = security_sid_to_context_with_policy(backup_sepolicy, sid, context, len);
+    mutex_unlock(&selinux_hide_mutex);
+    mutex_unlock(&selinux_state.policy_mutex);
+    return rc;
+}
+
+int ksu_susfs_compute_av(u32 ssid, u32 tsid, u16 tclass, struct av_decision *avd)
+{
+    int rc = -EAGAIN;
+    mutex_lock(&selinux_state.policy_mutex);
+    mutex_lock(&selinux_hide_mutex);
+    if (ksu_selinux_hide_running && backup_sepolicy && backup_sepolicy->sidtab) {
+        security_compute_av_user_with_policy(backup_sepolicy, ssid, tsid, tclass, avd);
+        rc = 0;
+    }
+    mutex_unlock(&selinux_hide_mutex);
+    mutex_unlock(&selinux_state.policy_mutex);
+    return rc;
+}
+#endif
+
+#if defined(KSU_COMPAT_HAS_SUSFS_FEATURE_SELINUX_HIDE) && LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+static bool ksu_susfs_policy_lock(void)
+{
+    mutex_lock(&selinux_state.policy_mutex);
+    mutex_lock(&selinux_hide_mutex);
+    return ksu_selinux_hide_running && backup_sepolicy && backup_sepolicy->sidtab &&
+           rcu_access_pointer(selinux_state.policy);
+}
+
+static void ksu_susfs_policy_unlock(void)
+{
+    mutex_unlock(&selinux_hide_mutex);
+    mutex_unlock(&selinux_state.policy_mutex);
+}
+
+int ksu_susfs_check_context(const char *context, u32 size, char **canon, u32 *len)
+{
+    u32 sid;
+    int rc = -EAGAIN;
+    if (ksu_susfs_policy_lock()) {
+        rc = security_context_to_sid_with_policy(backup_sepolicy, context, size,
+                                                 &sid, SECSID_NULL, GFP_KERNEL, NULL, NULL);
+        if (!rc)
+            rc = security_sid_to_context_with_policy(backup_sepolicy, sid, canon, len);
+    }
+    ksu_susfs_policy_unlock();
+    return rc;
+}
+
+int ksu_susfs_access(const char *scon, const char *tcon, u16 tclass, struct av_decision *avd)
+{
+    u32 ssid, tsid;
+    int rc = -EAGAIN;
+    if (!ksu_susfs_policy_lock())
+        goto out;
+    rc = security_context_to_sid_with_policy(backup_sepolicy, scon, strlen(scon),
+                                             &ssid, SECSID_NULL, GFP_KERNEL, NULL, NULL);
+    if (rc)
+        goto out;
+    rc = security_context_to_sid_with_policy(backup_sepolicy, tcon, strlen(tcon),
+                                             &tsid, SECSID_NULL, GFP_KERNEL, NULL, NULL);
+    if (rc)
+        goto out;
+    security_compute_av_user_with_policy(backup_sepolicy, ssid, tsid, tclass, avd);
+    avd->seqno = 1;
+out:
+    ksu_susfs_policy_unlock();
+    return rc;
+}
+
+int ksu_susfs_current_sid(const char *context, u32 size, u32 *sid)
+{
+    u32 backup_sid;
+    int rc = -EAGAIN, orig_rc = -EAGAIN;
+    if (ksu_susfs_policy_lock()) {
+        rc = security_context_to_sid_with_policy(backup_sepolicy, context, size,
+                                                 &backup_sid, SECSID_NULL, GFP_KERNEL, sid, &orig_rc);
+        rc = rc ?: orig_rc;
+    }
+    ksu_susfs_policy_unlock();
+    return rc;
+}
+#endif
