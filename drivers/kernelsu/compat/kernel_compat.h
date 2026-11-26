@@ -16,15 +16,14 @@
 #endif
 #include "arch.h"
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+// arm32 has no syscall wrappers: sys_* take C arguments on every version
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0) && !defined(__arm__)
 #if defined(__aarch64__)
 #define KSU_SYS_PREFIX(name) __arm64_sys_##name
 #elif defined(__x86_64__)
 #define KSU_SYS_PREFIX(name) __x64_sys_##name
 #elif defined(__riscv)
 #define KSU_SYS_PREFIX(name) __riscv_sys_##name
-#elif defined(__arm__)
-#define KSU_SYS_PREFIX(name) sys_##name
 #else // wire up your arch here.
 static_assert(1 == 0, "Unsupported architecture!");
 #define KSU_SYS_PREFIX(name) sys_##name
@@ -41,6 +40,7 @@ static_assert(1 == 0, "Unsupported architecture!");
         extern long KSU_SYS_PREFIX(name)(const struct pt_regs *);                                                      \
         struct pt_regs __ksu_regs = { 0 };                                                                             \
         PT_REGS_NATIVE_PARM1(&__ksu_regs) = (unsigned long)(a);                                                        \
+        PT_REGS_NATIVE_SYSCALL_PARM1(&__ksu_regs) = (unsigned long)(a);                                                \
         PT_REGS_NATIVE_PARM2(&__ksu_regs) = (unsigned long)(b);                                                        \
         PT_REGS_NATIVE_PARM3(&__ksu_regs) = (unsigned long)(c);                                                        \
         PT_REGS_NATIVE_SYSCALL_PARM4(&__ksu_regs) = (unsigned long)(d);                                                \
@@ -519,7 +519,12 @@ static void __user *userspace_stack_buffer(const void *d, size_t len)
 {
     // To avoid having to mmap a page in userspace, just write below the stack
     // pointer.
+#ifdef __x86_64__
+    // skip the 128-byte red zone of the x86_64 SysV ABI
+    char __user *p = (void __user *)current_user_stack_pointer() - 128 - len;
+#else
     char __user *p = (void __user *)current_user_stack_pointer() - len;
+#endif
 
     return copy_to_user(p, d, len) ? NULL : p;
 }

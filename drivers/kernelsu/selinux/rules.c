@@ -200,6 +200,10 @@ void apply_kernelsu_rules()
     struct policydb *oldpolicydb, *newpolicydb, *tmpdb;
 
     oldpolicydb = kcalloc(2, sizeof(*oldpolicydb), GFP_KERNEL);
+    if (!oldpolicydb) {
+        pr_err("failed to alloc policydb\n");
+        return;
+    }
     newpolicydb = oldpolicydb + 1;
     db = newpolicydb;
 
@@ -208,7 +212,7 @@ void apply_kernelsu_rules()
     ksu_lock_sel_mutex_legacy();
 
 retry:
-    len = ksu_dup_policydb(policydb_ptr, backup_policydb);
+    len = backup_policydb ? ksu_dup_policydb(policydb_ptr, backup_policydb) : -ENOMEM;
     pr_info("len of ksu_dup_policydb (backup_db) output: %d", len);
     if (len < 0) {
         pr_err("failed to dup policydb");
@@ -700,7 +704,7 @@ int handle_sepolicy(void __user *user_data, u64 data_len)
 
     if (copy_from_user(payload, user_data, (size_t)data_len)) {
         ret = -EFAULT;
-        goto out_free;
+        goto out_free_payload;
     }
 
     if (!getenforce()) {
@@ -735,6 +739,10 @@ retry:
     struct policydb *oldpolicydb, *newpolicydb, *tmpdb;
 
     oldpolicydb = kcalloc(2, sizeof(*oldpolicydb), GFP_KERNEL);
+    if (!oldpolicydb) {
+        ret = -ENOMEM;
+        goto out_free_payload;
+    }
     newpolicydb = oldpolicydb + 1;
     db = newpolicydb;
 
@@ -806,14 +814,17 @@ retry:
         goto retry;
     }
     symbols = ksu_advance_original_symbols(db, &old_pol->policydb, old_pol->latest_granting, seqno);
-    if (!symbols) {
+    if (IS_ERR(symbols)) {
         pr_err("failed to carry original symbol metadata\n");
-        ret = -EINVAL;
+        ret = PTR_ERR(symbols);
         goto out_drop_new_policy;
     }
+    if (!symbols)
+        pr_warn("original symbol metadata is stale, policy applied without it\n");
 
     rcu_assign_pointer(selinux_state.policy, pol);
-    ksu_publish_original_symbols(symbols);
+    if (symbols)
+        ksu_publish_original_symbols(symbols);
     synchronize_rcu();
     ksu_destroy_sepolicy(old_pol);
 
@@ -852,19 +863,22 @@ out_unlock:
     }
 #endif
     symbols = ksu_advance_original_symbols(policydb_ptr, policydb_ptr, seqno - 1, seqno);
-    if (!symbols) {
+    if (IS_ERR(symbols)) {
         pr_err("failed to carry original symbol metadata\n");
         ksu_unlock_sepolicy_legacy();
-        ret = -EINVAL;
+        ret = PTR_ERR(symbols);
         goto out_drop_new_policy;
     }
+    if (!symbols)
+        pr_warn("original symbol metadata is stale, policy applied without it\n");
 #if defined(KSU_COMPAT_USE_SELINUX_STATE) && !defined(SELINUX_POLICY_INSTEAD_SELINUX_SS)
     selinux_state.ss->latest_granting = seqno;
 #else
     (*latest_granting_ptr) = seqno;
 #endif
     memcpy(policydb_ptr, newpolicydb, sizeof(*policydb_ptr));
-    ksu_publish_original_symbols(symbols);
+    if (symbols)
+        ksu_publish_original_symbols(symbols);
     ksu_unlock_sepolicy_legacy();
 
     reset_avc_cache(seqno);
@@ -875,11 +889,12 @@ out_unlock:
     /* Free buffer */
     kfree(oldpolicydb);
 #endif
-out_free:
-    vfree(payload);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0) && !defined(KSU_COMPAT_HAS_POLICY_MUTEX)
+out_free:
     ksu_unlock_sel_mutex_legacy();
 #endif
+out_free_payload:
+    vfree(payload);
 
     return ret;
 

@@ -145,6 +145,21 @@ static int ksu_patch_text_nosync(void *dst, void *src, size_t len, int flags)
     int ret = 0;
 
     int phy_err;
+
+    // Only one page is mapped below: split a write that crosses a page boundary,
+    // resolving the second page first so a failure leaves the text untouched.
+    if ((p & ~PAGE_MASK) + len > PAGE_SIZE) {
+        size_t first = PAGE_SIZE - (p & ~PAGE_MASK);
+
+        phys_from_virt(p + first, &phy_err);
+        if (phy_err)
+            return phy_err;
+        ret = ksu_patch_text_nosync(dst, src, first, flags);
+        if (ret)
+            return ret;
+        return ksu_patch_text_nosync((char *)dst + first, (char *)src + first, len - first, flags);
+    }
+
     unsigned long phy = phys_from_virt(p, &phy_err);
     if (phy_err) {
         ret = phy_err;
@@ -215,9 +230,26 @@ int ksu_patch_text(void *dst, void *src, size_t len, int flags)
     return stop_machine(ksu_patch_text_cb, &info, cpu_online_mask);
 }
 
-// TODO:
+/*
+ * Scan [start, start + size) for a direct `call rel32` (opcode e8) to target.
+ * Branch target = address of the next instruction + SignExtend(rel32).
+ */
 void *scan_call_to(void *start, size_t size, void *target)
 {
+    const u8 *insn = (const u8 *)start;
+    size_t i;
+
+    for (i = 0; i + 5 <= size; i++) {
+        s32 rel32;
+
+        if (insn[i] != 0xe8)
+            continue;
+
+        memcpy(&rel32, &insn[i + 1], sizeof(rel32));
+        if ((void *)(&insn[i + 5] + rel32) == target)
+            return (void *)&insn[i];
+    }
+
     return NULL;
 }
 

@@ -36,6 +36,7 @@ struct ksu_original_symbols;
 
 struct ksu_original_symbols *ksu_prepare_original_symbols(struct policydb *db, struct policydb *orig_db,
                                                           u32 policy_generation);
+// NULL: the published snapshot does not belong to old_db (stale), ERR_PTR: allocation failure
 struct ksu_original_symbols *ksu_advance_original_symbols(struct policydb *db, struct policydb *old_db,
                                                           u32 old_policy_generation, u32 policy_generation);
 void ksu_publish_original_symbols(struct ksu_original_symbols *snapshot);

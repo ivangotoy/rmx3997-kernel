@@ -41,9 +41,33 @@ void on_post_fs_data(void)
 }
 
 #if defined(CONFIG_EXT4_FS) && (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0) || defined(KSU_HAS_MODERN_EXT4))
+#include <linux/kernfs.h>
+#include <linux/kobject.h>
+#include <linux/mutex.h>
+
 extern void ext4_unregister_sysfs(struct super_block *sb);
+
+// /sys/fs/ext4/<s_id> exists until ext4_unregister_sysfs() ran for this superblock
+static bool ext4_sysfs_registered(struct super_block *sb)
+{
+    struct kernfs_node *dir, *kn;
+
+    dir = kernfs_find_and_get(fs_kobj->sd, "ext4");
+    if (!dir)
+        return false;
+
+    kn = kernfs_find_and_get(dir, sb->s_id);
+    kernfs_put(dir);
+    if (!kn)
+        return false;
+
+    kernfs_put(kn);
+    return true;
+}
+
 int nuke_ext4_sysfs(const char *mnt)
 {
+    static DEFINE_MUTEX(nuke_lock);
     struct path path;
     struct super_block *sb = NULL;
     const char *name = NULL;
@@ -63,7 +87,11 @@ int nuke_ext4_sysfs(const char *mnt)
         return -EINVAL;
     }
 
-    ext4_unregister_sysfs(sb);
+    // a repeated ext4_unregister_sysfs() WARNs for every attribute of the removed kobject
+    mutex_lock(&nuke_lock);
+    if (ext4_sysfs_registered(sb))
+        ext4_unregister_sysfs(sb);
+    mutex_unlock(&nuke_lock);
     path_put(&path);
 
     return 0;

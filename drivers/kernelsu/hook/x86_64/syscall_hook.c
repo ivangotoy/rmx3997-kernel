@@ -235,7 +235,7 @@ static long my_x64_sys_call(const struct pt_regs *regs, unsigned int nr)
 // Patch the whole do_syscall_64 instead when x64_sys_call is not available.
 // Limited to < 6.7: since 6.7 do_syscall_64 returns bool (SYSRET vs IRET),
 // which this replacement does not implement.
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 7, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 7, 0) && !defined(CONFIG_X86_X32_ABI)
 static void *do_syscall_64_patch_addr;
 static char do_syscall_64_orig_insn[14];
 
@@ -258,8 +258,15 @@ static __always_inline bool my_do_syscall_x64(struct pt_regs *regs, int nr)
     return false;
 }
 
+// Before 5.12 the kernel entry calls do_syscall_64(unsigned long nr, struct pt_regs *regs)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 12, 0)
+static void __nocfi my_do_syscall_64(unsigned long unr, struct pt_regs *regs)
+{
+    int nr = unr;
+#else
 static void __nocfi my_do_syscall_64(struct pt_regs *regs, int nr)
 {
+#endif
     nr = syscall_enter_from_user_mode_fn(regs, nr);
     // Pick up the tracepoint's nr rewrite unless the syscall is skipped (-1, e.g. seccomp)
     if (nr != -1)
@@ -277,7 +284,7 @@ static void __nocfi my_do_syscall_64(struct pt_regs *regs, int nr)
 #endif
 #endif
 
-static void patch_abs_jump(const char *sym, void **patch_addr, void *target, char backup[14])
+static int patch_abs_jump(const char *sym, void **patch_addr, void *target, char backup[14])
 {
     *patch_addr = (void *)find_kernel_symbol_exact(sym);
     pr_info("%s=0x%lx\n", sym, (unsigned long)*patch_addr);
@@ -307,8 +314,14 @@ static void patch_abs_jump(const char *sym, void **patch_addr, void *target, cha
         if (ret) {
             pr_err("patch %s err: %d\n", sym, ret);
             *patch_addr = NULL;
+            return -EIO;
         }
+        // every syscall now passes through module text: tasks blocked in a syscall
+        // would return into freed text after unload, so pin the module
+        __module_get(THIS_MODULE);
+        return 0;
     }
+    return -ENOENT;
 }
 
 void __init __nocfi ksu_syscall_hook_init(void)
@@ -324,7 +337,10 @@ void __init __nocfi ksu_syscall_hook_init(void)
         return;
 
 #ifdef CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER
-    patch_abs_jump("x64_sys_call", &x64_sys_call_patch_addr, my_x64_sys_call, x64_sys_call_patch_orig_insn);
+    // x64_sys_call does not read sys_call_table: unless it or do_syscall_64 is patched,
+    // a syscall redirected to the dispatcher slot reaches sys_ni_syscall
+    bool x64_sys_call_unpatched =
+        patch_abs_jump("x64_sys_call", &x64_sys_call_patch_addr, my_x64_sys_call, x64_sys_call_patch_orig_insn) == -EIO;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 7, 0) && !defined(CONFIG_X86_X32_ABI)
     // Before 5.16 always patch do_syscall_64 as well: such a kernel may have
     // x64_sys_call backported without fb13b11d.
@@ -337,7 +353,13 @@ void __init __nocfi ksu_syscall_hook_init(void)
             patch_abs_jump("do_syscall_64", &do_syscall_64_patch_addr, my_do_syscall_64, do_syscall_64_orig_insn);
         }
     }
+    if (do_syscall_64_patch_addr)
+        x64_sys_call_unpatched = false;
 #endif
+    if (x64_sys_call_unpatched) {
+        pr_err("x64_sys_call is not patched, dispatcher not installed\n");
+        return;
+    }
 #endif
 
     // Find one ni_syscall slot for the dispatcher
@@ -346,8 +368,12 @@ void __init __nocfi ksu_syscall_hook_init(void)
         return;
     }
 
+    ksu_syscall_table_hook(ni_slot, (sys_call_ptr_t)ksu_syscall_dispatcher, NULL);
+    if (READ_ONCE(ksu_syscall_table[ni_slot]) != (sys_call_ptr_t)ksu_syscall_dispatcher) {
+        pr_err("failed to install dispatcher at slot %d\n", ni_slot);
+        return;
+    }
     ksu_dispatcher_nr = ni_slot;
-    ksu_syscall_table_hook(ksu_dispatcher_nr, (sys_call_ptr_t)ksu_syscall_dispatcher, NULL);
     pr_info("dispatcher installed at slot %d\n", ksu_dispatcher_nr);
 }
 

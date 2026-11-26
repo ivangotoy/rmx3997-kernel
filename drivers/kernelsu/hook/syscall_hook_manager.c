@@ -131,6 +131,8 @@ static void ksu_sys_enter_handler(void *data, struct pt_regs *regs, long id)
         current_regs->ax = id;
         current_regs->orig_ax = ksu_dispatcher_nr;
 #elif defined(__aarch64__)
+        if (!ksu_mark_syscall_redirect())
+            return;
         PT_REGS_ORIG_SYSCALL(current_regs) = id;
         current_regs->syscallno = ksu_dispatcher_nr;
 #elif defined(__riscv)
@@ -148,6 +150,8 @@ aarch64_compat:
     if (ksu_has_compat_syscall_hook(id)) {
         struct pt_regs *current_regs = task_pt_regs(current);
 
+        if (!ksu_mark_syscall_redirect())
+            return;
         /* arm32 syscall numbers are passed in r7, not arm64 x8. */
         PT_REGS_ORIG_SYSCALL(current_regs) = (u32)id;
         current_regs->syscallno = ksu_compat_dispatcher_nr;

@@ -73,7 +73,7 @@ static __nocfi void ksu_security_compute_av_user(struct policydb *policydb, stru
     #else
         struct extended_perms {
             /* I am a placeholder, I just want to make the compiler happy */   
-        }
+        };
         static void (*legacy_context_struct_compute_av_fn)(struct context *scontext,
                                                     struct context *tcontext, u16 tclass, struct av_decision *avd) = NULL;
 
@@ -81,8 +81,8 @@ static __nocfi void ksu_security_compute_av_user(struct policydb *policydb, stru
                                                     struct context *tcontext, u16 tclass, struct av_decision *avd,
                                                     struct extended_perms *xperms)
         {
-            if (legacy_security_dump_masked_av_fn) {
-                legacy_security_dump_masked_av_fn(scontext, tcontext, tclass, avd);
+            if (legacy_context_struct_compute_av_fn) {
+                legacy_context_struct_compute_av_fn(scontext, tcontext, tclass, avd);
             }
         }
     #endif
@@ -541,9 +541,9 @@ int __nocfi ksu_handle_selinux_inode_setxattr(struct dentry *dentry, const char 
         return PTR_ERR(isec);
     // Match backing_inode_security: keep old label if reload fails
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0) || defined(KSU_COMPAT_HAS_ISEC_LABEL_INITIALIZED)
-    if (isec->initialized == LABEL_INITIALIZED)
+    if (isec->initialized != LABEL_INITIALIZED)
 #else
-    if (isec->initialized)
+    if (!isec->initialized)
 #endif
         inode_doinit_with_dentry_fn(inode, dentry);
 
@@ -672,6 +672,19 @@ static void hook_selinux_status_open()
     }
 }
 
+static void unhook_selinux_status_open()
+{
+    if (!orig_sel_open_handle_status)
+        return;
+    int ret = ksu_patch_text(sel_open_handle_status_slot, &orig_sel_open_handle_status,
+                             sizeof(orig_sel_open_handle_status), KSU_PATCH_TEXT_FLUSH_DCACHE);
+    if (ret) {
+        pr_err("selinux_hide: exit: patch_text sel_open_handle_status err: %d\n", ret);
+        return;
+    }
+    orig_sel_open_handle_status = NULL;
+}
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0) && !defined(KSU_COMPAT_HAS_LIST_OF_LSM_HOOKS)
 extern void ksu_unregister_setprocattr_lsm_hook();
 extern void ksu_unregister_setxattr_lsm_hook();
@@ -702,7 +715,6 @@ static void ksu_selinux_hide_unhook()
     if (ksu_orig_setprocattr) {
         ret = ksu_patch_text((void *)selinux_setprocattr_hook_ptr, &ksu_orig_setprocattr, sizeof(ksu_orig_setprocattr),
                              KSU_PATCH_TEXT_FLUSH_DCACHE);
-        ksu_orig_setprocattr = NULL;
         if (ret) {
             pr_err("selinux_hide: exit: patch_text setprocattr err: %d\n", ret);
         }
@@ -711,7 +723,6 @@ static void ksu_selinux_hide_unhook()
     if (ksu_orig_setxattr) {
         ret = ksu_patch_text((void *)selinux_setxattr_hook_ptr, &ksu_orig_setxattr, sizeof(ksu_orig_setxattr),
                              KSU_PATCH_TEXT_FLUSH_DCACHE);
-        ksu_orig_setxattr = NULL;
         if (ret) {
             pr_err("selinux_hide: exit: patch_text setxattr err: %d\n", ret);
         }

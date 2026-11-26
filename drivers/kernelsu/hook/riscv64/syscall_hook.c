@@ -226,8 +226,12 @@ void __init ksu_syscall_hook_init(void)
         return;
     }
 
+    ksu_syscall_table_hook(ni_slot, ksu_syscall_dispatcher, NULL);
+    if (READ_ONCE(ksu_syscall_table[ni_slot]) != ksu_syscall_dispatcher) {
+        pr_err("failed to install dispatcher at slot %d\n", ni_slot);
+        return;
+    }
     ksu_dispatcher_nr = ni_slot;
-    ksu_syscall_table_hook(ksu_dispatcher_nr, ksu_syscall_dispatcher, NULL);
     pr_info("dispatcher installed at slot %d\n", ksu_dispatcher_nr);
 }
 

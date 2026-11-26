@@ -44,6 +44,12 @@ void ksu_unregister_syscall_hook(int nr);
 // Check if a handler is registered in the dispatcher for syscall @nr.
 bool ksu_has_syscall_hook(int nr);
 
+#if defined(__aarch64__)
+// Record that the sys_enter tracepoint redirects the current task's syscall to the dispatcher.
+// Returns false when no mark is free: the syscall must then not be redirected.
+bool ksu_mark_syscall_redirect(void);
+#endif
+
 // --- Direct syscall table patching API (hook/unhook) ---
 // Directly overwrite syscall_table[@nr] with @fn using fixmap + stop_machine.
 // Saves the original handler to *@old (if non-NULL) and records the entry

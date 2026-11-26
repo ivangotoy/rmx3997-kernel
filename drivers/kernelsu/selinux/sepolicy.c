@@ -354,7 +354,9 @@ static bool add_rule_raw(struct policydb *db, struct type_datum *src, struct typ
         }
 
 #ifdef CONFIG_KSU_SUSFS
-        susfs_add_sus_avd_allowed_by_type(src->value, tgt->value, cls->value, node->datum.u.data);
+        // Only an allow node holds allowed bits; audit nodes would record audit masks
+        if (effect == AVTAB_ALLOWED)
+            susfs_add_sus_avd_allowed_by_type(src->value, tgt->value, cls->value, node->datum.u.data);
 #endif // #ifdef CONFIG_KSU_SUSFS
 
         if (invert) {
@@ -492,9 +494,15 @@ static bool add_xperm_rule(struct policydb *db, const char *s, const char *t, co
 
     if (range) {
         if (strchr(range, '-')) {
-            sscanf(range, "%hx-%hx", &low, &high);
+            if (sscanf(range, "%hx-%hx", &low, &high) != 2) {
+                pr_info("invalid xperm range %s\n", range);
+                return false;
+            }
         } else {
-            sscanf(range, "%hx", &low);
+            if (sscanf(range, "%hx", &low) != 1) {
+                pr_info("invalid xperm range %s\n", range);
+                return false;
+            }
             high = low;
         }
     } else {
@@ -621,7 +629,7 @@ static bool add_filename_trans(struct policydb *db, const char *s, const char *t
     key.tclass = cls->value;
     key.name = (char *)o;
 
-    struct filename_trans_datum *last = NULL;
+    struct filename_trans_datum *last = NULL, *old_owner = NULL;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) || defined(KSU_COMPAT_HAS_HASHTAB_KEY_PARAMS)
     struct filename_trans_datum *trans = policydb_filenametr_search(db, &key);
@@ -630,9 +638,10 @@ static bool add_filename_trans(struct policydb *db, const char *s, const char *t
 #endif
     while (trans) {
         if (ebitmap_get_bit(&trans->stypes, src->value - 1)) {
-            // Duplicate, overwrite existing data and return
-            trans->otype = def->value;
-            return true;
+            if (trans->otype == def->value)
+                return true;
+            // The datum may be shared with other source types: move only src below
+            old_owner = trans;
         }
         if (trans->otype == def->value)
             break;
@@ -660,16 +669,35 @@ static bool add_filename_trans(struct policydb *db, const char *s, const char *t
             kfree(trans);
             return false;
         }
-        trans->next = last;
         trans->otype = def->value;
-        hashtab_insert(&db->filename_trans, new_key, trans, filenametr_key_params);
+        if (last) {
+            // The key exists: append to its datum chain like policydb_read()
+            last->next = trans;
+            kfree(new_key->name);
+            kfree(new_key);
+        } else if (hashtab_insert(&db->filename_trans, new_key, trans, filenametr_key_params)) {
+            pr_err("add_filename_trans: Failed to insert datum\n");
+            kfree(new_key->name);
+            kfree(new_key);
+            kfree(trans);
+            return false;
+        }
     }
 
+    if (ebitmap_set_bit(&db->filename_trans_ttypes, key.ttype, 1))
+        return false;
+    if (ebitmap_set_bit(&trans->stypes, src->value - 1, 1))
+        return false;
+    if (old_owner) {
+        ebitmap_set_bit(&old_owner->stypes, src->value - 1, 0);
+        return true;
+    }
     db->compat_filename_trans_count++;
-    return ebitmap_set_bit(&trans->stypes, src->value - 1, 1) == 0;
+    return true;
 #else // < 5.7.0, has no filename_trans_key, but struct filename_trans
 
     struct filename_trans key;
+    key.stype = src->value;
     key.ttype = tgt->value;
     key.tclass = cls->value;
     key.name = (char *)o;
@@ -685,15 +713,30 @@ static bool add_filename_trans(struct policydb *db, const char *s, const char *t
         struct filename_trans *new_key = (struct filename_trans *)kzalloc(sizeof(*new_key), GFP_KERNEL);
         if (!new_key) {
             pr_err("add_filename_trans: Failed to alloc new_key\n");
+            kfree(trans);
             return false;
         }
         *new_key = key;
         new_key->name = kstrdup(key.name, GFP_KERNEL);
+        if (!new_key->name) {
+            pr_err("add_filename_trans: Failed to dup name\n");
+            kfree(new_key);
+            kfree(trans);
+            return false;
+        }
         trans->otype = def->value;
-        hashtab_insert(db->filename_trans, new_key, trans);
+        if (hashtab_insert(db->filename_trans, new_key, trans)) {
+            pr_err("add_filename_trans: Failed to insert datum\n");
+            kfree(new_key->name);
+            kfree(new_key);
+            kfree(trans);
+            return false;
+        }
+    } else {
+        trans->otype = def->value;
     }
 
-    return ebitmap_set_bit(&db->filename_trans_ttypes, src->value - 1, 1) == 0;
+    return ebitmap_set_bit(&db->filename_trans_ttypes, key.ttype, 1) == 0;
 #endif
 }
 
@@ -722,6 +765,7 @@ static bool add_type(struct policydb *db, const char *type_name, bool attr)
     type = (struct type_datum *)kzalloc(sizeof(struct type_datum), GFP_KERNEL);
     if (!type) {
         pr_err("add_type: alloc type_datum failed.\n");
+        db->p_types.nprim--;
         return false;
     }
 
@@ -732,47 +776,62 @@ static bool add_type(struct policydb *db, const char *type_name, bool attr)
     char *key = kstrdup(type_name, GFP_KERNEL);
     if (!key) {
         pr_err("add_type: alloc key failed.\n");
+        kfree(type);
+        db->p_types.nprim--;
         return false;
     }
 
+#if !(LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) ||                                                                 \
+      (defined(KSU_COMPAT_HAS_MODERN_POLICYDB) && !defined(KSU_COMPAT_TYPE_ATTR_MAP_ARRAY_NOT_FOUND)))
     if (symtab_insert(&db->p_types, key, type)) {
         pr_err("add_type: insert symtab failed.\n");
+        kfree(key);
+        kfree(type);
+        db->p_types.nprim--;
         return false;
     }
+#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) ||                                                                   \
     (defined(KSU_COMPAT_HAS_MODERN_POLICYDB) && !defined(KSU_COMPAT_TYPE_ATTR_MAP_ARRAY_NOT_FOUND))
+    // Grow the arrays before the type becomes visible in the symtab; each
+    // grown array replaces the old one at once because the realloc freed it
     struct ebitmap *new_type_attr_map_array =
         ksu_kvrealloc(db->type_attr_map_array, value * sizeof(struct ebitmap), (value - 1) * sizeof(struct ebitmap));
 
     if (!new_type_attr_map_array) {
         pr_err("add_type: alloc type_attr_map_array failed\n");
-        return false;
+        goto err_free;
     }
+    db->type_attr_map_array = new_type_attr_map_array;
 
     struct type_datum **new_type_val_to_struct = ksu_kvrealloc(
         db->type_val_to_struct, sizeof(*db->type_val_to_struct) * value, sizeof(*db->type_val_to_struct) * (value - 1));
 
     if (!new_type_val_to_struct) {
         pr_err("add_type: alloc type_val_to_struct failed\n");
-        return false;
+        goto err_free;
     }
+    db->type_val_to_struct = new_type_val_to_struct;
 
     char **new_val_to_name_types =
         ksu_kvrealloc(db->sym_val_to_name[SYM_TYPES], sizeof(char *) * value, sizeof(char *) * (value - 1));
     if (!new_val_to_name_types) {
         pr_err("add_type: alloc val_to_name failed\n");
-        return false;
+        goto err_free;
+    }
+    db->sym_val_to_name[SYM_TYPES] = new_val_to_name_types;
+
+    if (symtab_insert(&db->p_types, key, type)) {
+        pr_err("add_type: insert symtab failed.\n");
+        goto err_free;
     }
 
-    db->type_attr_map_array = new_type_attr_map_array;
     ebitmap_init(&db->type_attr_map_array[value - 1]);
     ebitmap_set_bit(&db->type_attr_map_array[value - 1], value - 1, 1);
 
-    db->type_val_to_struct = new_type_val_to_struct;
     db->type_val_to_struct[value - 1] = type;
 
-    db->sym_val_to_name[SYM_TYPES] = new_val_to_name_types;
     db->sym_val_to_name[SYM_TYPES][value - 1] = key;
 
     int i;
@@ -784,6 +843,13 @@ static bool add_type(struct policydb *db, const char *type_name, bool attr)
     susfs_add_sus_type(type_name, type->value);
 #endif // #ifdef CONFIG_KSU_SUSFS
     return true;
+
+err_free:
+    // The arrays may stay one slot larger than nprim, which is harmless
+    db->p_types.nprim--;
+    kfree(key);
+    kfree(type);
+    return false;
 
     // safe? because only huawei do this fucking things
 #elif defined(KSU_COMPAT_TYPE_ATTR_MAP_ARRAY_NOT_FOUND)
@@ -1121,7 +1187,7 @@ struct ksu_original_symbols *ksu_advance_original_symbols(struct policydb *db, s
 
     snapshot = ksu_alloc_original_symbols();
     if (!snapshot)
-        return NULL;
+        return ERR_PTR(-ENOMEM);
     snapshot->policy = db;
     snapshot->generation = policy_generation;
     memcpy(snapshot->limits, old->limits, sizeof(snapshot->limits));

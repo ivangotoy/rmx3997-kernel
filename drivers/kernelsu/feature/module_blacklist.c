@@ -1,6 +1,9 @@
+#include <linux/capability.h>
+#include <linux/cred.h>
 #include <linux/init.h>
 #include <linux/slab.h>
 #include <linux/string.h>
+#include <linux/user_namespace.h>
 
 #ifdef CONFIG_KSU_TRACEPOINT_HOOK
 #include "hook/syscall_hook.h"
@@ -23,16 +26,22 @@ static char **module_blacklist = NULL;
 // https://github.com/bytecodealliance/rustix/blob/1e2954a46ecffa6b30426ad7b1833b226530dcf4/src/backend/libc/system/syscalls.rs#L125
 // ksuinit using __NR_init_module, so we also need hook this syscall
 
+// only a caller allowed to load modules can get -EPERM from the blacklist; keep it for everyone else
+static bool ksu_may_load_module(void)
+{
+    return current_user_ns() == &init_user_ns && cap_raised(current_cred()->cap_effective, CAP_SYS_MODULE);
+}
+
 // this just for hook check, in fact we can directly inline for perf opt, but..
 void ksu_handle_init_module(int *result)
 {
-    if (*result == -EPERM)
+    if (*result == -EPERM && ksu_may_load_module())
         *result = 0;
 }
 
 void ksu_handle_finit_module(int *result)
 {
-    if (*result == -EPERM)
+    if (*result == -EPERM && ksu_may_load_module())
         *result = 0;
 }
 

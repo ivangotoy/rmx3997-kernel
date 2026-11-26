@@ -2,6 +2,7 @@
 
 #include "../syscall_hook.h"
 
+#include <linux/hash.h>
 #include <linux/kallsyms.h>
 #include <linux/mutex.h>
 #include <linux/version.h>
@@ -290,6 +291,45 @@ static int __init ksu_compat_find_ni_syscall_slots(int *out_slots, int max_slots
 }
 #endif
 
+// Redirect marks: the task whose current syscall the sys_enter tracepoint sent to the dispatcher.
+// A tracer stopped at syscall entry can rewrite the number to the dispatcher slot and x8 to any
+// hooked syscall (seccomp then judges the slot), so the dispatcher serves only a redirect the
+// tracepoint marked for this task, and consumes the mark. Fixed table, no allocation; a mark
+// lives only from the tracepoint to the dispatcher call of the same syscall.
+#define KSU_REDIRECT_MARK_BITS 8
+#define KSU_REDIRECT_MARK_PROBES 8
+static struct task_struct *ksu_redirect_marks[1 << KSU_REDIRECT_MARK_BITS];
+
+bool ksu_mark_syscall_redirect(void)
+{
+    u32 h = hash_ptr(current, KSU_REDIRECT_MARK_BITS);
+    int i;
+
+    for (i = 0; i < KSU_REDIRECT_MARK_PROBES; i++) {
+        struct task_struct **slot = &ksu_redirect_marks[(h + i) & ((1 << KSU_REDIRECT_MARK_BITS) - 1)];
+        struct task_struct *old = cmpxchg(slot, NULL, current);
+
+        if (!old || old == current)
+            return true;
+    }
+    pr_warn_ratelimited("no free redirect mark, syscall not redirected\n");
+    return false;
+}
+
+static bool ksu_consume_syscall_redirect(void)
+{
+    u32 h = hash_ptr(current, KSU_REDIRECT_MARK_BITS);
+    int i;
+
+    for (i = 0; i < KSU_REDIRECT_MARK_PROBES; i++) {
+        struct task_struct **slot = &ksu_redirect_marks[(h + i) & ((1 << KSU_REDIRECT_MARK_BITS) - 1)];
+
+        if (cmpxchg(slot, current, NULL) == current)
+            return true;
+    }
+    return false;
+}
+
 // Unified dispatcher: native calls read the original NR from x8; compat calls
 // read it from arm32 r7 (pt_regs.regs[7]).
 // Validates that syscallno matches our dispatcher slot (i.e. we redirected it),
@@ -297,6 +337,10 @@ static int __init ksu_compat_find_ni_syscall_slots(int *out_slots, int max_slots
 static long __nocfi ksu_syscall_dispatcher(const struct pt_regs *regs)
 {
     int orig_nr;
+
+    // only a syscall the tracepoint redirected for this task (see ksu_mark_syscall_redirect)
+    if (!ksu_consume_syscall_redirect())
+        return -ENOSYS;
 
 #ifdef CONFIG_COMPAT
     if (is_compat_task())
@@ -445,8 +489,16 @@ void __init ksu_syscall_hook_init(void)
 #endif
     }
 
+    ksu_syscall_table_hook(ni_slot, (syscall_fn_t)ksu_syscall_dispatcher, NULL);
+    if (READ_ONCE(ksu_syscall_table[ni_slot]) != (syscall_fn_t)ksu_syscall_dispatcher) {
+        pr_err("failed to install dispatcher at slot %d\n", ni_slot);
+#ifdef CONFIG_COMPAT
+        goto init_compat_dispatcher;
+#else
+        return;
+#endif
+    }
     ksu_dispatcher_nr = ni_slot;
-    ksu_syscall_table_hook(ksu_dispatcher_nr, (syscall_fn_t)ksu_syscall_dispatcher, NULL);
     pr_info("dispatcher installed at slot %d\n", ksu_dispatcher_nr);
 #ifdef CONFIG_COMPAT
 init_compat_dispatcher:
@@ -464,8 +516,12 @@ init_compat_dispatcher:
         return;
     }
 
+    ksu_compat_syscall_table_hook(ni_slot, (syscall_fn_t)ksu_syscall_dispatcher, NULL);
+    if (READ_ONCE(ksu_compat_syscall_table[ni_slot]) != (syscall_fn_t)ksu_syscall_dispatcher) {
+        pr_err("failed to install compat dispatcher at slot %d\n", ni_slot);
+        return;
+    }
     ksu_compat_dispatcher_nr = ni_slot;
-    ksu_compat_syscall_table_hook(ksu_compat_dispatcher_nr, (syscall_fn_t)ksu_syscall_dispatcher, NULL);
     pr_info("compat dispatcher installed at slot %d\n", ksu_compat_dispatcher_nr);
 #endif
 }

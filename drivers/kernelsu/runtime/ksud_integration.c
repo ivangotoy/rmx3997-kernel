@@ -291,7 +291,7 @@ void ksu_handle_execveat_ksud(char *filename, struct user_arg_ptr *argv, struct 
             int envc = count(*envp, MAX_ARG_STRINGS);
             if (envc > 0) {
                 int n;
-                for (n = 1; n <= envc; n++) {
+                for (n = 0; n < envc; n++) {
                     const char __user *p = get_user_arg_ptr(*envp, n);
                     if (!p || IS_ERR(p)) {
                         continue;

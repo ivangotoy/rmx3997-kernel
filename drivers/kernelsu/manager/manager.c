@@ -78,7 +78,8 @@ void ksu_register_manager(u32 uid, u8 signature_index)
 
     spin_unlock(&ksu_manager_list_write_lock);
 
-    if (ksu_last_manager_appid == KSU_INVALID_APPID)
+    // ksu_last_manager_appid is u16: compare with the truncated sentinel, not the int -1
+    if (ksu_last_manager_appid == (u16)KSU_INVALID_APPID)
         ksu_last_manager_appid = appid;
     return;
 }

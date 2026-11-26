@@ -18,6 +18,8 @@
 #include <linux/compiler_types.h>
 #endif
 #include <linux/kref.h>
+#include <linux/mount.h>
+#include <linux/namei.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
 // hashtable.h, list.h, rculist.h
@@ -86,7 +88,10 @@ struct perm_data {
 static DEFINE_HASHTABLE(allow_list, ALLOW_LIST_BITS);
 static u16 allow_list_count = 0;
 
-#define KERNEL_SU_ALLOWLIST "/data/adb/ksu/.allowlist"
+#define KERNEL_SU_ALLOWLIST_DIR "/data/adb/ksu"
+#define KERNEL_SU_ALLOWLIST_NAME ".allowlist"
+#define KERNEL_SU_ALLOWLIST KERNEL_SU_ALLOWLIST_DIR "/" KERNEL_SU_ALLOWLIST_NAME
+#define KERNEL_SU_ALLOWLIST_TMP KERNEL_SU_ALLOWLIST ".tmp"
 
 void ksu_persistent_allow_list(void);
 
@@ -461,6 +466,94 @@ static void migrate_profile(u32 version, struct app_profile *profile)
     profile->version = KSU_APP_PROFILE_VER;
 }
 
+// rename the fully written temp file over the allowlist, both in KERNEL_SU_ALLOWLIST_DIR
+static int replace_allow_list(struct file *tmp)
+{
+    struct dentry *old_dentry = tmp->f_path.dentry;
+    struct dentry *new_dentry;
+    struct inode *dir_inode;
+    struct path dir;
+    int err;
+
+    err = kern_path(KERNEL_SU_ALLOWLIST_DIR, LOOKUP_DIRECTORY, &dir);
+    if (err)
+        return err;
+    dir_inode = dir.dentry->d_inode;
+
+    err = mnt_want_write(dir.mnt);
+    if (err)
+        goto out_path;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)
+    inode_lock_nested(dir_inode, I_MUTEX_PARENT);
+#else
+    mutex_lock_nested(&dir_inode->i_mutex, I_MUTEX_PARENT);
+#endif
+
+    err = -ENOENT;
+    if (old_dentry->d_parent != dir.dentry)
+        goto out_unlock;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
+    struct qstr name = QSTR_INIT(KERNEL_SU_ALLOWLIST_NAME, sizeof(KERNEL_SU_ALLOWLIST_NAME) - 1);
+    new_dentry = lookup_noperm(&name, dir.dentry);
+#else
+    new_dentry = lookup_one_len(KERNEL_SU_ALLOWLIST_NAME, dir.dentry, sizeof(KERNEL_SU_ALLOWLIST_NAME) - 1);
+#endif
+    err = PTR_ERR(new_dentry);
+    if (IS_ERR(new_dentry))
+        goto out_unlock;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+    struct renamedata rd = {
+        .mnt_idmap = mnt_idmap(dir.mnt),
+        .old_parent = dir.dentry,
+        .old_dentry = old_dentry,
+        .new_parent = dir.dentry,
+        .new_dentry = new_dentry,
+    };
+    err = vfs_rename(&rd);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+    struct renamedata rd = {
+        .old_mnt_idmap = mnt_idmap(dir.mnt),
+        .old_dir = dir_inode,
+        .old_dentry = old_dentry,
+        .new_mnt_idmap = mnt_idmap(dir.mnt),
+        .new_dir = dir_inode,
+        .new_dentry = new_dentry,
+    };
+    err = vfs_rename(&rd);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
+    struct renamedata rd = {
+        .old_mnt_userns = mnt_user_ns(dir.mnt),
+        .old_dir = dir_inode,
+        .old_dentry = old_dentry,
+        .new_mnt_userns = mnt_user_ns(dir.mnt),
+        .new_dir = dir_inode,
+        .new_dentry = new_dentry,
+    };
+    err = vfs_rename(&rd);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
+    err = vfs_rename(dir_inode, old_dentry, dir_inode, new_dentry, NULL, 0);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 13, 0)
+    err = vfs_rename(dir_inode, old_dentry, dir_inode, new_dentry, NULL);
+#else
+    err = vfs_rename(dir_inode, old_dentry, dir_inode, new_dentry);
+#endif
+    dput(new_dentry);
+
+out_unlock:
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)
+    inode_unlock(dir_inode);
+#else
+    mutex_unlock(&dir_inode->i_mutex);
+#endif
+    mnt_drop_write(dir.mnt);
+out_path:
+    path_put(&dir);
+    return err;
+}
+
 void do_persistent_allow_list(void *unused)
 {
     u32 magic = FILE_MAGIC;
@@ -468,10 +561,13 @@ void do_persistent_allow_list(void *unused)
     struct perm_data *p = NULL;
     struct file *fp = NULL;
     loff_t off = 0;
+    bool written = true;
+    int err;
     int i;
 
+    // write a temp file and rename it over the allowlist, so a failed or interrupted save keeps the old file
     const struct cred *saved = override_creds(ksu_cred);
-    fp = filp_open(KERNEL_SU_ALLOWLIST, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    fp = filp_open(KERNEL_SU_ALLOWLIST_TMP, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (IS_ERR(fp)) {
         pr_err("save_allow_list create file failed: %ld\n", PTR_ERR(fp));
         revert_creds(saved);
@@ -494,9 +590,25 @@ void do_persistent_allow_list(void *unused)
         pr_info("save allow list, name: %s uid :%d, allow: %d\n", p->profile.key, p->profile.curr_uid,
                 p->profile.allow_su);
 
-        ksu_kernel_write_compat(fp, &p->profile, sizeof(p->profile), &off);
+        if (ksu_kernel_write_compat(fp, &p->profile, sizeof(p->profile), &off) != sizeof(p->profile)) {
+            pr_err("save_allow_list write profile failed: uid %d\n", p->profile.curr_uid);
+            written = false;
+            break;
+        }
     }
     mutex_unlock(&allowlist_mutex);
+    if (!written)
+        goto out;
+
+    err = vfs_fsync(fp, 0);
+    if (err) {
+        pr_err("save_allow_list sync failed: %d\n", err);
+        goto out;
+    }
+
+    err = replace_allow_list(fp);
+    if (err)
+        pr_err("save_allow_list rename failed: %d\n", err);
 
 out:
     revert_creds(saved);

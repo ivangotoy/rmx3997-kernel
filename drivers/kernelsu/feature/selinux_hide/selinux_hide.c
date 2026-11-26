@@ -194,11 +194,10 @@ void __exit ksu_selinux_hide_exit()
     }
     mutex_unlock(&selinux_hide_mutex);
     ksu_unregister_feature_handler(KSU_FEATURE_SELINUX_HIDE);
-    mutex_lock(ksu_selinux_status_lock);
-    if (fake_status)
-        __free_page(fake_status);
-    fake_status = NULL;
-    mutex_unlock(ksu_selinux_status_lock);
+#ifndef KSU_COMPAT_HAS_SUSFS_FEATURE_SELINUX_HIDE
+    unhook_selinux_status_open();
+#endif
+    // fake_status stays allocated: apps may still have it mmapped or open
 }
 
 void ksu_selinux_hide_drop_backup_if_unused()

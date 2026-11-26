@@ -16,9 +16,9 @@
     },
     "bakasu": {
       "mode": "subtree",
-      "url": "https://github.com/Baka-SU/BakaSU",
+      "url": "https://git.digtvbg.com/ivangotoy/BakaSU",
       "ref": "main",
-      "pin": "cac1e79355ef451539f5c5ba9dc2bda1c64069de",
+      "pin": "8fa29976f3afd0fafa185279996be80a034c985a",
       "paths": {
         "kernel/": "drivers/kernelsu/"
       },

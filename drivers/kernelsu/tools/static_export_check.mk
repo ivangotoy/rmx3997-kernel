@@ -4,7 +4,7 @@ define check_symbol_export
   $(eval _ARG3 := $(strip $(3)))
   $(eval _ARG4 := $(strip $(4)))
 
-  ifneq ($$(shell grep -q -F "$$(_ARG1)" $$(_ARG2); echo $$$$?),0)
+  ifeq ($$(shell grep -q -F "$$(_ARG1)" $$(_ARG2); echo $$$$?),1)
       $$(info -- $$(REPO_NAME)/symbol_export: export $$(_ARG3) found)
   else
       $$(info -- You disabled CONFIG_KALLSYMS_ALL and haven't export $$(_ARG3) in your kernel's $$(notdir $$(_ARG2)) file)
@@ -24,7 +24,7 @@ ifneq ($(shell grep -q "struct selinux_state " $(srctree)/security/selinux/inclu
     # Reason: selinux_hide
     $(eval $(call check_symbol_export, static struct page *selinux_status_page, $(srctree)/security/selinux/ss/status.c, selinux_status_page))
     $(eval $(call check_symbol_export, static DEFINE_MUTEX(selinux_status_lock), $(srctree)/security/selinux/ss/status.c, selinux_status_lock))
-    $(eval $(call check_symbol_export, static struct sidtab, $(srctree)/security/selinux/ss/services.c, context_struct_compute_av func))
+    $(eval $(call check_symbol_export, static struct sidtab, $(srctree)/security/selinux/ss/services.c, sidtab))
 
     # Reason: safe policydb patch/dup
     $(eval $(call check_symbol_export, static DEFINE_MUTEX(sel_mutex), $(srctree)/security/selinux/selinuxfs.c, sel_mutex))

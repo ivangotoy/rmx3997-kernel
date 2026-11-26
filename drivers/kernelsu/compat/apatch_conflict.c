@@ -1,5 +1,9 @@
+#include <linux/kmsg_dump.h>
 #include <linux/kthread.h>
+#include <linux/slab.h>
 #include <linux/syslog.h>
+#include <linux/uaccess.h>
+#include <linux/version.h>
 #include <linux/vmalloc.h>
 
 #include "apatch_conflict.h"
@@ -19,6 +23,51 @@ static struct kp_symbol_region symbol_region = { 0, 0 };
 // https://github.com/bmax121/KernelPatch/blob/ece212d25a56dc308c8b230505cb664688abf2f1/kernel/kpimg.lds#L80
 // https://github.com/bmax121/KernelPatch/blob/ece212d25a56dc308c8b230505cb664688abf2f1/kernel/base/symbol.c#L58
 
+static bool parse_kp_symbol_line(const char *match)
+{
+    int parsed = sscanf(match, "KP Symbol: %llx, %llx", &symbol_region.symbol_start, &symbol_region.symbol_end);
+
+    if (parsed == 2) {
+        pr_info("Successfully parsed kp symbols!\n");
+        pr_info("KP Symbol Start: 0x%llx, End: 0x%llx\n", symbol_region.symbol_start, symbol_region.symbol_end);
+        return true;
+    }
+    pr_err("Found kp symbol debug log but failed to parse addresses (parsed: %d)\n", parsed);
+    return false;
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
+// Without set_fs (removed on arm64 in 5.11) do_syslog() cannot copy the log into a
+// kernel buffer, so walk the log records with a kmsg dump iterator instead.
+#define KP_LOG_LINE_LEN 1024
+static bool try_dump_kp_symbol_addr()
+{
+    struct kmsg_dump_iter iter;
+    bool ret = false;
+    char *match = NULL;
+    char *line;
+    size_t len;
+
+    line = kmalloc(KP_LOG_LINE_LEN, GFP_KERNEL);
+    if (!line)
+        return false;
+
+    kmsg_dump_rewind(&iter);
+    while (kmsg_dump_get_line(&iter, false, line, KP_LOG_LINE_LEN - 1, &len)) {
+        line[len] = '\0';
+        match = strstr(line, "KP Symbol:");
+        if (match) {
+            ret = parse_kp_symbol_line(match);
+            break;
+        }
+    }
+    if (!match)
+        pr_info("KP symbols not found from logs.\n");
+
+    kfree(line);
+    return ret;
+}
+#else
 static bool try_dump_kp_symbol_addr()
 {
     bool ret = false;
@@ -46,15 +95,7 @@ static bool try_dump_kp_symbol_addr()
         match = strstr(buf, "KP Symbol:");
 
         if (match) {
-            int parsed = sscanf(match, "KP Symbol: %llx, %llx", &symbol_region.symbol_start, &symbol_region.symbol_end);
-
-            if (parsed == 2) {
-                pr_info("Successfully parsed kp symbols!\n");
-                pr_info("KP Symbol Start: 0x%llx, End: 0x%llx\n", symbol_region.symbol_start, symbol_region.symbol_end);
-                ret = true;
-            } else {
-                pr_err("Found kp symbol debug log but failed to parse addresses (parsed: %d)\n", parsed);
-            }
+            ret = parse_kp_symbol_line(match);
         } else {
             pr_info("KP symbols not found from logs.\n");
         }
@@ -63,6 +104,7 @@ static bool try_dump_kp_symbol_addr()
     vfree(buf);
     return ret;
 }
+#endif
 
 // https://github.com/bmax121/KernelPatch/blob/ece212d25a56dc308c8b230505cb664688abf2f1/kernel/base/symbol.c#L18-L52
 // https://github.com/bmax121/KernelPatch/blob/ece212d25a56dc308c8b230505cb664688abf2f1/kernel/include/symbol.h#L11-L17
@@ -105,10 +147,17 @@ static unsigned long symbol_lookup_name(const char *name)
 {
     unsigned long hash = sym_hash(name);
     uint64_t addr;
+    kp_symbol_t symbol;
     for (addr = symbol_region.symbol_start; addr < symbol_region.symbol_end; addr += sizeof(kp_symbol_t)) {
-        kp_symbol_t *symbol = (kp_symbol_t *)addr;
-        if (hash == symbol->hash && !local_strcmp(name, symbol->name)) {
-            return symbol->addr;
+        // the region comes from a log line: stop at the first address that cannot be read
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+        if (copy_from_kernel_nofault(&symbol, (const void *)addr, sizeof(symbol)))
+#else
+        if (probe_kernel_read(&symbol, (const void *)addr, sizeof(symbol)))
+#endif
+            break;
+        if (hash == symbol.hash && !local_strcmp(name, symbol.name)) {
+            return symbol.addr;
         }
     }
     return 0;

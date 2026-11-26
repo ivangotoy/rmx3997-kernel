@@ -111,7 +111,11 @@ static inline void hash_del_rcu(struct hlist_node *node)
 #undef hlist_for_each_entry
 #undef hlist_for_each_entry_safe
 
-#define hlist_entry_safe(ptr, type, member) (ptr) ? hlist_entry(ptr, type, member) : NULL
+#define hlist_entry_safe(ptr, type, member)                                                                            \
+    ({                                                                                                                 \
+        typeof(ptr) ____ptr = (ptr);                                                                                   \
+        ____ptr ? hlist_entry(____ptr, type, member) : NULL;                                                           \
+    })
 
 /**
  * hlist_for_each_entry_rcu - iterate over rcu list of given type

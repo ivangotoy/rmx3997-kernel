@@ -10,6 +10,7 @@
 #define __PT_PARM1_REG regs[0]
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
 #define __PT_SYSCALL_PARM1_REG orig_x0
+#define __PT_COMPAT_SYSCALL_PARM1_REG orig_x0
 #endif
 #define __PT_PARM2_REG regs[1]
 #define __PT_PARM3_REG regs[2]
@@ -132,7 +133,10 @@
 #define PT_REGS_ORIG_SYSCALL(x) (__PT_REGS_CAST(x)->__PT_ORIG_SYSCALL_REG)
 #endif
 
-#define PT_REGS_SYSCALL_PARM1(x) __PT_REGS_READ(x, __PT_SYSCALL_PARM1_REG, regs[0])
+#ifndef __PT_COMPAT_SYSCALL_PARM1_REG
+#define __PT_COMPAT_SYSCALL_PARM1_REG regs[0]
+#endif
+#define PT_REGS_SYSCALL_PARM1(x) __PT_REGS_READ(x, __PT_SYSCALL_PARM1_REG, __PT_COMPAT_SYSCALL_PARM1_REG)
 #define PT_REGS_PARM1(x) __PT_REGS_READ(x, __PT_PARM1_REG, regs[0])
 #define PT_REGS_PARM2(x) __PT_REGS_READ(x, __PT_PARM2_REG, regs[1])
 #define PT_REGS_PARM3(x) __PT_REGS_READ(x, __PT_PARM3_REG, regs[2])

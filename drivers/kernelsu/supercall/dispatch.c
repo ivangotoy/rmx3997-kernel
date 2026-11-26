@@ -149,7 +149,7 @@ static int do_get_info_legacy(void __user *arg)
 
 static int do_report_event(void __user *arg)
 {
-    static bool services_started = false;
+    static atomic_t services_started = ATOMIC_INIT(0);
     struct ksu_report_event_cmd cmd;
 
     if (copy_from_user(&cmd, arg, sizeof(cmd))) {
@@ -158,12 +158,11 @@ static int do_report_event(void __user *arg)
 
     switch (cmd.event) {
     case EVENT_POST_FS_DATA: {
-        static bool post_fs_data_lock = false;
+        static atomic_t post_fs_data_lock = ATOMIC_INIT(0);
 
         // Reset for emulated soft reboot
-        services_started = false;
-        if (!post_fs_data_lock) {
-            post_fs_data_lock = true;
+        atomic_set(&services_started, 0);
+        if (!atomic_xchg(&post_fs_data_lock, 1)) {
             if (ksu_late_loaded) {
                 pr_info("post-fs-data skipped (late load)\n");
             } else {
@@ -174,9 +173,8 @@ static int do_report_event(void __user *arg)
         break;
     }
     case EVENT_BOOT_COMPLETED: {
-        static bool boot_complete_lock = false;
-        if (!boot_complete_lock) {
-            boot_complete_lock = true;
+        static atomic_t boot_complete_lock = ATOMIC_INIT(0);
+        if (!atomic_xchg(&boot_complete_lock, 1)) {
             if (ksu_late_loaded) {
                 pr_info("boot_complete skipped (late load)\n");
             } else {
@@ -195,11 +193,10 @@ static int do_report_event(void __user *arg)
         break;
     }
     case EVENT_SERVICES: {
-        if (services_started) {
+        if (atomic_xchg(&services_started, 1)) {
             pr_info("services already started, skipping\n");
             return 0;
         }
-        services_started = true;
         pr_info("services triggered\n");
         return 1;
     }
@@ -700,6 +697,23 @@ static int ksu_umount_list_getlist(struct ksu_manage_try_umount_cmd *cmd, bool l
 
     down_read(&mount_list_lock);
 
+    // cmd->flags != 0: capacity of user_buf; refuse instead of writing past it when the list
+    // grew after GETSIZE (0 keeps the old unbounded behaviour)
+    if (cmd->flags) {
+        size_t total_size = 0;
+
+        list_for_each_entry (entry, &mount_list, list) {
+            total_size += strlen(entry->umountable) + 1;
+            if (!legacy)
+                total_size += sizeof(entry->flags);
+        }
+
+        if (total_size > cmd->flags) {
+            up_read(&mount_list_lock);
+            return -ENOSPC;
+        }
+    }
+
     list_for_each_entry (entry, &mount_list, list) {
         len = strlen(entry->umountable) + 1; // +1 for \0
 
@@ -750,8 +764,13 @@ static int manage_try_umount(void __user *arg)
 
     case KSU_UMOUNT_ADD: {
         long len = strncpy_from_user(buf, (const char __user *)cmd.arg, 256);
-        if (len <= 0)
+        if (len < 0)
             return -EFAULT;
+        if (len == 0)
+            return -EINVAL;
+        // no NUL within buf: the path does not fit, refuse instead of storing a truncated one
+        if (len == sizeof(buf))
+            return -ENAMETOOLONG;
 
         buf[sizeof(buf) - 1] = '\0';
 
@@ -1261,14 +1280,23 @@ int ksu_try_handle_toolkit_cmd(int magic2, unsigned int cmd, void __user **arg)
         }
 
         // for release
-        if (strncpy_from_user(release_buf, (char __user *)u_ptr, sizeof(release_buf)) < 0) {
+        long release_len = strncpy_from_user(release_buf, (char __user *)u_ptr, sizeof(release_buf));
+        if (release_len < 0) {
             pr_err("handle_toolkit_cmd: strncpy_from_user fail\n");
             return 1;
         }
         release_buf[sizeof(release_buf) - 1] = '\0';
 
+        // version follows the whole user release string, which may be longer than release_buf
+        if (release_len == sizeof(release_buf))
+            release_len = strnlen_user((char __user *)u_ptr, PAGE_SIZE) - 1;
+        if (release_len < 0 || release_len >= PAGE_SIZE) {
+            pr_err("handle_toolkit_cmd: release string invalid\n");
+            return 1;
+        }
+
         // for version
-        if (strncpy_from_user(version_buf, (char __user *)(u_ptr + strlen(release_buf) + 1), sizeof(version_buf)) < 0) {
+        if (strncpy_from_user(version_buf, (char __user *)(u_ptr + release_len + 1), sizeof(version_buf)) < 0) {
             pr_err("handle_toolkit_cmd: strncpy_from_user fail\n");
             return 1;
         }

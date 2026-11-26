@@ -42,7 +42,7 @@ endif
 
 # some old kernels backport this, so check whether put_seccomp_filter still exists
 ifneq ($(shell grep -wq "put_seccomp_filter" $(srctree)/kernel/seccomp.c $(srctree)/include/linux/seccomp.h; echo $$?),0)
-$(info -- $(REPO_NAME)/compat: put_seccomp_filter found)
+$(info -- $(REPO_NAME)/compat: put_seccomp_filter not found)
 ccflags-y += -DKSU_OPTIONAL_SECCOMP_FILTER_RELEASE
 endif
 
@@ -143,7 +143,7 @@ ccflags-y += -DKSU_HAS_ITERATE_DIR
 endif
 
 # UL, look for modern alloc_uid on include/linux/sched.h
-ifeq ($(shell grep -q "alloc_uid.kuid_t" $(srctree)/include/linux/sched.c 2>/dev/null; echo $$?),0)
+ifeq ($(shell grep -q "alloc_uid.kuid_t" $(srctree)/include/linux/sched.h 2>/dev/null; echo $$?),0)
 $(info -- $(REPO_NAME)/compat: modern alloc_Uid found)
 ccflags-y += -DKSU_HAS_MODERN_ALLOC_UID
 endif
