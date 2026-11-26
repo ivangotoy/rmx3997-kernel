@@ -520,10 +520,10 @@ def next_tag(url, token):
 
 
 def shipped(path):
-    """True for files that reach the release ZIP: the kernel tree, the
-    production config and the packaged installer. CI scripts, workflows,
-    docs and development tools do not."""
-    if path.startswith(('rmx3997/config/', 'rmx3997/development/wk-anykernel/')):
+    """True for files that reach the release ZIP: the kernel tree and the
+    production config. CI scripts, workflows, docs and development tools do
+    not; the installer is stock AnyKernel3 at its upstreams.json pin."""
+    if path.startswith('rmx3997/config/'):
         return True
     return not path.startswith(('rmx3997/', '.forgejo/')) and path not in ('README.md', '.gitignore')
 

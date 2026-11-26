@@ -10,8 +10,7 @@ the [RMX3997 README](../README.md), with exact [provenance](../delivery-provenan
 | `test-kmi-whitelist.py` | Targeted whitelist producer/consumer regression; not kernel build or phone proof. |
 | `test-resource-guard.py`, `test-provider.py`, `test-provider-kcompress.py` | Self-contained regressions of the guard supervisor and the provider zram/kcompress function bodies (host shim); run with `--output NEW_DIR` and a disk-backed `TMPDIR`. |
 | Retired tests | The other `test-*.py` scripts were removed on 2026-11-14: they needed fixture trees of an earlier build host or checked source that later upstream updates replaced. They remain in git history. |
-| `wk-anykernel/`, `wk-anykernel-origin.json` | Exact current ZIP installer/tool/license inputs. |
-| `package-oem-candidate.py` | Current shared inspect/package functions. The frozen candidate used the retained IPC package wrapper and explicit exit8 compatibility evidence; the generic CLI's raw ABI PASS requirement is historical for this candidate. |
+| `package-oem-candidate.py` | Current shared inspect/package functions: the release ZIP is stock WildKernels AnyKernel3 at the `anykernel3` pin of `../ci/upstreams.json`, unmodified, plus the Image. The RMX installer adaptation (`wk-anykernel/`) was removed and remains in git history. |
 | `bakasu-susfs.config`, `features.config`, any local `full-feature-oem.config` | Historical seeds/experimental feature selections; not current validated production configuration. |
 | `prepare-core-delivery.py`, `delivery-core/`, `config-parity-inventory*`, `inventory.py`, `retained-artifact-check.json` | Earlier baseline snapshots/inventories; artifact identities and assumptions are historical. |
 | `full-feature-*`, `run-target.py` and other feature/donor experiments | Historical feature investigation/test interfaces; no claim that their full feature inventory is enabled or currently accepted. |
