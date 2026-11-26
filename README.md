@@ -52,7 +52,7 @@ sources, except where the stock vendor modules of this device rule it out:
 | OverlayFS | Layered filesystem support. |
 | BTF and tracing | BTF, kallsyms, kprobes, uprobes, and BPF events. |
 | RCU lazy | Lazy RCU callback batching (`CONFIG_RCU_LAZY=y`). |
-| MGLRU | Built in but off by default (`CONFIG_LRU_GEN=y`, `CONFIG_LRU_GEN_ENABLED` unset); the GKI 6.6 kernel enables it by default. |
+| MGLRU | Multi-generational LRU page reclaim, built in and enabled by default (`CONFIG_LRU_GEN=y`, `CONFIG_LRU_GEN_ENABLED=y`), as in the GKI 6.6 kernel. |
 | ARM64 optimizations | Memory prefetch and 16-byte clear-page alignment. |
 | Full LTO | Full Clang LTO, ZyC Clang 18 (the same compiler as the GKI 6.6 kernel). |
 
@@ -67,7 +67,7 @@ zram driver.
 - NoMount on the upstream track (maxsteeel `dev`), protocol 23
 - Baseband Guard built in
 - CFI enforced for both kernel and OEM modules, stack protector strong
-- MGLRU compiled but left disabled by default
+- MGLRU built in and enabled by default
 
 **Namespaces and containers**
 
@@ -116,7 +116,7 @@ zram driver.
 - The Oplus guard modules (`oplus_security_guard` and companions) and
   `oplus_bsp_sched_assist` are retained and load unchanged under a Clang 18
   kernel built for them
-- MGLRU, CFS bandwidth control and cgroup PIDs are off; enabling them is not a
+- CFS bandwidth control and cgroup PIDs are off; enabling them is not a
   supported configuration
 
 ## Building
@@ -154,7 +154,7 @@ performance or power claim.
   advertise. OEM accesses were classified statically (all flagged reads
   reviewed, none unsafe), but the change is not certified for every binary
 - `TCP_CC_INFO` now reports the larger BBRv3 structure
-- MGLRU, CFS bandwidth control and cgroup PIDs remain off
+- CFS bandwidth control and cgroup PIDs remain off
 - No performance or battery certification is claimed for the scheduling,
   filesystem, cache or logging defaults
 
@@ -184,7 +184,7 @@ One run does the following, and any failed gate fails the run:
    (MemoryMax 16G) under `rmx3997/development/resource-guard.py`, which aborts
    the build before host memory or swap runs out.
 6. Acceptance: root, SUSFS, CFI, LTO and MODVERSIONS contract, the Image's
-   embedded config, required root/SUSFS/NTSync symbols, MGLRU still default-off,
+   embedded config, required root/SUSFS/NTSync symbols,
    and every imported symbol CRC of all stock OEM modules against the built
    `Module.symvers`, then the struct layout gate: every named struct and union
    in the stock kernel's BTF is compared member by member with the built
@@ -304,6 +304,7 @@ current entry points.
 | `rmx3997-v13` | 5.15.226 | Upstream update: Linux 5.15.226 (from 5.15.225), `android13-5.15` security branch update (wrapfd driver, not enabled), BakaSU `cac1e793`, NoMount `c803cbf0` (metamodule 790), Baseband Guard `48d9fdea`, stock struct layouts kept, config refresh |
 | `rmx3997-v14` | 5.15.226 | BakaSU from the owner's fork at `8fa29976`, nothing else changed |
 | `rmx3997-v15` | 5.15.226 | Installer is now stock AnyKernel3 as in the GKI kernels; BBRv3 from WildKernels/kernel_patches as in the GKI kernels; WildKernels unicode decomposition fix; BIC congestion control built in; DroidSpaces tracked; the GKI kernels' BakaSU/SUSFS corrections |
+| `rmx3997-v16` | 5.15.226 | MGLRU on by default, as the GKI kernels |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.
