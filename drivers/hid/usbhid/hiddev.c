@@ -24,6 +24,7 @@
 #include <linux/compat.h>
 #include <linux/vmalloc.h>
 #include <linux/nospec.h>
+#include <linux/refcount.h>
 #include "usbhid.h"
 
 #ifdef CONFIG_USB_DYNAMIC_MINORS
@@ -46,9 +47,23 @@ struct hiddev_list {
 	struct mutex thread_lock;
 };
 
+/*
+ * The reference count lives behind struct hiddev in the same allocation,
+ * so struct hiddev keeps the stock RMX3997 layout.
+ */
+struct hiddev_alloc {
+	struct hiddev hiddev;
+	refcount_t refcount;
+};
+
+static refcount_t *hiddev_refcount(struct hiddev *hiddev)
+{
+	return &container_of(hiddev, struct hiddev_alloc, hiddev)->refcount;
+}
+
 static void hiddev_put(struct hiddev *hiddev)
 {
-	if (refcount_dec_and_test(&hiddev->refcount))
+	if (refcount_dec_and_test(hiddev_refcount(hiddev)))
 		kfree(hiddev);
 }
 
@@ -271,7 +286,7 @@ static int __hiddev_open(struct hiddev *hiddev, struct file *file)
 	spin_unlock_irq(&hiddev->list_lock);
 
 	file->private_data = list;
-	refcount_inc(&hiddev->refcount);
+	refcount_inc(hiddev_refcount(hiddev));
 
 	return 0;
 
@@ -892,14 +907,14 @@ int hiddev_connect(struct hid_device *hid, unsigned int force)
 			return -EINVAL;
 	}
 
-	if (!(hiddev = kzalloc(sizeof(struct hiddev), GFP_KERNEL)))
+	if (!(hiddev = kzalloc(sizeof(struct hiddev_alloc), GFP_KERNEL)))
 		return -ENOMEM;
 
 	init_waitqueue_head(&hiddev->wait);
 	INIT_LIST_HEAD(&hiddev->list);
 	spin_lock_init(&hiddev->list_lock);
 	mutex_init(&hiddev->existancelock);
-	refcount_set(&hiddev->refcount, 1);
+	refcount_set(hiddev_refcount(hiddev), 1);
 	hid->hiddev = hiddev;
 	hiddev->hid = hid;
 	hiddev->exist = 1;
