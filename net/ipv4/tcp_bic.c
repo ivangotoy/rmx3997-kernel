@@ -56,8 +56,11 @@ MODULE_PARM_DESC(initial_ssthresh, "initial value of slow start threshold");
 module_param(smooth_part, int, 0644);
 MODULE_PARM_DESC(smooth_part, "log(B/(B*Smin))/log(B/(B-1))+B, # of RTT from Wmax-B to Wmax");
 
-/* BIC TCP Parameters */
-struct bictcp {
+/*
+ * BIC TCP Parameters. Named bic_ca, not bictcp as upstream: tcp_cubic.c has
+ * its own struct bictcp, and the stock RMX3997 kernel BTF knows only that one.
+ */
+struct bic_ca {
 	u32	cnt;		/* increase cwnd by 1 after ACKs */
 	u32	last_max_cwnd;	/* last maximum snd_cwnd */
 	u32	last_cwnd;	/* the last snd_cwnd */
@@ -67,7 +70,7 @@ struct bictcp {
 	u32	delayed_ack;	/* estimate the ratio of Packets/ACKs << 4 */
 };
 
-static inline void bictcp_reset(struct bictcp *ca)
+static inline void bictcp_reset(struct bic_ca *ca)
 {
 	ca->cnt = 0;
 	ca->last_max_cwnd = 0;
@@ -79,7 +82,7 @@ static inline void bictcp_reset(struct bictcp *ca)
 
 static void bictcp_init(struct sock *sk)
 {
-	struct bictcp *ca = inet_csk_ca(sk);
+	struct bic_ca *ca = inet_csk_ca(sk);
 
 	bictcp_reset(ca);
 
@@ -90,7 +93,7 @@ static void bictcp_init(struct sock *sk)
 /*
  * Compute congestion window to use.
  */
-static inline void bictcp_update(struct bictcp *ca, u32 cwnd)
+static inline void bictcp_update(struct bic_ca *ca, u32 cwnd)
 {
 	if (ca->last_cwnd == cwnd &&
 	    (s32)(tcp_jiffies32 - ca->last_time) <= HZ / 32)
@@ -150,7 +153,7 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd)
 static void bictcp_cong_avoid(struct sock *sk, u32 ack, u32 acked)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
-	struct bictcp *ca = inet_csk_ca(sk);
+	struct bic_ca *ca = inet_csk_ca(sk);
 
 	if (!tcp_is_cwnd_limited(sk))
 		return;
@@ -171,7 +174,7 @@ static void bictcp_cong_avoid(struct sock *sk, u32 ack, u32 acked)
 static u32 bictcp_recalc_ssthresh(struct sock *sk)
 {
 	const struct tcp_sock *tp = tcp_sk(sk);
-	struct bictcp *ca = inet_csk_ca(sk);
+	struct bic_ca *ca = inet_csk_ca(sk);
 
 	ca->epoch_start = 0;	/* end of epoch */
 
@@ -202,7 +205,7 @@ static void bictcp_acked(struct sock *sk, const struct ack_sample *sample)
 	const struct inet_connection_sock *icsk = inet_csk(sk);
 
 	if (icsk->icsk_ca_state == TCP_CA_Open) {
-		struct bictcp *ca = inet_csk_ca(sk);
+		struct bic_ca *ca = inet_csk_ca(sk);
 
 		ca->delayed_ack += sample->pkts_acked -
 			(ca->delayed_ack >> ACK_RATIO_SHIFT);
@@ -222,7 +225,7 @@ static struct tcp_congestion_ops bictcp __read_mostly = {
 
 static int __init bictcp_register(void)
 {
-	BUILD_BUG_ON(sizeof(struct bictcp) > ICSK_CA_PRIV_SIZE);
+	BUILD_BUG_ON(sizeof(struct bic_ca) > ICSK_CA_PRIV_SIZE);
 	return tcp_register_congestion_control(&bictcp);
 }
 
