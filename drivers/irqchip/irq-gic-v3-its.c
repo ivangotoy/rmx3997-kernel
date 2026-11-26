@@ -80,8 +80,6 @@ struct its_baser {
 	u64		val;
 	u32		order;
 	u32		psz;
-	/* Inherited from a sibling ITS, not freed here */
-	bool		shared;
 };
 
 struct its_device;
@@ -120,6 +118,21 @@ struct its_node {
 	u32			pre_its_base; /* for Socionext Synquacer */
 	int			vlpi_redist_offset;
 };
+
+/*
+ * Per table: inherited from a sibling ITS, not freed here. Kept behind
+ * struct its_node in the same allocation, so struct its_baser and struct
+ * its_node keep the stock RMX3997 layout.
+ */
+struct its_node_alloc {
+	struct its_node its;
+	bool tables_shared[GITS_BASER_NR_REGS];
+};
+
+static bool *its_table_shared(struct its_node *its, int i)
+{
+	return &container_of(its, struct its_node_alloc, its)->tables_shared[i];
+}
 
 #define is_v4(its)		(!!((its)->typer & GITS_TYPER_VLPIS))
 #define is_v4_1(its)		(!!((its)->typer & GITS_TYPER_VMAPP))
@@ -2553,7 +2566,7 @@ static void its_free_tables(struct its_node *its)
 
 	for (i = 0; i < GITS_BASER_NR_REGS; i++) {
 		if (its->tables[i].base) {
-			if (!its->tables[i].shared) {
+			if (!*its_table_shared(its, i)) {
 				unsigned long base = (unsigned long)its->tables[i].base;
 				u32 order = its->tables[i].order;
 				u32 npages = PAGE_ORDER_TO_SIZE(order) >> PAGE_SHIFT;
@@ -2654,7 +2667,7 @@ static int its_alloc_tables(struct its_node *its)
 				WARN_ON(i != 2);
 				if ((sibling = find_sibling_its(its))) {
 					*baser = sibling->tables[2];
-					baser->shared = true;
+					*its_table_shared(its, i) = true;
 					its_write_baser(its, baser, baser->val);
 					continue;
 				}
@@ -5308,7 +5321,7 @@ static struct its_node __init *its_node_init(struct resource *res,
 
 	pr_info("ITS %pR\n", res);
 
-	its = kzalloc(sizeof(*its), GFP_KERNEL);
+	its = kzalloc(sizeof(struct its_node_alloc), GFP_KERNEL);
 	if (!its)
 		goto out_unmap;
 
