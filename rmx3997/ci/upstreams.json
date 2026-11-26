@@ -18,19 +18,17 @@
       "mode": "subtree",
       "url": "https://github.com/Baka-SU/BakaSU",
       "ref": "main",
-      "pin": "7b65bde0710b5e7c6f755545cb15a4abd417f3a8",
+      "pin": "cac1e79355ef451539f5c5ba9dc2bda1c64069de",
       "paths": {
         "kernel/": "drivers/kernelsu/"
       },
       "local_modified": [
         "drivers/kernelsu/Kbuild",
-        "drivers/kernelsu/Kconfig",
         "drivers/kernelsu/feature/sucompat.c",
         "drivers/kernelsu/hook/setuid_hook.c",
         "drivers/kernelsu/preinit/preinit.c",
         "drivers/kernelsu/runtime/ksud_integration.c",
         "drivers/kernelsu/selinux/rules.c",
-        "drivers/kernelsu/supercall/dispatch.c",
         "drivers/kernelsu/supercall/supercall.c"
       ]
     },
