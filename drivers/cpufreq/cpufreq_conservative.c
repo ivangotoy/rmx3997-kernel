@@ -62,7 +62,8 @@ static unsigned int cs_dbs_update(struct cpufreq_policy *policy)
 	unsigned int requested_freq = dbs_info->requested_freq;
 	struct dbs_data *dbs_data = policy_dbs->dbs_data;
 	struct cs_dbs_tuners *cs_tuners = dbs_data->tuners;
-	unsigned int load = dbs_update(policy);
+	unsigned int max_sample_load;
+	unsigned int load = dbs_update_sample(policy, &max_sample_load);
 	unsigned int freq_step;
 
 	/*
@@ -89,7 +90,7 @@ static unsigned int cs_dbs_update(struct cpufreq_policy *policy)
 	 * below down_threshold. Otherwise, multiple deferred down steps may
 	 * cause a net frequency decrease outside the downscaling region.
 	 */
-	if (policy_dbs->max_sample_load < cs_tuners->down_threshold &&
+	if (max_sample_load < cs_tuners->down_threshold &&
 	    policy_dbs->idle_periods < UINT_MAX) {
 		unsigned int freq_steps = policy_dbs->idle_periods * freq_step;
 

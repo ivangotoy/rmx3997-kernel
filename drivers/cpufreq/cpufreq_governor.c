@@ -111,7 +111,14 @@ void gov_update_cpu_data(struct dbs_data *dbs_data)
 }
 EXPORT_SYMBOL_GPL(gov_update_cpu_data);
 
-unsigned int dbs_update(struct cpufreq_policy *policy)
+/*
+ * Like dbs_update(), and also report the maximum load of the current policy
+ * sample in *max_sample_load. The value is handed to the caller instead of
+ * being stored in struct policy_dbs_info, so that struct keeps the stock
+ * RMX3997 layout.
+ */
+unsigned int dbs_update_sample(struct cpufreq_policy *policy,
+			       unsigned int *max_sample_load_out)
 {
 	struct policy_dbs_info *policy_dbs = policy->governor_data;
 	struct dbs_data *dbs_data = policy_dbs->dbs_data;
@@ -239,9 +246,17 @@ unsigned int dbs_update(struct cpufreq_policy *policy)
 	}
 
 	policy_dbs->idle_periods = idle_periods;
-	policy_dbs->max_sample_load = max_sample_load;
+	*max_sample_load_out = max_sample_load;
 
 	return max_load;
+}
+EXPORT_SYMBOL_GPL(dbs_update_sample);
+
+unsigned int dbs_update(struct cpufreq_policy *policy)
+{
+	unsigned int max_sample_load;
+
+	return dbs_update_sample(policy, &max_sample_load);
 }
 EXPORT_SYMBOL_GPL(dbs_update);
 
