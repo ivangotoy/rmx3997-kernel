@@ -4,32 +4,14 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 ## Changes in this release
 
-- `bakasu` (`main`): `5d6d1843`..`7b65bde0`, 1 upstream commit.
-- `production.config` refreshed with `olddefconfig` for the new upstream code: only new symbols were added, no existing option changed.
-- Other changes on main since the previous release:
-  - can: keep the stock can_skb_priv and uniqframe layouts
-  - tipc: keep the stock tipc_crypto layout
-  - pinctrl: sunxi: keep the stock sunxi_pinctrl layout
-  - strparser: keep the stock strparser flag bitfields
-  - HID: steam: keep the stock steam_device layout
-  - netlink: keep the stock netlink_compare_arg layout
-  - kprobes: keep the stock kprobe_blacklist_entry layout
-  - tracing: keep the stock field_var_hist layout
-  - f2fs: keep the gc_thread pointer layout of f2fs_sb_info
-  - genetlink: keep the stock ctrl_dump_policy_ctx layout
-  - bridge: keep the stock net_bridge and br_frame_type layouts
-  - cdc-acm: keep the stock struct acm layout
-  - Merge AOSP android13-5.15-lts 0d108e1e8c7b (5.15.225)
-  - nomount: report encode_fh failure as FILEID_INVALID
-  - upstream: nomount 00e7c5d4fdbf..9ff48a329f36
-  - update-binary: say why the backend stops before any work
-  - install-on-device.sh: say why the installer stops
-  - susfs: update to gki-android13-5.15 c1d1da42 (v2.4.0)
-  - upstream: nomount 6298d58af34a..00e7c5d4fdbf
-  - upstream: bakasu 548d1dda060c..5d6d1843c893
-  - UPSTREAM: Bluetooth: L2CAP: refuse __l2cap_chan_add if chan already has conn
-  - UPSTREAM: Bluetooth: L2CAP: access chan->conn safely in get/setsockopt
-  - UPSTREAM: Bluetooth: RFCOMM: connect the session socket without rfcomm_mutex
+- Linux 5.15.225 to 5.15.226: merge of AOSP `android13-5.15-lts` `0d108e1e`..`52f96c99`. The merge keeps the OEM F2FS compression and dedup out-of-place checks beside the new forced out-of-place update for compressed files, and the ucount rlimit fixes work on the extended ucount counters.
+- Stock struct layouts kept for vendor modules: where an LTS fix changed a struct of the stock kernel, the fix is kept and its new state lives outside the struct (behind it in the same allocation, in padding, in an existing member or as a function argument). Covered: `regulator_irq`, `hiddev`, `damon_ctx`, `wacom_hdev_data`, `pk_device` and `pcmidi_snd`, `tipc_member`, `assoc_array_edit`, `policy_dbs_info`, `ifa6_config`, `skb_gso_cb`, `ovl_aio_req`, `ovl_lookup_data`, `ovl_readdir_data`, `its_baser` and `its_node`, `vgic_irq`, `kvm_vcpu_arch`.
+- `aosp-security` (`android13-5.15`): `3540cf72`..`7f10d301`, 65 commits applied, 1 already present through the LTS merge: wrapfd driver updates (the driver is not enabled in this kernel) and `anon_inode_getfile_secure()`.
+- `bakasu` (`main`): `7b65bde0`..`cac1e793`, 24 upstream commits, now BakaSU 35286 (v4.2.0-rc3): SELinux hide split into a SUSFS and an automatic variant, `inode_setxattr` LSM hook, SUSFS priority and sus_path uid filters refreshed after the manager is tracked, logd may read root process attributes, SELinux policy generation tracking fixes.
+- `nomount` (`dev`): `9ff48a32`..`c803cbf0`, 15 upstream commits, still NoMount protocol 23: virtual backing paths resolve to their real object, backing directory lookups are proxied, rename targets are rejected before rebinding, rules whose backing was replaced are rebound, native parents are pinned with full paths. Install the NoMount metamodule build with versionCode 790 together with this kernel.
+- `baseband-guard` (`main`): `028ff7fd`..`48d9fdea`, 1 upstream commit (version guards for newer kernels; no change for 5.15).
+- Component versions in this release: AOSP `android13-5.15-lts` `52f96c99` (Linux 5.15.226), `android13-5.15` security branch `7f10d301`, BakaSU `cac1e793` (35286), SUSFS `c1d1da42` (v2.4.0), NoMount `c803cbf0`, Baseband Guard `48d9fdea`, BBRv3 donor `efc078ab`, AnyKernel3 `gki-2.0` `e1e9dce9`.
+- `production.config` refreshed with `olddefconfig`: only the version header changed and one existing BakaSU option moved within its menu; no option was added, removed or changed.
 
 ## Kernel features
 
@@ -38,7 +20,7 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 | Base | Linux {version}, Android13-5.15 GKI, KMI 8: AOSP `android13-5.15-lts` plus the `android13-5.15` security fixes (November 2026 bulletin) |
 | Compiler | ZyC Clang 18, Full LTO |
 | Root | BakaSU (KernelSU fork), SUSFS |
-| Module mounting | NoMount, protocol 23 (metamodule versionCode 775) |
+| Module mounting | NoMount, protocol 23 (metamodule versionCode 790) |
 | Security | Clang CFI for the kernel and OEM modules, strong stack protector, Baseband Guard |
 | OEM compatibility | Stock vendor modules load unchanged: OEM security guard, sched_assist, binder strategy, F2FS appboost and compression, ZRAM and HybridSwap |
 | TCP congestion control | BBRv3 (`bbr3`, default) with per-socket context ownership, BBR, CUBIC, Westwood, HTCP |

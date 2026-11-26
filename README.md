@@ -1,4 +1,4 @@
-# realme 12x 5G (RMX3997, EU) kernel - Linux 5.15.225
+# realme 12x 5G (RMX3997, EU) kernel - Linux 5.15.226
 
 Custom GKI-compatible kernel source for the **realme 12x 5G**, model RMX3997,
 EU variant (build RMX3997_16.0.5.1300(EX01)), MediaTek Dimensity 6100+
@@ -21,10 +21,10 @@ come from Forgejo Actions; see Releases for downloads.
 | --- | --- |
 | Device | realme 12x 5G, RMX3997, EU variant (EX01), Dimensity 6100+ (MT6835) |
 | Device ROM | RMX3997_16.0.5.1300(EX01) |
-| Kernel | Linux 5.15.225, Android13-5.15 GKI KMI8 |
+| Kernel | Linux 5.15.226, Android13-5.15 GKI KMI8 |
 | Compiler | ZyC Clang 18.0.0git (LLVM `3dea0aa8`), Full LTO, strict CFI |
 | Default TCP congestion control | `bbr3` (BBRv3 backport); upstream `bbr` still available |
-| Metamodule support | NoMount protocol 23 (metamodule versionCode 775) |
+| Metamodule support | NoMount protocol 23 (metamodule versionCode 790) |
 
 ## Features
 
@@ -266,6 +266,7 @@ current entry points.
 | `rmx3997-v10` | 5.15.223 | `android13-5.15-lts` update (exec timer, memcg and tracing fixes), BakaSU 35259 |
 | `rmx3997-v11` | 5.15.223 | NoMount `6298d58a` engine update (metamodule 713), adbd and jdwp-control sockets hidden from apps, `select_idle_capacity` scan order, 500 ms default timeout for userspace wakelocks, fanotify, cgroup v1 `devices` controller and `br_netfilter` (all three with unchanged stock struct layouts) |
 | `rmx3997-v12` | 5.15.225 | Upstream update: Linux 5.15.225 (from 5.15.223), BakaSU `7b65bde0`, config refresh |
+| `rmx3997-v13` | 5.15.226 | Upstream update: Linux 5.15.226 (from 5.15.225), `android13-5.15` security branch update (wrapfd driver, not enabled), BakaSU `cac1e793`, NoMount `c803cbf0` (metamodule 790), Baseband Guard `48d9fdea`, 16 stock struct layouts kept, config refresh |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.
