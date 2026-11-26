@@ -58,12 +58,6 @@ static u32 fib_multipath_hash_fields_all_mask __maybe_unused =
 	FIB_MULTIPATH_HASH_FIELD_ALL_MASK;
 static int tcp_plb_max_rounds = 31;
 static int tcp_plb_max_cong_thresh = 256;
-
-static int tcp_min_rcvbuf = 4096;
-
-/* obsolete */
-static int sysctl_tcp_low_latency __read_mostly;
-
 unsigned int tcp_plb_net_id __read_mostly;
 
 struct tcp_plb_net_context *tcp_get_plb_ctx(struct net *net)
@@ -176,6 +170,12 @@ static struct pernet_operations plb_net_ops = {
 	.id   = &tcp_plb_net_id,
 	.size = sizeof(struct tcp_plb_net_context),
 };
+
+
+static int tcp_min_rcvbuf = 4096;
+
+/* obsolete */
+static int sysctl_tcp_low_latency __read_mostly;
 
 /* Update system visible IP port range */
 static void set_local_port_range(struct net *net, int range[2])

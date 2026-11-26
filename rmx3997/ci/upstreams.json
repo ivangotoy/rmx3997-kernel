@@ -97,10 +97,10 @@
     },
     "bbrv3": {
       "mode": "report",
-      "url": "https://github.com/Bouteillepleine/kernel_patches",
+      "url": "https://github.com/WildKernels/kernel_patches",
       "ref": "main",
-      "pin": "888eebe6f5d7c64c61705bd1640ca1cd3613b982",
-      "note": "donor common/bbrv3/0001-net-tcp-backport-BBRv3-to-android13-5.15.patch (hardened) plus 0003-net-tcp-bbr3-own-the-private-ctx-per-socket-5.10-6.6.patch; 0002 (debugfs, tunables) not taken; port by hand, the TCP struct changes need the layout review"
+      "pin": "70c394f16d82b0f85a4f07617630d82dde6d203c",
+      "note": "donor common/bbrv3/0001-net-tcp-backport-BBRv3-to-android13-5.15-lts.patch plus the GKI kernels' android12-5.10-bbr3-ctx-ownership.patch (per-socket ctx ownership, flag-dispatched loss hook), as the GKI builds take them; build.sh checks the loss-hook flag; port by hand, the TCP struct changes need the layout review"
     },
     "anykernel3": {
       "mode": "report",
