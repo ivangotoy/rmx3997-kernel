@@ -4,8 +4,8 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 
 ## Changes in this release
 
-- `bakasu`: now built from the owner's BakaSU fork (`ivangotoy/BakaSU`, `main`) instead of the upstream repository: `cac1e793`..`8fa29976`, now BakaSU 35463 (v4.2.0-rc3-ci14). The fork contains every upstream commit up to `cac1e793` plus its own kernel fixes. Those in code this kernel compiles: overlong and empty umount paths are refused, `init_module` keeps `-EPERM` for callers that cannot load modules, a `set_cred_ucounts` failure is reported from the root profile escape, xperm ranges that do not parse are rejected, the kernel log is read with a kmsg dump iterator, and SELinux policy changes are applied when the saved original symbols are stale. The local integration changes are unchanged.
-- Nothing else changed: Linux 5.15.226, the `android13-5.15` security branch `7f10d301`, SUSFS `c1d1da42` (v2.4.0), NoMount `c803cbf0` (metamodule versionCode 790), Baseband Guard `48d9fdea`, BBRv3 and AnyKernel3 are the same as in `rmx3997-v13`, and `production.config` is unchanged.
+- Installer: the ZIP is now stock WildKernels AnyKernel3 (`gki-2.0` `e1e9dce9`), unmodified, plus the `Image` and `rmx3997-provenance.json`, packaged the same way as the GKI kernels. The RMX installer adaptation is gone: no device, partition or boot property checks, no AVB rewrite, no booted-Android-only launcher. It flashes like any AnyKernel3 ZIP and keeps no backup of the previous boot image.
+- Nothing else changed: the kernel is built from the same sources as `rmx3997-v14` (Linux 5.15.226, BakaSU `8fa29976` from the owner's fork, SUSFS `c1d1da42` (v2.4.0), NoMount `c803cbf0` (metamodule versionCode 790), Baseband Guard `48d9fdea`), and `production.config` is unchanged.
 
 ## Kernel features
 

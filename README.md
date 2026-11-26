@@ -100,12 +100,13 @@ environment.
 
 ## Installing
 
-The release ZIP is installable from a rooted, booted Android through its own
-installer: it splits the active boot partition, preserves ramdisk/DT/header,
-repacks with the new `Image`, verifies the original AVB metadata and writes
-truthful unsigned AVB `NONE` metadata, keeping a backup under
-`/data/adb/rmx3997-ak3/work.*`. It does not touch `init_boot`, `vendor_boot` or
-`vbmeta`, and it does not reboot or roll back on its own.
+The release ZIP is stock [WildKernels AnyKernel3](https://github.com/WildKernels/AnyKernel3)
+at the `anykernel3` pin of `rmx3997/ci/upstreams.json`, unmodified, plus the
+`Image` and `rmx3997-provenance.json`, packaged the same way as the GKI kernels.
+Flash it like any AnyKernel3 ZIP. It splits the boot partition of the active
+slot, repacks it with the new `Image` (ramdisk, DT and header kept) and writes
+it back; `init_boot` and `vendor_boot` are not touched. It keeps no backup of
+the previous boot image.
 
 ## Verification
 
@@ -226,11 +227,9 @@ step) posts nothing: it ends red before any candidate is prepared.
 
 The kernel source is Linux, licensed under GPL-2.0; [COPYING](COPYING) is the
 short pointer this tree ships and the full text is in
-[LICENSES/preferred/GPL-2.0](LICENSES/preferred/GPL-2.0). The AnyKernel3 installer scripts under
-`rmx3997/development/wk-anykernel/` keep their upstream license, reproduced in
-that directory. The bundled installer tools keep their own licenses and carry
-provenance records beside them: avbroot (GPL-3.0), magiskboot (GPL-3.0) and
-BusyBox (GPL-2.0), each with its license text and upstream source location.
+[LICENSES/preferred/GPL-2.0](LICENSES/preferred/GPL-2.0). The release ZIP carries
+AnyKernel3 unmodified, under its own license (included in the ZIP) and with the
+licenses of its bundled tools.
 
 The project's own build, packaging and acceptance scripts are provided under
 GPL-2.0 as well, to match the kernel they operate on.
@@ -244,8 +243,7 @@ vendor firmware, proprietary module or signing material is redistributed.
 `rmx3997/build-argv.json`, `build-environment.json` recorded build invocation.
 `rmx3997/delivery-provenance.json` machine-readable history of every delivery,
 including superseded ones.
-`rmx3997/development/` staged build, packaging and acceptance tooling, including
-the WildKernels-derived installer sources in `wk-anykernel/`.
+`rmx3997/development/` staged build, packaging and acceptance tooling.
 `rmx3997/installer/`, `rmx3997/provider/`, `approved-baseline.json` and the
 config fragments are earlier interfaces kept for provenance; they are not
 current entry points.
@@ -268,6 +266,7 @@ current entry points.
 | `rmx3997-v12` | 5.15.225 | Upstream update: Linux 5.15.225 (from 5.15.223), BakaSU `7b65bde0`, config refresh |
 | `rmx3997-v13` | 5.15.226 | Upstream update: Linux 5.15.226 (from 5.15.225), `android13-5.15` security branch update (wrapfd driver, not enabled), BakaSU `cac1e793`, NoMount `c803cbf0` (metamodule 790), Baseband Guard `48d9fdea`, stock struct layouts kept, config refresh |
 | `rmx3997-v14` | 5.15.226 | BakaSU from the owner's fork at `8fa29976`, nothing else changed |
+| `rmx3997-v15` | 5.15.226 | Installer is now stock AnyKernel3 as in the GKI kernels, nothing else changed |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.
