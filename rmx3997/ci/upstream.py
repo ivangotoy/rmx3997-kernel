@@ -216,7 +216,10 @@ def cache(name, url, refs, shallow_since=None):
     if not d.is_dir():
         d.parent.mkdir(parents=True, exist_ok=True)
         git('init', '-q', '--bare', str(d))
-    args = ['-C', str(d), 'fetch', '-q', '--no-tags']
+    # --prune: refs (tags included) that the remote no longer has are dropped,
+    # so a cache reused after a url change (bakasu moved to a fork) carries no
+    # tags of the old remote into bakasu_identity()'s git describe.
+    args = ['-C', str(d), 'fetch', '-q', '--no-tags', '--prune']
     if shallow_since:
         args.append('--shallow-since=' + shallow_since)
     specs = ['+refs/heads/%s:refs/heads/%s' % (r, r) for r in refs]

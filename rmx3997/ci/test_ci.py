@@ -897,6 +897,45 @@ class CacheFetchDeadline(unittest.TestCase):
         self.assertIn('fetch: timed out after %d s' % upstream.GIT_TRANSFER_TIMEOUT, p.call_args[0][0])
 
 
+class BakasuCacheFollowsUrl(unittest.TestCase):
+    """A cache reused after the bakasu url changes (upstream to a fork) keeps no
+    tags of the old remote, so bakasu_identity() describes the tip exactly as
+    a fresh cache of the new url does."""
+
+    def git(self, *args, cwd=None):
+        return subprocess.run(['git', *args], cwd=cwd, env=upstream.GIT_ENV, check=True,
+                              capture_output=True, text=True).stdout.strip()
+
+    def commit(self, repo, msg):
+        self.git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty',
+                 '-m', msg, cwd=repo)
+        return self.git('rev-parse', 'HEAD', cwd=repo)
+
+    def test_old_remote_tags_are_dropped(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            old, fork = d / 'old', d / 'fork'
+            self.git('init', '-q', '-b', 'main', str(old))
+            self.commit(old, 'one')
+            self.git('tag', 'v1', cwd=old)
+            self.commit(old, 'two')
+            self.git('tag', 'v1-upstream-only', cwd=old)
+            self.git('clone', '-q', '-b', 'main', str(old), str(fork))
+            for t in self.git('tag', '-l', cwd=fork).split():
+                self.git('tag', '-d', t, cwd=fork)
+            self.git('tag', 'v1', 'HEAD~1', cwd=fork)
+            tip = self.commit(fork, 'three')
+            with mock.patch.object(upstream, 'CACHE', d / 'reused'):
+                upstream.cache('bakasu', old.as_uri(), ['main'])
+                reused = upstream.cache('bakasu', fork.as_uri(), ['main'])
+            with mock.patch.object(upstream, 'CACHE', d / 'fresh'):
+                fresh = upstream.cache('bakasu', fork.as_uri(), ['main'])
+            describe = lambda c: self.git('-C', str(c), 'describe', '--tags', '--abbrev=0', tip)
+            self.assertEqual(describe(fresh), 'v1')
+            self.assertEqual(describe(reused), describe(fresh))
+            self.assertEqual(self.git('-C', str(reused), 'tag', '-l', 'v1-upstream-only'), '')
+
+
 class PruneStages(unittest.TestCase):
     """prune-stages removes only the build trees of old run-/upstream- stages."""
 
