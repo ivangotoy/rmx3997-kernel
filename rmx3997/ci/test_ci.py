@@ -1097,6 +1097,68 @@ class NextTagPrevious(unittest.TestCase):
             self.assertEqual(upstream.next_tag('u', 't'), ('rmx3997-v2', 'a' * 40))
 
 
+def workflow_run(path, step):
+    """The run: | block of one workflow step, de-indented as YAML does."""
+    lines = path.read_text().splitlines()
+    i = lines.index('      - name: ' + step)
+    while lines[i].strip() != 'run: |':
+        i += 1
+    body = []
+    for line in lines[i + 1:]:
+        if line.strip() and not line.startswith(' ' * 10):
+            break
+        body.append(line[10:])
+    return '\n'.join(body).rstrip('\n') + '\n'
+
+
+class SkipReleasedTag(unittest.TestCase):
+    """build workflow: a tag whose release is published is skipped; an
+    unpublished draft or an unreadable answer fails the run instead."""
+    WORKFLOW = CI.parents[1] / '.forgejo/workflows/build-rmx3997.yml'
+
+    def run_step(self, code, body):
+        script = workflow_run(self.WORKFLOW, 'Skip a tag that is already released')
+        with tempfile.TemporaryDirectory() as d:
+            stubs = Path(d, 'stubs')
+            stubs.mkdir()
+            Path(stubs, 'curl').write_text(
+                '#!/bin/sh\nout=\nwhile [ $# -gt 0 ]; do [ "$1" = -o ] && { out=$2; shift; }; shift; done\n'
+                '[ -n "$out" ] && printf %s "$STUB_BODY" > "$out"\nprintf %s "$STUB_CODE"\n')
+            Path(stubs, 'curl').chmod(0o755)
+            Path(d, '.git').mkdir()
+            env_file = Path(d, 'forgejo.env')
+            env_file.write_text('')
+            r = subprocess.run(['bash', '-c', script], capture_output=True, text=True, cwd=d, env={
+                'PATH': '%s:/usr/bin:/bin' % stubs, 'FORGEJO_API_URL': 'https://forge.example.invalid/api/v1',
+                'FORGEJO_REPOSITORY': 'o/r', 'FORGEJO_REF_NAME': 'rmx3997-v99', 'FORGEJO_ENV': str(env_file),
+                'STUB_CODE': code, 'STUB_BODY': body})
+            return r.returncode, r.stdout + r.stderr, env_file.read_text()
+
+    @unittest.skipUnless(WORKFLOW.exists(), 'workflows not in this tree')
+    def test_published_release_is_skipped(self):
+        rc, out, env = self.run_step('200', json.dumps({'draft': False, 'tag_name': 'rmx3997-v99'}))
+        self.assertEqual((rc, env), (0, 'RMX_SKIP=1\n'), out)
+        self.assertIn('SKIP: rmx3997-v99 already has a release', out)
+
+    @unittest.skipUnless(WORKFLOW.exists(), 'workflows not in this tree')
+    def test_no_release_builds(self):
+        rc, out, env = self.run_step('404', '{"message": "made-up not found"}')
+        self.assertEqual((rc, env), (0, ''), out)
+
+    @unittest.skipUnless(WORKFLOW.exists(), 'workflows not in this tree')
+    def test_draft_fails(self):
+        rc, out, env = self.run_step('200', json.dumps({'draft': True, 'tag_name': 'rmx3997-v99'}))
+        self.assertEqual((rc, env), (1, ''), out)
+        self.assertIn('FAIL: rmx3997-v99 has an unpublished draft release', out)
+
+    @unittest.skipUnless(WORKFLOW.exists(), 'workflows not in this tree')
+    def test_unreadable_answer_fails(self):
+        rc, out, env = self.run_step('200', 'made-up, not json')
+        self.assertEqual((rc, env), (1, ''), out)
+        self.assertIn('FAIL: release lookup answer has no draft state', out)
+        self.assertNotIn('Traceback', out)
+
+
 class InitBootIsAnArgument(unittest.TestCase):
     """installer-ufs-run.py takes the stock init_boot image as an argument
     instead of a host path written into the public tool."""

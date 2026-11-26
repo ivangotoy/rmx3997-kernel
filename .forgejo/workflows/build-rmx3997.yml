@@ -84,17 +84,24 @@ jobs:
       # workflows, and publishes the release in the same run. Both workflows
       # share one concurrency group, so a run for such a tag could only start
       # after that release exists: skip it instead of building the same commit
-      # twice. Any lookup result other than 200 or 404 fails the run.
+      # twice. Any lookup result other than 200 or 404 fails the run, and so
+      # does a 200 for an unpublished draft: it is not a release yet.
       - name: Skip a tag that is already released
         if: forgejo.ref_type == 'tag'
         run: |
           set -Eeuo pipefail
-          code=$(curl -sS --connect-timeout 30 --max-time 60 --retry 5 --retry-delay 10 -o /dev/null -w '%{http_code}' \
+          # curl rewrites the -o file on a retry; inside .git/ it stays out of git status.
+          code=$(curl -sS --connect-timeout 30 --max-time 60 --retry 5 --retry-delay 10 -o .git/release-lookup.json -w '%{http_code}' \
             "$FORGEJO_API_URL/repos/$FORGEJO_REPOSITORY/releases/tags/$FORGEJO_REF_NAME")
           case "$code" in
             404) echo "no release for $FORGEJO_REF_NAME yet; building" ;;
-            200) echo "SKIP: $FORGEJO_REF_NAME already has a release; not building it again"
-                 echo 'RMX_SKIP=1' >> "$FORGEJO_ENV" ;;
+            200) state=$(python3 -I -c 'import json,sys; print({False: "published", True: "draft"}.get(json.load(open(sys.argv[1])).get("draft"), "unknown"))' .git/release-lookup.json 2>/dev/null || echo unknown)
+                 case "$state" in
+                   published) echo "SKIP: $FORGEJO_REF_NAME already has a release; not building it again"
+                              echo 'RMX_SKIP=1' >> "$FORGEJO_ENV" ;;
+                   draft) echo "FAIL: $FORGEJO_REF_NAME has an unpublished draft release; publish or delete it on the server, then run again"; exit 1 ;;
+                   *) echo 'FAIL: release lookup answer has no draft state'; exit 1 ;;
+                 esac ;;
             *) echo "FAIL: release lookup returned HTTP $code"; exit 1 ;;
           esac
 
