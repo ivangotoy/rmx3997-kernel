@@ -58,7 +58,7 @@
       "mode": "subtree",
       "url": "https://github.com/maxsteeel/nomount",
       "ref": "dev",
-      "pin": "9ff48a329f367c842af04158ff4f43cfa200fd66",
+      "pin": "c803cbf0ad2c2dce695cece50259c16d0a84361c",
       "paths": {
         "kernel/src/": "fs/nomount/"
       },
@@ -67,8 +67,7 @@
         "kernel/src/nomount.h"
       ],
       "local_modified": [
-        "fs/nomount/nomount.c",
-        "fs/nomount/nomount.h"
+        "fs/nomount/nomount.c"
       ],
       "note": "install the matching NoMount metamodule build with this kernel"
     },

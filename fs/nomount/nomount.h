@@ -98,11 +98,11 @@ struct nm_child_array {
 };
 
 struct nm_dir_node {
-    struct rcu_work free_work;
+    struct rcu_head rcu;
     struct nm_child_array __rcu *children;
     int readdir_count;
     atomic_t refs;
-    struct dentry *pinned_dentry;
+    struct path pinned_path;
     struct nm_leaf *owner;
 };
 
@@ -515,21 +515,6 @@ static bool nm_is_kernfs(struct super_block *sb)
     case SECURITYFS_MAGIC:
     case BPF_FS_MAGIC:
     case DEBUGFS_MAGIC:
-        return true;
-    default:
-        return false;
-    }
-}
-
-static bool nm_dir_lookup_tolerates_cross_sb(struct super_block *sb)
-{
-    switch (sb->s_magic) {
-    case F2FS_SUPER_MAGIC:
-    case EXT4_SUPER_MAGIC:
-#if defined(EROFS_SUPER_MAGIC_V1) && BITS_PER_LONG == 64
-    case EROFS_SUPER_MAGIC_V1:
-#endif
-    case SQUASHFS_MAGIC:
         return true;
     default:
         return false;
