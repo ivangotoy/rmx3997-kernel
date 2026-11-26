@@ -621,6 +621,15 @@ def cmd_prune_stages(a):
 TRIES = 6
 
 
+def close_response(e):
+    """Close the response an HTTPError carries, so its connection is released
+    now instead of at garbage collection; an error without one is left alone."""
+    try:
+        e.close()
+    except (AttributeError, OSError):
+        pass
+
+
 def open_url(req):
     """urlopen with bounded retry. HTTP 429 is returned before the request is
     processed, so any method is repeated (Forgejo rate-limits bursts). A
@@ -633,18 +642,21 @@ def open_url(req):
             with urllib.request.urlopen(req, timeout=300) as r:
                 return r.status, r.read()
         except urllib.error.HTTPError as e:
-            if not (e.code == 429 or (method == 'GET' and e.code in (500, 502, 503, 504))) \
-                    or attempt == TRIES:
-                try:
-                    return e.code, e.read()
-                except (OSError, http.client.HTTPException):
-                    # the error body is only a hint; every caller acts on the status
-                    return e.code, b''
             try:
-                wait = max(0, min(int(e.headers.get('Retry-After')), 300))
-            except (TypeError, ValueError):
-                wait = 10 * attempt
-            why = 'HTTP %d' % e.code
+                if not (e.code == 429 or (method == 'GET' and e.code in (500, 502, 503, 504))) \
+                        or attempt == TRIES:
+                    try:
+                        return e.code, e.read()
+                    except (OSError, http.client.HTTPException):
+                        # the error body is only a hint; every caller acts on the status
+                        return e.code, b''
+                try:
+                    wait = max(0, min(int(e.headers.get('Retry-After')), 300))
+                except (TypeError, ValueError):
+                    wait = 10 * attempt
+                why = 'HTTP %d' % e.code
+            finally:
+                close_response(e)
         except (OSError, http.client.HTTPException) as e:
             # URLError, timeouts and resets are OSError; IncompleteRead is not.
             why = str(getattr(e, 'reason', None) or e) or type(e).__name__

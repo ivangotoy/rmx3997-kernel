@@ -1198,6 +1198,56 @@ class SkipReleasedTag(unittest.TestCase):
                 self.assertNotIn('Traceback', out)
 
 
+class ErrorResponsesAreClosed(unittest.TestCase):
+    """Every HTTP error answer the CI scripts catch is closed at once (its
+    connection released), whether it is returned, repeated or raised."""
+
+    def err(self, code, headers=None):
+        fp = io.BytesIO(b'made-up error body')
+        return urllib.error.HTTPError('https://forge.example.invalid/api/v1/x', code, 'x',
+                                      headers or {}, fp), fp
+
+    def test_open_url_returned_answer(self):
+        e, fp = self.err(404)
+        with mock.patch('urllib.request.urlopen', side_effect=e):
+            st, body = rmx_ci.open_url(urllib.request.Request('https://forge.example.invalid/api/v1/x'))
+        self.assertEqual((st, body), (404, b'made-up error body'))
+        self.assertTrue(fp.closed)
+
+    def test_open_url_repeated_answer(self):
+        e, fp = self.err(503, {'Retry-After': '0'})
+        with mock.patch('urllib.request.urlopen', side_effect=[e, Reply(200, b'ok')]), \
+                mock.patch.object(rmx_ci.time, 'sleep'), mock.patch('builtins.print'):
+            st, body = rmx_ci.open_url(urllib.request.Request('https://forge.example.invalid/api/v1/x'))
+        self.assertEqual((st, body), (200, b'ok'))
+        self.assertTrue(fp.closed)
+
+    def test_latest_release_raised_answer(self):
+        e, fp = self.err(404)
+        with mock.patch('urllib.request.urlopen', side_effect=e), \
+                self.assertRaises(urllib.error.HTTPError) as r:
+            upstream.latest_release('o/r')
+        self.assertEqual(r.exception.code, 404)
+        self.assertTrue(fp.closed)
+
+    def test_latest_release_repeated_answer(self):
+        e, fp = self.err(502)
+        with mock.patch('urllib.request.urlopen', side_effect=[e, Reply(200, b'{"tag_name": "v2"}')]), \
+                mock.patch.object(upstream.time, 'sleep'), mock.patch('builtins.print'):
+            self.assertEqual(upstream.latest_release('o/r'), 'v2')
+        self.assertTrue(fp.closed)
+
+    def test_api_returned_and_repeated_answers(self):
+        e1, fp1 = self.err(429, {'Retry-After': '0'})
+        e2, fp2 = self.err(404)
+        with mock.patch('urllib.request.urlopen', side_effect=[e1, e2]), \
+                mock.patch.object(upstream.time, 'sleep'), mock.patch('builtins.print'):
+            self.assertEqual(upstream.api('GET', 'https://forge.example.invalid/api/v1/x', 'made-up-token'),
+                             (404, None))
+        self.assertTrue(fp1.closed)
+        self.assertTrue(fp2.closed)
+
+
 class InitBootIsAnArgument(unittest.TestCase):
     """installer-ufs-run.py takes the stock init_boot image as an argument
     instead of a host path written into the public tool."""

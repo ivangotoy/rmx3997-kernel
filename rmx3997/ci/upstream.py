@@ -127,6 +127,15 @@ def remote_head(url, ref):
     return lines[0].split()[0]
 
 
+def close_response(e):
+    """Close the response an HTTPError carries, so its connection is released
+    now instead of at garbage collection; an error without one is left alone."""
+    try:
+        e.close()
+    except (AttributeError, OSError):
+        pass
+
+
 def latest_release(repo):
     """Tag of the latest GitHub release (anonymous API). A connection error,
     timeout, truncated answer or HTTP 5xx is repeated, bounded; any other HTTP
@@ -139,6 +148,7 @@ def latest_release(repo):
             with urllib.request.urlopen(req, timeout=60) as r:
                 return json.load(r)['tag_name']
         except urllib.error.HTTPError as e:
+            close_response(e)
             if e.code not in (500, 502, 503, 504) or attempt == TRIES:
                 raise
             why = 'HTTP %d' % e.code
@@ -451,6 +461,7 @@ def api(method, url, token, data=None):
                 raw = r.read()
                 return r.status, json.loads(raw) if raw else None
         except urllib.error.HTTPError as e:
+            close_response(e)
             if e.code == 429 and attempt < TRIES:
                 backoff(e.headers.get('Retry-After'), attempt)
                 continue
