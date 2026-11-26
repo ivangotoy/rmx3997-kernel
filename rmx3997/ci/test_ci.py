@@ -776,6 +776,27 @@ class LsRemoteStallAbort(unittest.TestCase):
         self.assert_low_speed(fetches[0], False)
 
 
+class CacheFetchDeadline(unittest.TestCase):
+    """The upstream cache fetch runs under the transfer deadline and fails with
+    a FAIL line when it expires."""
+
+    def test_fetch_times_out(self):
+        seen = []
+
+        def run(argv, **kw):
+            seen.append(kw.get('timeout'))
+            raise subprocess.TimeoutExpired(argv, kw['timeout'])
+
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(upstream, 'CACHE', Path(d)), \
+                mock.patch.object(upstream.subprocess, 'run', run), \
+                mock.patch('builtins.print') as p, self.assertRaises(SystemExit) as e:
+            Path(d, 'made-up.git').mkdir()
+            upstream.cache('made-up', 'https://git.example.invalid/o/r.git', ['main'])
+        self.assertEqual(e.exception.code, 1)
+        self.assertEqual(seen, [upstream.GIT_TRANSFER_TIMEOUT])
+        self.assertIn('fetch: timed out after %d s' % upstream.GIT_TRANSFER_TIMEOUT, p.call_args[0][0])
+
+
 class PruneStages(unittest.TestCase):
     """prune-stages removes only the build trees of old run-/upstream- stages."""
 
