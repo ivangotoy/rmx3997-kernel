@@ -107,7 +107,7 @@
       "url": "https://github.com/WildKernels/AnyKernel3",
       "ref": "gki-2.0",
       "pin": "e1e9dce98430c5c6f231f7094a8c7f4ecaf50948",
-      "note": "installer; port by hand into rmx3997/development/wk-anykernel"
+      "note": "installer; rmx_ci.py anykernel fetches the stock tree at the pin and package ships it unmodified with the Image; a pin bump is reviewed by hand"
     },
     "zyc-clang": {
       "mode": "release",

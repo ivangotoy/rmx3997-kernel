@@ -99,6 +99,10 @@ jobs:
         if: env.RMX_CAND_CHANGED == '1'
         run: cd "$RMX_CAND_SRC" && python3 -I rmx3997/ci/rmx_ci.py preflight
 
+      - name: Fetch AnyKernel3 at its pin
+        if: env.RMX_CAND_CHANGED == '1'
+        run: cd "$RMX_CAND_SRC" && python3 -I rmx3997/ci/rmx_ci.py anykernel --stage "$STAGE/b"
+
       - name: Build (config gate, guarded Full-LTO build)
         if: env.RMX_CAND_CHANGED == '1'
         run: cd "$RMX_CAND_SRC" && bash rmx3997/ci/build.sh "$STAGE/b"

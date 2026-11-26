@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
-"""Package an OEM-preserving Image using pinned WildKernels AnyKernel3.
-
-No provider assets, preinit injection, modules, or metadata transaction enter
-this delivery path. Historical provider tools and installer-repair evidence are
-retained separately. Phone boot acceptance remains a separate operation.
+"""Inspect an OEM-preserving Image and package it with stock WildKernels
+AnyKernel3 at its upstreams.json pin, unmodified, as the GKI kernels do.
 """
-import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
 import zipfile
 
 REPO = Path(__file__).resolve().parents[2]
+GIT_ENV = dict(os.environ, GIT_CONFIG_GLOBAL='/dev/null', GIT_CONFIG_NOSYSTEM='1',
+               GIT_TERMINAL_PROMPT='0', LC_ALL='C')
 
 
 def sha(path):
@@ -47,68 +46,72 @@ def inspect(stage):
             'config_sha256': sha(out / '.config'), 'release': release}
 
 
-def package(image, output, identity):
-    """Shared by production packaging and explicitly non-release guest fixtures."""
-    core = REPO / 'rmx3997/development/wk-anykernel'
+def package(image, output, identity, ak3, url, pin):
+    """The release ZIP: stock AnyKernel3 at its pin, unmodified, plus Image and a
+    provenance record, the same way the GKI kernels are packaged."""
     if output.exists():
         raise FileExistsError(output)
-    names = {'LICENSE', 'anykernel.sh', 'install-on-device.sh',
-             'tools/ak3-core.sh', 'tools/busybox', 'tools/magiskboot',
-             'tools/avbroot', 'tools/avbroot-LICENSE',
-             'tools/avbroot-provenance.json', 'tools/rmx-avb.sh',
-             'tools/busybox-LICENSE', 'tools/busybox-provenance.json',
-             'tools/magiskboot-LICENSE', 'tools/magiskboot-provenance.json',
-             'META-INF/com/google/android/update-binary',
-             'META-INF/com/google/android/updater-script'}
-    actual = {str(f.relative_to(core)) for f in core.rglob('*') if f.is_file()}
-    if actual != names:
-        raise ValueError('Unexpected AnyKernel package member')
-    members = {name: (core / name).read_bytes() for name in names}
-    avb = json.loads(members['tools/avbroot-provenance.json'])
-    if (avb['binary_sha256'] != '8edf57de0b181a65a6915198972f539cb1d7d9f34825127e6bb81dd69cb323ed'
-            or hashlib.sha256(members['tools/avbroot']).hexdigest() != avb['binary_sha256']
-            or hashlib.sha256(members['tools/avbroot-LICENSE']).hexdigest() != avb['license_sha256']):
-        raise ValueError('Pinned avbroot tool/license identity differs')
-    origin = json.loads((core.parent / 'wk-anykernel-origin.json').read_text())
-    for name, pin in origin['authenticated_binary_git_blobs'].items():
-        data = members[name]
-        if hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest() != pin:
-            raise ValueError('Pinned AnyKernel tool/license identity differs: ' + name)
+    git = lambda *args, text=True: subprocess.run(
+        ['git', '-C', str(ak3), *args], capture_output=True, check=True, text=text,
+        env=dict(GIT_ENV)).stdout
+    if git('rev-parse', 'HEAD').strip() != pin:
+        raise ValueError('AnyKernel3 checkout is not the pinned commit')
+    if git('status', '--porcelain', '--ignored', '--untracked-files=all').strip():
+        raise ValueError('AnyKernel3 checkout differs from the pinned commit')
+    members = {}
+    for entry in git('ls-tree', '-r', '-z', 'HEAD').split('\0'):
+        if not entry:
+            continue
+        meta, name = entry.split('\t', 1)
+        mode, kind, blob = meta.split()
+        if name.startswith('.github/'):
+            continue
+        if kind != 'blob' or mode not in ('100644', '100755'):
+            raise ValueError('AnyKernel3 member is not a regular file: ' + name)
+        members[name] = git('cat-file', 'blob', blob, text=False)
+    for name in REQUIRED:
+        if name not in members:
+            raise ValueError('AnyKernel3 member missing: ' + name)
+    if any('Image' in Path(n).name for n in members):
+        raise ValueError('AnyKernel3 tree already carries an Image')
     members['Image'] = image.read_bytes()
-    members['manifest.json'] = (json.dumps({**identity,
-        'AnyKernel3': 'WildKernels/AnyKernel3@e1e9dce98430c5c6f231f7094a8c7f4ecaf50948',
-        'target': 'active boot only; existing ramdisk/DT/header retained',
-        'phone_boot': 'UNVERIFIED', 'native_package_validation': 'PENDING',
-        'boot_AVB_policy': 'CUSTOM-UNSIGNED AVB NONE; original NONE/SHA256_RSA2048 verified; requires 0/unlocked/orange; OEM signature removed; no vbmeta partition or rollback flag changes',
-        'automatic_reboot': False}, indent=2) + '\n').encode()
-    members['SHA256SUMS'] = ''.join(hashlib.sha256(data).hexdigest() + '  ' + name + '\n'
-                                   for name, data in sorted(members.items())).encode()
-    with zipfile.ZipFile(output, 'x', zipfile.ZIP_DEFLATED) as z:
-        for name, data in sorted(members.items()):
+    members['rmx3997-provenance.json'] = (json.dumps(
+        {**identity, 'AnyKernel3': {'url': url, 'commit': pin}}, indent=2) + '\n').encode()
+    with zipfile.ZipFile(output, 'x', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+        for name, data in sorted(members.items(), key=lambda x: x[0].encode()):
             info = zipfile.ZipInfo(name, (2026, 11, 5, 0, 0, 0))
-            info.external_attr = 0o100644 << 16
-            z.writestr(info, data, compress_type=zipfile.ZIP_DEFLATED)
+            info.external_attr = mode_of(name) << 16
+            info.compress_type = zipfile.ZIP_DEFLATED
+            z.writestr(info, data)
+    check_zip(output)
     output.with_suffix(output.suffix + '.sha256').write_text(sha(output) + '  ' + output.name + '\n')
 
 
-def main():
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--stage', type=Path, required=True)
-    p.add_argument('--validation', type=Path, required=True,
-                   help='Exact-byte build/ABI/OEM-layout validation record')
-    p.add_argument('--output', type=Path, required=True)
-    a = p.parse_args()
-    identity = inspect(a.stage.resolve())
-    validation = json.loads(a.validation.read_text())
-    if any(validation.get(k) != v for k, v in identity.items()):
-        raise ValueError('Validation belongs to different input bytes')
-    checks = ('guarded_build', 'upstream_abi', 'oem_modules', 'persistent_f2fs_layout')
-    if any(validation.get(k) != 'PASS' for k in checks):
-        raise ValueError('Missing actual build/ABI/OEM-layout acceptance')
-    identity['validation_sha256'] = sha(a.validation)
-    package(a.stage.resolve() / 'out/arch/arm64/boot/Image', a.output, identity)
-    print(json.dumps({'path': str(a.output), 'sha256': sha(a.output), **identity}, indent=2))
+REQUIRED = ('anykernel.sh', 'tools/ak3-core.sh', 'META-INF/com/google/android/update-binary')
 
 
-if __name__ == '__main__':
-    main()
+def mode_of(name):
+    executable = (name in ('anykernel.sh', 'META-INF/com/google/android/update-binary')
+                  or name.startswith('tools/'))
+    return 0o100755 if executable else 0o100644
+
+
+def check_zip(path):
+    """Member contract of the GKI packages: no duplicates, exactly one Image,
+    no patch residue, safe regular-file paths, deflate, canonical modes."""
+    with zipfile.ZipFile(path) as z:
+        names = z.namelist()
+        if len(names) != len(set(names)):
+            raise ValueError('duplicate ZIP entries')
+        if z.testzip() is not None:
+            raise ValueError('corrupt ZIP member')
+        if [n for n in names if 'Image' in Path(n).name] != ['Image']:
+            raise ValueError('ZIP payload is not exactly one Image')
+        for info in z.infolist():
+            p = Path(info.filename)
+            if p.is_absolute() or '..' in p.parts or p.suffix == '.patch':
+                raise ValueError('unsafe or patch ZIP member: ' + info.filename)
+            if info.compress_type != zipfile.ZIP_DEFLATED:
+                raise ValueError('unexpected compression: ' + info.filename)
+            if info.external_attr >> 16 != mode_of(info.filename):
+                raise ValueError('non-canonical mode: ' + info.filename)

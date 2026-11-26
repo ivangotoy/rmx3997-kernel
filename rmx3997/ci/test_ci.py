@@ -710,17 +710,37 @@ class FreshGate(unittest.TestCase):
 
 
 class PackageOffline(unittest.TestCase):
-    """rmx_ci.py package with a made-up Image: complete, closed ZIP and its checksum.
-    Host inputs (boot template, avbtool, lz4) are stubbed; the AnyKernel3
-    members and their pins are the real ones from wk-anykernel."""
+    """rmx_ci.py anykernel + package with a made-up Image: the ZIP is the stock
+    AnyKernel3 tree at its pin (a local git repository stands in for upstream),
+    plus Image and the provenance record; no RMX installer files, no property
+    check. Host inputs (boot template, avbtool, lz4) are stubbed."""
 
-    MEMBERS = {
-        'Image', 'LICENSE', 'META-INF/com/google/android/update-binary',
-        'META-INF/com/google/android/updater-script', 'SHA256SUMS', 'anykernel.sh',
-        'install-on-device.sh', 'manifest.json', 'tools/ak3-core.sh', 'tools/avbroot',
-        'tools/avbroot-LICENSE', 'tools/avbroot-provenance.json', 'tools/busybox',
-        'tools/busybox-LICENSE', 'tools/busybox-provenance.json', 'tools/magiskboot',
-        'tools/magiskboot-LICENSE', 'tools/magiskboot-provenance.json', 'tools/rmx-avb.sh'}
+    STOCK = {
+        'LICENSE': b'made-up license\n',
+        'META-INF/com/google/android/update-binary': b'#!/sbin/sh\n# AnyKernel3 Backend\n',
+        'META-INF/com/google/android/updater-script': b'#MAGISK\n',
+        'anykernel.sh': b'properties() { \'\nkernel.string=stock\n\'; }\nblock=boot\n',
+        'banner': b'made-up banner\n',
+        'tools/ak3-core.sh': b'split_boot() { :; }\n',
+        'tools/busybox': b'\x7fELF made-up busybox',
+        'tools/magiskboot': b'\x7fELF made-up magiskboot',
+    }
+
+    URL = 'https://forge.example/o/AnyKernel3'
+
+    def git(self, *args, cwd=None):
+        return subprocess.run(['git', *args], cwd=cwd, env=dict(rmx_ci.GIT_ENV), check=True,
+                              capture_output=True, text=True).stdout.strip()
+
+    def stock_repo(self, d):
+        repo = Path(d, 'AnyKernel3')
+        self.git('init', '-q', '-b', 'gki-2.0', str(repo))
+        for name, data in {**self.STOCK, '.github/workflows/build.yml': b'on: push\n'}.items():
+            (repo / name).parent.mkdir(parents=True, exist_ok=True)
+            (repo / name).write_bytes(data)
+        self.git('add', '-A', cwd=repo)
+        self.git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'stock', cwd=repo)
+        return repo, self.git('rev-parse', 'HEAD', cwd=repo)
 
     def test_package(self):
         ident = {'Image_sha256': 'a' * 64, 'vmlinux_sha256': 'b' * 64, 'config_sha256': 'c' * 64,
@@ -733,7 +753,11 @@ class PackageOffline(unittest.TestCase):
             return {'kernel_lz4_bytes': 1}
 
         with tempfile.TemporaryDirectory() as d:
+            repo, pin = self.stock_repo(d)
             stage = Path(d, 'stage')
+            with mock.patch.object(rmx_ci, 'anykernel_pin', return_value=(repo.as_uri(), pin)), \
+                    mock.patch('builtins.print'):
+                rmx_ci.cmd_anykernel(mock.Mock(stage=str(stage)))
             (stage / 'out/arch/arm64/boot').mkdir(parents=True)
             (stage / 'out/arch/arm64/boot/Image').write_bytes(image_bytes)
             (stage / 'acceptance.json').write_text(json.dumps(
@@ -745,6 +769,7 @@ class PackageOffline(unittest.TestCase):
             with mock.patch.object(packager, 'inspect', return_value=ident), \
                     mock.patch.object(rmx_ci, 'load_packager', return_value=packager), \
                     mock.patch.object(rmx_ci, 'load_pins', return_value=pins), \
+                    mock.patch.object(rmx_ci, 'anykernel_pin', return_value=(self.URL, pin)), \
                     mock.patch.object(rmx_ci, 'build_boot_image', boot), \
                     mock.patch.object(rmx_ci, 'verify_boot_image', return_value={'avb_digest_verified': True}), \
                     mock.patch('builtins.print'):
@@ -760,18 +785,38 @@ class PackageOffline(unittest.TestCase):
             self.assertNotIn(str(zpath), open_fds)
             with zipfile.ZipFile(zpath) as z:
                 self.assertIsNone(z.testzip())
-                self.assertEqual(set(z.namelist()), self.MEMBERS)
+                self.assertEqual(set(z.namelist()), set(self.STOCK) | {'Image', 'rmx3997-provenance.json'})
                 data = {n: z.read(n) for n in z.namelist()}
+                modes = {i.filename: (i.external_attr >> 16) & 0o777 for i in z.infolist()}
+            for name, stock in self.STOCK.items():
+                self.assertEqual(data[name], stock, name)
             self.assertEqual(data['Image'], image_bytes)
-            sums = dict(reversed(l.split('  ', 1)) for l in data['SHA256SUMS'].decode().splitlines())
-            self.assertEqual(set(sums), self.MEMBERS - {'SHA256SUMS'})
-            for name, digest in sums.items():
-                self.assertEqual(hashlib.sha256(data[name]).hexdigest(), digest, name)
-            manifest = json.loads(data['manifest.json'])
-            self.assertEqual((manifest['source_commit'], manifest['release']), ('c' * 40, ident['release']))
+            self.assertEqual(modes['anykernel.sh'], 0o755)
+            self.assertEqual(modes['tools/busybox'], 0o755)
+            self.assertEqual(modes['META-INF/com/google/android/update-binary'], 0o755)
+            self.assertEqual(modes['LICENSE'], 0o644)
+            self.assertFalse(any(b'ro.boot.flash.locked' in v or b'avbroot' in v for v in data.values()))
+            prov = json.loads(data['rmx3997-provenance.json'])
+            self.assertEqual((prov['source_commit'], prov['release']), ('c' * 40, ident['release']))
+            self.assertEqual(prov['AnyKernel3'], {'url': self.URL, 'commit': pin})
             self.assertEqual((stage / 'dist.env').read_text(),
                              'RMX_DIST=%s\nRMX_BASE=%s\n' % (stage / 'dist', base))
             self.assertTrue(Path(d, 'private', base, base + '.provenance.json').is_file())
+
+    def test_modified_tree_is_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo, pin = self.stock_repo(d)
+            stage = Path(d, 'stage')
+            with mock.patch.object(rmx_ci, 'anykernel_pin', return_value=(repo.as_uri(), pin)), \
+                    mock.patch('builtins.print'):
+                rmx_ci.cmd_anykernel(mock.Mock(stage=str(stage)))
+            ak3 = stage / rmx_ci.AK3_DIR
+            (ak3 / 'anykernel.sh').write_bytes(b'getprop ro.boot.flash.locked\n')
+            (stage / 'out/arch/arm64/boot').mkdir(parents=True)
+            (stage / 'out/arch/arm64/boot/Image').write_bytes(b'x')
+            with self.assertRaises(ValueError):
+                rmx_ci.load_packager().package(stage / 'out/arch/arm64/boot/Image',
+                                               Path(d, 'o.zip'), {}, ak3, repo.as_uri(), pin)
 
 
 class PromotePush(unittest.TestCase):

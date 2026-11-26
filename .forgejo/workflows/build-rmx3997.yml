@@ -154,6 +154,12 @@ jobs:
         if: env.RMX_SKIP != '1'
         run: python3 -I rmx3997/ci/upstream.py fresh
 
+      # Stock AnyKernel3 at its upstreams.json pin, fetched before the build so a
+      # failed fetch costs no compile; the Package step ships it unmodified.
+      - name: Fetch AnyKernel3 at its pin
+        if: env.RMX_SKIP != '1'
+        run: python3 -I rmx3997/ci/rmx_ci.py anykernel --stage "$STAGE"
+
       - name: Build (config gate, guarded Full-LTO build)
         if: env.RMX_SKIP != '1'
         run: bash rmx3997/ci/build.sh "$STAGE"

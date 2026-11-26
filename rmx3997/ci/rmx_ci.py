@@ -28,6 +28,11 @@ CI = REPO / 'rmx3997/ci'
 PINS = CI / 'host-inputs.json'
 PART_SIZE = 67108864
 PAGE = 4096
+GIT_ENV = dict(os.environ, GIT_CONFIG_GLOBAL='/dev/null', GIT_CONFIG_NOSYSTEM='1',
+               GIT_TERMINAL_PROMPT='0', LC_ALL='C')
+# Stock AnyKernel3 checkout inside the stage; the workflows' "Remove build
+# tree" step and prune-stages remove work/ with it.
+AK3_DIR = 'work/anykernel3'
 
 
 def sha(path):
@@ -504,6 +509,34 @@ def verify_boot_image(img, image, work):
 
 
 # ---------------------------------------------------------------- packaging
+def anykernel_pin():
+    c = json.loads((CI / 'upstreams.json').read_text())['components']['anykernel3']
+    return c['url'], c['pin']
+
+
+def cmd_anykernel(a):
+    """Fetch stock AnyKernel3 at its upstreams.json pin into the stage. The
+    workflows run this before the build, so a failed fetch costs no compile."""
+    url, pin = anykernel_pin()
+    d = Path(a.stage) / AK3_DIR
+    if d.exists():
+        die('AnyKernel3 checkout exists: ' + str(d))
+    d.mkdir(parents=True)
+
+    def git(*args):
+        r = subprocess.run(['git', '-C', str(d), *args], env=GIT_ENV, capture_output=True,
+                           text=True, timeout=600)
+        if r.returncode:
+            die('git %s: %s' % (args[0], r.stderr.strip()[-400:]))
+        return r.stdout.strip()
+    git('init', '-q')
+    git('fetch', '-q', '--no-tags', '--depth=1', url, pin)
+    git('checkout', '-q', '--detach', 'FETCH_HEAD')
+    if git('rev-parse', 'HEAD') != pin:
+        die('AnyKernel3 checkout is not the pinned commit ' + pin)
+    print('AnyKernel3 %s at %s' % (url, pin))
+
+
 def cmd_package(a):
     stage = Path(a.stage)
     out = stage / 'out'
@@ -522,7 +555,8 @@ def cmd_package(a):
     zip_path = dist / (base + '.zip')
     ident = dict(identity, build_purpose='forgejo-ci', source_commit=a.commit,
                  ci_run=a.run_url, oem_crc_gate=acc['oem_crc']['status'])
-    m.package(image, zip_path, ident)
+    url, pin = anykernel_pin()
+    m.package(image, zip_path, ident, stage / AK3_DIR, url, pin)
     private = expand(a.private_dir) / base
     private.mkdir(parents=True, exist_ok=True)
     img_path = private / (base + '-boot_b.img')
@@ -984,6 +1018,8 @@ def main():
     c.add_argument('--out', required=True)
     c = sub.add_parser('accept')
     c.add_argument('--stage', required=True)
+    c = sub.add_parser('anykernel')
+    c.add_argument('--stage', required=True)
     c = sub.add_parser('package')
     c.add_argument('--stage', required=True)
     c.add_argument('--label', required=True)
@@ -1010,7 +1046,7 @@ def main():
     c.add_argument('--dry-run', action='store_true')
     a = p.parse_args()
     {'preflight': cmd_preflight, 'record-pins': cmd_record_pins, 'config': cmd_config,
-     'accept': cmd_accept, 'package': cmd_package, 'release': cmd_release,
+     'accept': cmd_accept, 'anykernel': cmd_anykernel, 'package': cmd_package, 'release': cmd_release,
      'github-release': cmd_github_release, 'prune-stages': cmd_prune_stages,
      'layout': cmd_layout, 'refresh-config': cmd_refresh_config}[a.cmd](a)
 
