@@ -37,7 +37,6 @@ struct ovl_dir_cache {
 
 struct ovl_readdir_data {
 	struct dir_context ctx;
-	const struct file *user_file;
 	struct dentry *dentry;
 	bool is_lowest;
 	struct rb_root *root;
@@ -292,14 +291,19 @@ static int ovl_check_whiteouts(struct dentry *dir, struct ovl_readdir_data *rdd)
 	return err;
 }
 
+/*
+ * @user_file is the overlay file the read is for, if any; it is passed beside
+ * @rdd so that struct ovl_readdir_data keeps the stock RMX3997 layout.
+ */
 static inline int ovl_dir_read(struct path *realpath,
-			       struct ovl_readdir_data *rdd)
+			       struct ovl_readdir_data *rdd,
+			       const struct file *user_file)
 {
 	struct file *realfile;
 	int flags = O_RDONLY | O_LARGEFILE;
 	int err;
 
-	if (rdd->user_file && (rdd->user_file->f_mode & FMODE_NONOTIFY))
+	if (user_file && (user_file->f_mode & FMODE_NONOTIFY))
 		flags |= __FMODE_NONOTIFY;
 
 	realfile = ovl_path_open(realpath, flags);
@@ -352,7 +356,6 @@ static int ovl_dir_read_merged(struct dentry *dentry, struct list_head *list,
 	struct path realpath;
 	struct ovl_readdir_data rdd = {
 		.ctx.actor = ovl_fill_merge,
-		.user_file = user_file,
 		.dentry = dentry,
 		.list = list,
 		.root = root,
@@ -365,7 +368,7 @@ static int ovl_dir_read_merged(struct dentry *dentry, struct list_head *list,
 		rdd.is_upper = ovl_dentry_upper(dentry) == realpath.dentry;
 
 		if (next != -1) {
-			err = ovl_dir_read(&realpath, &rdd);
+			err = ovl_dir_read(&realpath, &rdd, user_file);
 			if (err)
 				break;
 		} else {
@@ -375,7 +378,7 @@ static int ovl_dir_read_merged(struct dentry *dentry, struct list_head *list,
 			 */
 			list_add(&rdd.middle, rdd.list);
 			rdd.is_lowest = true;
-			err = ovl_dir_read(&realpath, &rdd);
+			err = ovl_dir_read(&realpath, &rdd, user_file);
 			list_del(&rdd.middle);
 		}
 	}
@@ -562,7 +565,6 @@ static int ovl_dir_read_impure(struct path *path, struct list_head *list,
 	struct ovl_cache_entry *p, *n;
 	struct ovl_readdir_data rdd = {
 		.ctx.actor = ovl_fill_plain,
-		.user_file = user_file,
 		.list = list,
 		.root = root,
 	};
@@ -571,7 +573,7 @@ static int ovl_dir_read_impure(struct path *path, struct list_head *list,
 	*root = RB_ROOT;
 	ovl_path_upper(path->dentry, &realpath);
 
-	err = ovl_dir_read(&realpath, &rdd);
+	err = ovl_dir_read(&realpath, &rdd, user_file);
 	if (err)
 		return err;
 
@@ -1086,7 +1088,7 @@ int ovl_check_d_type_supported(struct path *realpath)
 		.d_type_supported = false,
 	};
 
-	err = ovl_dir_read(realpath, &rdd);
+	err = ovl_dir_read(realpath, &rdd, NULL);
 	if (err)
 		return err;
 
@@ -1124,7 +1126,7 @@ static int ovl_workdir_cleanup_recurse(struct ovl_fs *ofs, struct path *path,
 	    !strcmp(path->dentry->d_name.name, OVL_INCOMPATDIR_NAME))
 		incompat = true;
 
-	err = ovl_dir_read(path, &rdd);
+	err = ovl_dir_read(path, &rdd, NULL);
 	if (err)
 		goto out;
 
@@ -1199,7 +1201,7 @@ int ovl_indexdir_cleanup(struct ovl_fs *ofs)
 		.is_lowest = false,
 	};
 
-	err = ovl_dir_read(&path, &rdd);
+	err = ovl_dir_read(&path, &rdd, NULL);
 	if (err)
 		goto out;
 
