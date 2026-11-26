@@ -12,7 +12,7 @@
       "mode": "security-backports",
       "url": "https://android.googlesource.com/kernel/common",
       "ref": "android13-5.15",
-      "pin": "3540cf724bf0fe246a3131fd1f3e9342fa03b03e"
+      "pin": "7f10d301a2991079a8f0cdae012be88fd43f939c"
     },
     "bakasu": {
       "mode": "subtree",
