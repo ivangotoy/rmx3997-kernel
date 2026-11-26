@@ -219,7 +219,8 @@ run), then publishes the release and its GitHub copy from the ZIP it built,
 exactly as a tag build does. That run is the release build; the tag push does
 not start a second one. If any gate fails, nothing is pushed. The result, with the
 upstream commit lists and any component that blocked the run, is posted to the
-`Upstream updates` issue.
+`Upstream updates` issue. A run whose upstream lookup itself fails (the check
+step) posts nothing: it ends red before any candidate is prepared.
 
 ## License
 
