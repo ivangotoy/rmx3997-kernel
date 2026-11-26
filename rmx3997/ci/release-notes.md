@@ -5,7 +5,11 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 ## Changes in this release
 
 - Installer: the ZIP is now stock WildKernels AnyKernel3 (`gki-2.0` `e1e9dce9`), unmodified, plus the `Image` and `rmx3997-provenance.json`, packaged the same way as the GKI kernels. The RMX installer adaptation is gone: no device, partition or boot property checks, no AVB rewrite, no booted-Android-only launcher. It flashes like any AnyKernel3 ZIP and keeps no backup of the previous boot image.
-- Nothing else changed: the kernel is built from the same sources as `rmx3997-v14` (Linux 5.15.226, BakaSU `8fa29976` from the owner's fork, SUSFS `c1d1da42` (v2.4.0), NoMount `c803cbf0` (metamodule versionCode 790), Baseband Guard `48d9fdea`), and `production.config` is unchanged.
+- BBRv3 now comes from WildKernels/kernel_patches (`70c394f1`, the android13-5.15-lts backport) with the GKI kernels' per-socket ctx ownership patch, as in the GKI kernels. The code was already that pair except that `tx.in_flight` was also clamped when it is written; it is now clamped only where it is read, as upstream does.
+- Unicode: the WildKernels utf8 decomposition fix from the GKI kernels; zero-width characters are no longer skipped during name normalization.
+- BIC TCP congestion control is built in, as in the GKI kernels (BBRv3 stays the default).
+- DroidSpaces is tracked as a component; its SysV IPC KABI patch is carried in the slot 1-3 form this device needs.
+- Otherwise the kernel is built from the same sources as `rmx3997-v14`: Linux 5.15.226, BakaSU `8fa29976` from the owner's fork, SUSFS `c1d1da42` (v2.4.0), NoMount `c803cbf0` (metamodule versionCode 790), Baseband Guard `48d9fdea`.
 
 ## Kernel features
 

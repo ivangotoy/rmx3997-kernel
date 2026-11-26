@@ -28,6 +28,39 @@ come from Forgejo Actions; see Releases for downloads.
 
 ## Features
 
+The same feature set as the owner's GKI 5.10 and 6.6 kernels, from the same
+sources, except where the stock vendor modules of this device rule it out:
+
+| Feature | What it is |
+|---|---|
+| Kernel base | AOSP android13-5.15-lts plus the android13-5.15 security branch, KMI 8, 4 KiB pages; the exact commits are pinned in `rmx3997/ci/upstreams.json`. |
+| BakaSU | Kernel-based root support from the `ivangotoy/BakaSU` fork; use BakaSU Manager. |
+| SUSFS | Kernel hooks for root hiding. |
+| NoMount v2 | Built-in VFS path redirection. |
+| Baseband Guard | Restricts access to baseband interfaces. |
+| DroidSpaces | Container support: SysV IPC in `task_struct` KABI slots 1-3 (DroidSpaces' own 1_2_3 variant; the GKI kernels use slots 6-8, which the OEM security guard writes on this device) and the DroidSpaces namespace and cgroup configs. |
+| NTSync | Fast Windows-compatible synchronization primitives; `/dev/ntsync` is usable by apps. |
+| FUSE-BPF | BPF-backed FUSE redirection and passthrough support. |
+| BBRv3 | Default TCP congestion control, from WildKernels/kernel_patches with the GKI kernels' per-socket ctx ownership and flag-dispatched loss hook. |
+| WireGuard | Built-in WireGuard VPN support. |
+| AmneziaWG | Built-in AmneziaWG next to WireGuard. |
+| nftables | Built-in nf_tables (inet, IPv4, IPv6, ARP, netdev and bridge families; NAT, conntrack, FIB, TPROXY, `nft_compat`). `struct net` and the other stock structs keep their layout. |
+| Advanced networking | IPSet, netfilter extras, IPv6 NAT and MASQUERADE, REJECT, TTL/hop-limit, MACVLAN, FQ, FQ-CoDel, CAKE, PIE and FQ-PIE; BIC, CUBIC, Westwood and HTCP besides BBR and BBRv3. |
+| CIFS | SMB network filesystems with xattr and POSIX support. |
+| NFSv4 client | NFS 4.0, 4.1 and 4.2 client built in (no NFS server, no NFSv2/v3). |
+| Namespaces | User, PID, IPC and related namespaces. Creating a user namespace requires CAP_SYS_ADMIN. |
+| OverlayFS | Layered filesystem support. |
+| BTF and tracing | BTF, kallsyms, kprobes, uprobes, and BPF events. |
+| RCU lazy | Lazy RCU callback batching (`CONFIG_RCU_LAZY=y`). |
+| MGLRU | Built in but off by default (`CONFIG_LRU_GEN=y`, `CONFIG_LRU_GEN_ENABLED` unset); the GKI 6.6 kernel enables it by default. |
+| ARM64 optimizations | Memory prefetch and 16-byte clear-page alignment. |
+| Full LTO | Full Clang LTO, ZyC Clang 18 (the same compiler as the GKI 6.6 kernel). |
+
+Not built: ZRAM multi-compression (`CONFIG_ZRAM_MULTI_COMP`). Linux 5.15 has
+no such option (the GKI 6.6 kernel gets it from 6.6), and on this device ZRAM
+is the realme `oplus_bsp_hybridswap_zram` vendor module, not the kernel's
+zram driver.
+
 **Root and security tooling**
 
 - BakaSU (KernelSU fork) built in from the `ivangotoy/BakaSU` fork, SUSFS `c1d1da42` (v2.4.0)
@@ -61,7 +94,7 @@ come from Forgejo Actions; see Releases for downloads.
   conntrack, FIB, TPROXY, `nft_compat` for iptables-nft)
 - IPv6 NAT, MASQUERADE and hop-limit matching, ipset, xt set/LOG/recent, TTL target
 - CAKE, PIE, FQ-PIE, CONNMARK
-- BBRv3 (default), BBR, Westwood, HTCP, Cubic, Reno
+- BBRv3 (default), BBR, BIC, Westwood, HTCP, Cubic, Reno
 - BBRv3 per-socket context ownership: a cloned socket never uses or frees
   its parent's BBRv3 state, and the BBRv3 loss hook is dispatched by a
   congestion-control flag instead of a name compare
@@ -198,8 +231,8 @@ pushed):
 - AOSP security branch: new commits that are not in LTS are cherry-picked.
 - BakaSU, SUSFS, NoMount, Baseband Guard: the upstream diff since the pin is
   applied with a 3-way merge onto the local files.
-- BBRv3, ZyC Clang: never applied automatically; they need a manual port and
-  a pin update.
+- BBRv3, DroidSpaces, ZyC Clang: never applied automatically; they need a
+  manual port and a pin update.
 - AnyKernel3: never applied automatically; a new upstream commit needs a
   reviewed pin update, and the build then ships that stock tree.
 
@@ -270,7 +303,7 @@ current entry points.
 | `rmx3997-v12` | 5.15.225 | Upstream update: Linux 5.15.225 (from 5.15.223), BakaSU `7b65bde0`, config refresh |
 | `rmx3997-v13` | 5.15.226 | Upstream update: Linux 5.15.226 (from 5.15.225), `android13-5.15` security branch update (wrapfd driver, not enabled), BakaSU `cac1e793`, NoMount `c803cbf0` (metamodule 790), Baseband Guard `48d9fdea`, stock struct layouts kept, config refresh |
 | `rmx3997-v14` | 5.15.226 | BakaSU from the owner's fork at `8fa29976`, nothing else changed |
-| `rmx3997-v15` | 5.15.226 | Installer is now stock AnyKernel3 as in the GKI kernels, nothing else changed |
+| `rmx3997-v15` | 5.15.226 | Installer is now stock AnyKernel3 as in the GKI kernels; BBRv3 from WildKernels/kernel_patches as in the GKI kernels; WildKernels unicode decomposition fix; BIC congestion control built in; DroidSpaces tracked |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.
