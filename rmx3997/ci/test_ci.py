@@ -1058,6 +1058,19 @@ class NextTagPrevious(unittest.TestCase):
             self.assertEqual(upstream.next_tag('u', 't'), ('rmx3997-v2', 'a' * 40))
 
 
+class InitBootIsAnArgument(unittest.TestCase):
+    """installer-ufs-run.py takes the stock init_boot image as an argument
+    instead of a host path written into the public tool."""
+    TOOL = CI.parent / 'development/installer-ufs-run.py'
+
+    @unittest.skipUnless(TOOL.exists(), 'development tools not in this tree')
+    def test_help_lists_init_boot(self):
+        r = subprocess.run(['python3', '-I', '-B', str(self.TOOL), '--help'], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('--init-boot', r.stdout)
+        self.assertNotIn("Path('/mnt/", self.TOOL.read_text())
+
+
 class InstallerMessages(unittest.TestCase):
     """install-on-device.sh says why it stops; never runs past BASE on the host."""
     SCRIPT = CI.parent / 'development/wk-anykernel/install-on-device.sh'

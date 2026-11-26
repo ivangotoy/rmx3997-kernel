@@ -6,7 +6,6 @@ Q=N/'qemu-guest-boot-20261103'
 FW=pathlib.Path('/home/build/Downloads/rea-lk-analysis/oem-module-compatibility-20261103/vendor_boot_b/files/system')
 NORMAL=P/'firmware-identity/normal-system-tools'
 STOCK=pathlib.Path('/home/build/Downloads/RMX3997_custom_boot_b_WORKING.img')
-INIT=pathlib.Path('/mnt/Users/ivan/Pictures/REALME/oplus_ossi_16_1791533415164_2611033311/init_boot_b.img')
 EXPECTED_STOCK='64da6e27c094fd43afe33a345fd53b023f5201c1150d2a1b1e8ff0428cf48881'
 EXPECTED_INIT='22f6caff3b744be48c937825aae8f4392d43a14921a5d3bbc673aba8d22deee9'
 EXPECTED_PAYLOAD='be567b3f6c0f2e343a808d9c2617f6aef75a6695670d44c65fc56f80014b8326'
@@ -27,7 +26,7 @@ def archive(entries,path):
  for name,(mode,data,ma,mi) in entries.items():add(name,data,mode,ma,mi)
  add('TRAILER!!!',b'',0);path.write_bytes(gzip.compress(bytes(out),mtime=0))
 def main():
- a=argparse.ArgumentParser();a.add_argument('--zip',type=pathlib.Path,required=True);a.add_argument('--rollback-write-error',action='store_true');o=a.parse_args();package=o.zip.resolve()
+ a=argparse.ArgumentParser();a.add_argument('--zip',type=pathlib.Path,required=True);a.add_argument('--rollback-write-error',action='store_true');a.add_argument('--init-boot',type=pathlib.Path,required=True,help='stock init_boot_b image read from the phone (sha256 EXPECTED_INIT)');o=a.parse_args();package=o.zip.resolve();INIT=o.init_boot
  assert digest(STOCK)==EXPECTED_STOCK and digest(INIT)==EXPECTED_INIT
  assert (R/'init').is_file(),'Compile only changed static guest init first'
  assert shutil.which('qemu-system-aarch64') and shutil.which('mkfs.ext4') and shutil.which('debugfs')
