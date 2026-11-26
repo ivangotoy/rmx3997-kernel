@@ -45,6 +45,22 @@
 #include <kvm/arm_pmu.h>
 #include <kvm/arm_psci.h>
 
+/*
+ * The "don't run the guest" counter of a vcpu. It lives behind struct
+ * kvm_vcpu in the same kvm_vcpu cache object (kvm_init() is given the size
+ * of struct kvm_vcpu_alloc), so struct kvm_vcpu_arch keeps the stock RMX3997
+ * layout and its bool pause member is unused. Host side only.
+ */
+struct kvm_vcpu_alloc {
+	struct kvm_vcpu vcpu;
+	atomic_t pause;
+};
+
+static atomic_t *kvm_vcpu_pause(struct kvm_vcpu *vcpu)
+{
+	return &container_of(vcpu, struct kvm_vcpu_alloc, vcpu)->pause;
+}
+
 static enum kvm_mode kvm_mode = KVM_MODE_DEFAULT;
 DEFINE_STATIC_KEY_FALSE(kvm_protected_mode_initialized);
 
@@ -432,7 +448,7 @@ int kvm_arch_vcpu_create(struct kvm_vcpu *vcpu)
 	kvm_arm_pvtime_vcpu_init(&vcpu->arch);
 
 	vcpu->arch.hw_mmu = &vcpu->kvm->arch.mmu;
-	atomic_set(&vcpu->arch.pause, 0);
+	atomic_set(kvm_vcpu_pause(vcpu), 0);
 
 	err = kvm_vgic_vcpu_init(vcpu);
 	if (err)
@@ -617,7 +633,7 @@ int kvm_arch_vcpu_runnable(struct kvm_vcpu *v)
 {
 	bool irq_lines = *vcpu_hcr(v) & (HCR_VI | HCR_VF);
 	return ((irq_lines || kvm_vgic_vcpu_pending_irq(v))
-		&& !v->arch.power_off && !atomic_read(&v->arch.pause));
+		&& !v->arch.power_off && !atomic_read(kvm_vcpu_pause(v)));
 }
 
 bool kvm_arch_vcpu_in_kernel(struct kvm_vcpu *vcpu)
@@ -783,7 +799,7 @@ void kvm_arm_halt_guest(struct kvm *kvm)
 	struct kvm_vcpu *vcpu;
 
 	kvm_for_each_vcpu(i, vcpu, kvm)
-		atomic_inc(&vcpu->arch.pause);
+		atomic_inc(kvm_vcpu_pause(vcpu));
 	kvm_make_all_cpus_request(kvm, KVM_REQ_SLEEP);
 }
 
@@ -793,7 +809,7 @@ void kvm_arm_resume_guest(struct kvm *kvm)
 	struct kvm_vcpu *vcpu;
 
 	kvm_for_each_vcpu(i, vcpu, kvm) {
-		if (atomic_dec_and_test(&vcpu->arch.pause))
+		if (atomic_dec_and_test(kvm_vcpu_pause(vcpu)))
 			rcuwait_wake_up(kvm_arch_vcpu_get_wait(vcpu));
 	}
 }
@@ -803,10 +819,10 @@ static void vcpu_req_sleep(struct kvm_vcpu *vcpu)
 	struct rcuwait *wait = kvm_arch_vcpu_get_wait(vcpu);
 
 	rcuwait_wait_event(wait,
-			   !vcpu->arch.power_off && !atomic_read(&vcpu->arch.pause),
+			   !vcpu->arch.power_off && !atomic_read(kvm_vcpu_pause(vcpu)),
 			   TASK_INTERRUPTIBLE);
 
-	if (vcpu->arch.power_off || atomic_read(&vcpu->arch.pause)) {
+	if (vcpu->arch.power_off || atomic_read(kvm_vcpu_pause(vcpu))) {
 		/* Awaken to handle a signal, request we sleep again later. */
 		kvm_make_request(KVM_REQ_SLEEP, vcpu);
 	}
@@ -2384,7 +2400,7 @@ enum kvm_mode kvm_get_mode(void)
 
 static int arm_init(void)
 {
-	int rc = kvm_init(NULL, sizeof(struct kvm_vcpu), 0, THIS_MODULE);
+	int rc = kvm_init(NULL, sizeof(struct kvm_vcpu_alloc), 0, THIS_MODULE);
 	return rc;
 }
 
