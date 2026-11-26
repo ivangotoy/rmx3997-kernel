@@ -30,7 +30,7 @@ come from Forgejo Actions; see Releases for downloads.
 
 **Root and security tooling**
 
-- BakaSU (KernelSU fork) built in from the `ivangotoy/BakaSU` fork `8fa29976` (35463), SUSFS `c1d1da42` (v2.4.0)
+- BakaSU (KernelSU fork) built in from the `ivangotoy/BakaSU` fork, SUSFS `c1d1da42` (v2.4.0)
 - NoMount on the upstream track (maxsteeel `dev`), protocol 23
 - Baseband Guard built in
 - CFI enforced for both kernel and OEM modules, stack protector strong
