@@ -112,10 +112,27 @@ def remote_head(url, ref):
 
 
 def latest_release(repo):
-    req = urllib.request.Request('https://api.github.com/repos/%s/releases/latest' % repo,
-                                 headers={'Accept': 'application/vnd.github+json'})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.load(r)['tag_name']
+    """Tag of the latest GitHub release (anonymous API). A connection error,
+    timeout, truncated answer or HTTP 5xx is repeated, bounded; any other HTTP
+    error (a 403/429 rate limit included) raises at once: the lookup fails
+    closed instead of waiting for a rate-limit window."""
+    url = 'https://api.github.com/repos/%s/releases/latest' % repo
+    for attempt in range(1, TRIES + 1):
+        req = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json'})
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.load(r)['tag_name']
+        except urllib.error.HTTPError as e:
+            if e.code not in (500, 502, 503, 504) or attempt == TRIES:
+                raise
+            why = 'HTTP %d' % e.code
+        except (OSError, http.client.HTTPException) as e:
+            why = str(getattr(e, 'reason', None) or e) or type(e).__name__
+            if attempt == TRIES:
+                # an OSError, so callers report it as a failed lookup
+                raise OSError('GET %s failed: %s' % (url, why)) from e
+        print('%s from GET %s, retrying in %d s' % (why, url, 10 * attempt), flush=True)
+        time.sleep(10 * attempt)
 
 
 # ------------------------------------------------------------------- check

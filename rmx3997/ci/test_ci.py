@@ -492,6 +492,53 @@ class CheckLookupFailure(unittest.TestCase):
         self.assertIn('FAIL: zyc-clang lookup: HTTP Error 403: rate limit exceeded', p.call_args[0][0])
 
 
+class LatestReleaseLookup(unittest.TestCase):
+    """The GitHub releases/latest lookup (zyc-clang, check and fresh) repeats a
+    transient failure; a rate limit fails at once with a FAIL line."""
+
+    def call(self, answers, fn=lambda: upstream.latest_release('made-up/clang')):
+        seen = []
+
+        def urlopen(req, timeout):
+            seen.append(req.full_url)
+            a = answers.pop(0)
+            if isinstance(a, BaseException):
+                raise a
+            return a
+
+        with mock.patch.object(upstream.urllib.request, 'urlopen', urlopen), \
+                mock.patch.object(upstream.time, 'sleep'), mock.patch('builtins.print') as p:
+            try:
+                res = fn()
+            except BaseException as e:
+                res = e
+        return res, len(seen), '\n'.join(str(c[0][0]) for c in p.call_args_list)
+
+    def test_transient_errors_are_repeated(self):
+        res, n, _ = self.call([urllib.error.URLError(ConnectionResetError('reset')),
+                               Reply(exc=TimeoutError('timed out')), Reply(exc=http.client.IncompleteRead(b'')),
+                               http_error('u', 503), Reply(200, b'{"tag_name": "v2"}')])
+        self.assertEqual((res, n), ('v2', 5))
+
+    def test_rate_limit_is_not_repeated(self):
+        for code in (403, 429):
+            res, n, _ = self.call([http_error('u', code)])
+            self.assertIsInstance(res, urllib.error.HTTPError)
+            self.assertEqual((res.code, n), (code, 1))
+
+    def test_fresh_names_a_truncated_lookup(self):
+        manifest = {'components': {'zyc-clang': {'mode': 'release', 'github': 'made-up/clang', 'pin': 'v1'}}}
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d, 'upstreams.json')
+            path.write_text(json.dumps(manifest))
+            res, n, text = self.call([Reply(exc=http.client.IncompleteRead(b''))] * upstream.TRIES,
+                                     lambda: upstream.cmd_fresh(mock.Mock(manifest=str(path))))
+        self.assertIsInstance(res, SystemExit)
+        self.assertEqual((res.code, n), (1, upstream.TRIES))
+        self.assertIn('FAIL: zyc-clang lookup: GET https://api.github.com/repos/made-up/clang/releases/latest failed', text)
+        self.assertIn('LOOKUP-FAILED', text)
+
+
 class PackageOffline(unittest.TestCase):
     """rmx_ci.py package with a made-up Image: complete, closed ZIP and its checksum.
     Host inputs (boot template, avbtool, lz4) are stubbed; the AnyKernel3
