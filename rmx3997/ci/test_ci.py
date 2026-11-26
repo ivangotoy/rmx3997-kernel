@@ -556,6 +556,59 @@ class LatestReleaseLookup(unittest.TestCase):
         self.assertIn('LOOKUP-FAILED', text)
 
 
+class FreshGate(unittest.TestCase):
+    """upstream.py fresh (the build's freshness gate) on a made-up manifest."""
+    MANIFEST = {'components': {
+        'tree': {'mode': 'subtree', 'url': 'https://git.example.invalid/o/tree.git', 'ref': 'main', 'pin': 'a' * 40},
+        'clang': {'mode': 'release', 'github': 'made-up/clang', 'pin': 'v1'}}}
+
+    def run_fresh(self, heads, release):
+        def remote_head(url, ref):
+            r = heads[url]
+            if isinstance(r, BaseException):
+                raise r
+            return r
+
+        def latest_release(repo):
+            if isinstance(release, BaseException):
+                raise release
+            return release
+
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d, 'upstreams.json')
+            path.write_text(json.dumps(self.MANIFEST))
+            with mock.patch.object(upstream, 'remote_head', remote_head), \
+                    mock.patch.object(upstream, 'latest_release', latest_release), \
+                    mock.patch.object(upstream, 'load', side_effect=AssertionError('tree manifest read')), \
+                    mock.patch('builtins.print') as p:
+                try:
+                    upstream.cmd_fresh(mock.Mock(manifest=str(path)))
+                    code = None
+                except SystemExit as e:
+                    code = e.code
+        return code, '\n'.join(str(c[0][0]) for c in p.call_args_list)
+
+    def test_current(self):
+        code, text = self.run_fresh({'https://git.example.invalid/o/tree.git': 'a' * 40}, 'v1')
+        self.assertIsNone(code, text)
+        self.assertIn('all 2 components are at their live upstream', text)
+
+    def test_behind(self):
+        code, text = self.run_fresh({'https://git.example.invalid/o/tree.git': 'b' * 40}, 'v1')
+        self.assertEqual(code, 1)
+        self.assertIn('tree            %s %s BEHIND' % ('a' * 40, 'b' * 40), text)
+        self.assertIn('FAIL: stale tree: behind live upstream: tree; lookup failed: none', text)
+
+    def test_lookup_failures(self):
+        # remote_head reports its own FAIL line and exits; latest_release raises.
+        code, text = self.run_fresh({'https://git.example.invalid/o/tree.git': SystemExit(1)},
+                                    urllib.error.URLError('made-up outage'))
+        self.assertEqual(code, 1)
+        self.assertIn('clang           v1 - LOOKUP-FAILED', text)
+        self.assertIn('FAIL: clang lookup: <urlopen error made-up outage>', text)
+        self.assertIn('FAIL: stale tree: behind live upstream: none; lookup failed: tree, clang', text)
+
+
 class PackageOffline(unittest.TestCase):
     """rmx_ci.py package with a made-up Image: complete, closed ZIP and its checksum.
     Host inputs (boot template, avbtool, lz4) are stubbed; the AnyKernel3
