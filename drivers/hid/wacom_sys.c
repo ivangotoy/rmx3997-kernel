@@ -750,12 +750,32 @@ static void wacom_retrieve_hid_descriptor(struct hid_device *hdev,
 struct wacom_hdev_data {
 	struct list_head list;
 	struct kref kref;
+	struct hid_device *dev;	/* unused, stock layout */
+	struct wacom_shared shared;
+};
+
+/*
+ * Identity of the device that created the shared data, copied so that it
+ * stays valid after that device is gone. It lives behind wacom_hdev_data
+ * in the same allocation, so wacom_hdev_data keeps the stock RMX3997
+ * layout.
+ */
+struct wacom_hdev_id {
 	char phys[64];
 	__u32 vendor;
 	__u32 product;
 	__u32 device_type;
-	struct wacom_shared shared;
 };
+
+struct wacom_hdev_data_alloc {
+	struct wacom_hdev_data data;
+	struct wacom_hdev_id id;
+};
+
+static struct wacom_hdev_id *wacom_hdev_id(struct wacom_hdev_data *data)
+{
+	return &container_of(data, struct wacom_hdev_data_alloc, data)->id;
+}
 
 static bool wacom_compare_device_paths(struct hid_device *hdev_a,
 				       const char *phys_b, char separator)
@@ -788,9 +808,9 @@ static bool wacom_are_sibling(struct hid_device *hdev,
 	__u32 oPid = features->oPid ? features->oPid : hdev->product;
 
 	/* The defined oVid/oPid must match that of the sibling */
-	if (features->oVid != HID_ANY_ID && data->vendor != oVid)
+	if (features->oVid != HID_ANY_ID && wacom_hdev_id(data)->vendor != oVid)
 		return false;
-	if (features->oPid != HID_ANY_ID && data->product != oPid)
+	if (features->oPid != HID_ANY_ID && wacom_hdev_id(data)->product != oPid)
 		return false;
 
 	/*
@@ -798,11 +818,11 @@ static bool wacom_are_sibling(struct hid_device *hdev,
 	 * device path, while those with different VID/PID must share
 	 * the same physical parent device path.
 	 */
-	if (hdev->vendor == data->vendor && hdev->product == data->product) {
-		if (!wacom_compare_device_paths(hdev, data->phys, '/'))
+	if (hdev->vendor == wacom_hdev_id(data)->vendor && hdev->product == wacom_hdev_id(data)->product) {
+		if (!wacom_compare_device_paths(hdev, wacom_hdev_id(data)->phys, '/'))
 			return false;
 	} else {
-		if (!wacom_compare_device_paths(hdev, data->phys, '.'))
+		if (!wacom_compare_device_paths(hdev, wacom_hdev_id(data)->phys, '.'))
 			return false;
 	}
 
@@ -815,7 +835,7 @@ static bool wacom_are_sibling(struct hid_device *hdev,
 	 * devices.
 	 */
 	if ((features->device_type & WACOM_DEVICETYPE_DIRECT) &&
-	    !(data->device_type & WACOM_DEVICETYPE_DIRECT))
+	    !(wacom_hdev_id(data)->device_type & WACOM_DEVICETYPE_DIRECT))
 		return false;
 
 	/*
@@ -823,17 +843,17 @@ static bool wacom_are_sibling(struct hid_device *hdev,
 	 * devices.
 	 */
 	if (!(features->device_type & WACOM_DEVICETYPE_DIRECT) &&
-	    (data->device_type & WACOM_DEVICETYPE_DIRECT))
+	    (wacom_hdev_id(data)->device_type & WACOM_DEVICETYPE_DIRECT))
 		return false;
 
 	/* Pen devices may only be siblings of touch devices */
 	if ((features->device_type & WACOM_DEVICETYPE_PEN) &&
-	    !(data->device_type & WACOM_DEVICETYPE_TOUCH))
+	    !(wacom_hdev_id(data)->device_type & WACOM_DEVICETYPE_TOUCH))
 		return false;
 
 	/* Touch devices may only be siblings of pen devices */
 	if ((features->device_type & WACOM_DEVICETYPE_TOUCH) &&
-	    !(data->device_type & WACOM_DEVICETYPE_PEN))
+	    !(wacom_hdev_id(data)->device_type & WACOM_DEVICETYPE_PEN))
 		return false;
 
 	/*
@@ -849,7 +869,7 @@ static struct wacom_hdev_data *wacom_get_hdev_data(struct hid_device *hdev)
 
 	/* Try to find an already-probed interface from the same device */
 	list_for_each_entry(data, &wacom_udev_list, list) {
-		if (wacom_compare_device_paths(hdev, data->phys, '/')) {
+		if (wacom_compare_device_paths(hdev, wacom_hdev_id(data)->phys, '/')) {
 			kref_get(&data->kref);
 			return data;
 		}
@@ -921,17 +941,17 @@ static int wacom_add_shared_data(struct hid_device *hdev)
 
 	data = wacom_get_hdev_data(hdev);
 	if (!data) {
-		data = kzalloc(sizeof(struct wacom_hdev_data), GFP_KERNEL);
+		data = kzalloc(sizeof(struct wacom_hdev_data_alloc), GFP_KERNEL);
 		if (!data) {
 			retval = -ENOMEM;
 			goto out;
 		}
 
 		kref_init(&data->kref);
-		strscpy(data->phys, hdev->phys, sizeof(data->phys));
-		data->vendor = hdev->vendor;
-		data->product = hdev->product;
-		data->device_type = wacom_wac->features.device_type;
+		strscpy(wacom_hdev_id(data)->phys, hdev->phys, sizeof(wacom_hdev_id(data)->phys));
+		wacom_hdev_id(data)->vendor = hdev->vendor;
+		wacom_hdev_id(data)->product = hdev->product;
+		wacom_hdev_id(data)->device_type = wacom_wac->features.device_type;
 		list_add_tail(&data->list, &wacom_udev_list);
 	}
 
