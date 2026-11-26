@@ -9,6 +9,7 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 - Unicode: the WildKernels utf8 decomposition fix from the GKI kernels; zero-width characters are no longer skipped during name normalization.
 - BIC TCP congestion control is built in, as in the GKI kernels (BBRv3 stays the default).
 - DroidSpaces is tracked as a component; its SysV IPC KABI patch is carried in the slot 1-3 form this device needs.
+- BakaSU and SUSFS carry the GKI kernels' local corrections: a preinit file descriptor 0 is handled as valid, the SUSFS priority UID filter resolves app names in one work item, and SELinux queries from hidden apps are answered from the pre-KernelSU policy again.
 - Otherwise the kernel is built from the same sources as `rmx3997-v14`: Linux 5.15.226, BakaSU `8fa29976` from the owner's fork, SUSFS `c1d1da42` (v2.4.0), NoMount `c803cbf0` (metamodule versionCode 790), Baseband Guard `48d9fdea`.
 
 ## Kernel features
@@ -21,7 +22,7 @@ The release has two files: the AnyKernel3 ZIP and its SHA-256 checksum.
 | Module mounting | NoMount, protocol 23 (metamodule versionCode 790) |
 | Security | Clang CFI for the kernel and OEM modules, strong stack protector, Baseband Guard |
 | OEM compatibility | Stock vendor modules load unchanged: OEM security guard, sched_assist, binder strategy, F2FS appboost and compression, ZRAM and HybridSwap |
-| TCP congestion control | BBRv3 (`bbr3`, default) with per-socket context ownership, BBR, CUBIC, Westwood, HTCP |
+| TCP congestion control | BBRv3 (`bbr3`, default) with per-socket context ownership, BBR, BIC, CUBIC, Westwood, HTCP |
 | Queue disciplines | CAKE, PIE, FQ-PIE |
 | Firewall and NAT | nftables (inet, IPv4, IPv6, ARP, bridge, netdev; NAT, conntrack, FIB, TPROXY, `nft_compat` for iptables-nft), IPv6 NAT and MASQUERADE, hop-limit match, ipset, xt `set`, `LOG`, `recent`, `addrtype`, TTL target, CONNMARK |
 | VPN and virtual networking | WireGuard and AmneziaWG (both built in), TUN, MACVLAN |

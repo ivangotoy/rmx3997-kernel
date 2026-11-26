@@ -219,7 +219,7 @@ their logs, records and ZIPs stay.
 `rmx3997/ci/upstreams.json` lists every upstream the kernel takes code from
 and the exact commit it is at: AOSP `android13-5.15-lts`, the AOSP
 `android13-5.15` security branch, BakaSU, SUSFS, NoMount, Baseband Guard, the
-BBRv3 donor, AnyKernel3 and ZyC Clang. `python3 rmx3997/ci/upstream.py verify`
+BBRv3 donor (WildKernels/kernel_patches), DroidSpaces, AnyKernel3 and ZyC Clang. `python3 rmx3997/ci/upstream.py verify`
 checks that the vendored files equal those pins.
 
 `.forgejo/workflows/upstream-rmx3997.yml` runs every Monday (and on manual
@@ -303,7 +303,7 @@ current entry points.
 | `rmx3997-v12` | 5.15.225 | Upstream update: Linux 5.15.225 (from 5.15.223), BakaSU `7b65bde0`, config refresh |
 | `rmx3997-v13` | 5.15.226 | Upstream update: Linux 5.15.226 (from 5.15.225), `android13-5.15` security branch update (wrapfd driver, not enabled), BakaSU `cac1e793`, NoMount `c803cbf0` (metamodule 790), Baseband Guard `48d9fdea`, stock struct layouts kept, config refresh |
 | `rmx3997-v14` | 5.15.226 | BakaSU from the owner's fork at `8fa29976`, nothing else changed |
-| `rmx3997-v15` | 5.15.226 | Installer is now stock AnyKernel3 as in the GKI kernels; BBRv3 from WildKernels/kernel_patches as in the GKI kernels; WildKernels unicode decomposition fix; BIC congestion control built in; DroidSpaces tracked |
+| `rmx3997-v15` | 5.15.226 | Installer is now stock AnyKernel3 as in the GKI kernels; BBRv3 from WildKernels/kernel_patches as in the GKI kernels; WildKernels unicode decomposition fix; BIC congestion control built in; DroidSpaces tracked; the GKI kernels' BakaSU/SUSFS corrections |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.

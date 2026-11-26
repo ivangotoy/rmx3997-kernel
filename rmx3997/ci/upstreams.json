@@ -104,7 +104,7 @@
       "url": "https://github.com/WildKernels/kernel_patches",
       "ref": "main",
       "pin": "70c394f16d82b0f85a4f07617630d82dde6d203c",
-      "note": "donor common/bbrv3/0001-net-tcp-backport-BBRv3-to-android13-5.15-lts.patch plus the GKI kernels' android12-5.10-bbr3-ctx-ownership.patch (per-socket ctx ownership, flag-dispatched loss hook), as the GKI builds take them; build.sh checks the loss-hook flag; port by hand, the TCP struct changes need the layout review"
+      "note": "WildKernels/kernel_patches as the GKI kernels take it. Carried from this pin: common/bbrv3/0001-net-tcp-backport-BBRv3-to-android13-5.15-lts.patch (with the GKI kernels' android12-5.10-bbr3-ctx-ownership.patch), common/ntsync/ntsync_base.patch + ntsync_compat_android13-5.15.patch, common/unicode_bypass_fix_6.1-.patch, common/mem_opt_prefetch.patch, common/clear_page_16bytes_align.patch. build.sh checks the BBRv3 loss-hook flag. Every new commit to this repository stops builds at the freshness gate until a reviewed pin bump; port by hand, the TCP struct changes need the layout review"
     },
     "droidspaces": {
       "mode": "report",
