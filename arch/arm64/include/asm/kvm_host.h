@@ -476,7 +476,7 @@ struct kvm_vcpu_arch {
 	bool power_off;
 
 	/* Don't run the guest (internal implementation need) */
-	bool pause;
+	atomic_t pause;
 
 	union {
 		/* Cache some mmu pages needed inside spinlock regions */

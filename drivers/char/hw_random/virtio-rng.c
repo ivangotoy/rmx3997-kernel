@@ -188,6 +188,7 @@ static int probe_common(struct virtio_device *vdev)
 err_find:
 	ida_simple_remove(&rng_index_ida, index);
 err_ida:
+	vdev->priv = NULL;
 	kfree(vi);
 	return err;
 }
@@ -195,6 +196,11 @@ err_ida:
 static void remove_common(struct virtio_device *vdev)
 {
 	struct virtrng_info *vi = vdev->priv;
+
+	if (!vi) {
+		vdev->config->reset(vdev);
+		return;
+	}
 
 	vi->hwrng_removed = true;
 	vi->data_avail = 0;
@@ -205,6 +211,7 @@ static void remove_common(struct virtio_device *vdev)
 	vdev->config->reset(vdev);
 	vdev->config->del_vqs(vdev);
 	ida_simple_remove(&rng_index_ida, vi->index);
+	vdev->priv = NULL;
 	kfree(vi);
 }
 
