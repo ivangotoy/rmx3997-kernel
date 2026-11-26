@@ -1188,6 +1188,15 @@ class SkipReleasedTag(unittest.TestCase):
         self.assertIn('FAIL: release lookup answer has no draft state', out)
         self.assertNotIn('Traceback', out)
 
+    @unittest.skipUnless(WORKFLOW.exists(), 'workflows not in this tree')
+    def test_answer_without_draft_state_fails(self):
+        for body in ('{}', '{"draft": null}', '{"draft": "false"}', '[]'):
+            with self.subTest(body=body):
+                rc, out, env = self.run_step('200', body)
+                self.assertEqual((rc, env), (1, ''), out)
+                self.assertIn('FAIL: release lookup answer has no draft state', out)
+                self.assertNotIn('Traceback', out)
+
 
 class InitBootIsAnArgument(unittest.TestCase):
     """installer-ufs-run.py takes the stock init_boot image as an argument
