@@ -691,6 +691,11 @@ def cmd_release(a):
                'prerelease': False,
                'body': release_body(tag, a.commit, Path(a.dist))}
     st, body = api('POST', base + '/releases', token, json.dumps(payload).encode())
+    if st == 409:
+        # The tag lookup answered 404, yet the server refuses the new release.
+        die('draft release creation returned HTTP 409 (%s): a release or an unpublished draft '
+            'for %s may already exist although the tag lookup did not return it; check the '
+            'releases on the server, delete a leftover draft, then run again' % (body[:300], tag))
     if st not in (200, 201):
         die('draft release creation returned HTTP %d: %s' % (st, body[:300]))
     rel = json.loads(body)

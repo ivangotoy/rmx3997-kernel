@@ -425,6 +425,23 @@ class ReleaseLeftoverMessages(unittest.TestCase):
         self.check(FakeForgejo(existing={'id': 4, 'draft': True, 'tag_name': 'rmx3997-v99'}),
                    'unpublished draft release for rmx3997-v99 (id 4) exists')
 
+    def test_draft_hidden_from_the_lookup(self):
+        # The other server answer: the tag lookup is 404 although a draft
+        # exists, and the create request is refused with 409.
+        server = FakeForgejo()
+        real = server.urlopen
+
+        def urlopen(req, timeout):
+            if req.get_method() == 'POST' and req.full_url == FakeForgejo.BASE + '/releases':
+                server.requests.append(('POST', req.full_url, True))
+                raise urllib.error.HTTPError(req.full_url, 409, 'x', {}, io.BytesIO(b'made-up reason'))
+            return real(req, timeout)
+
+        server.urlopen = urlopen
+        text = self.check(server, 'a release or an unpublished draft for rmx3997-v99 may already exist')
+        self.assertIn('made-up reason', text)
+        self.assertEqual([r[0] for r in server.requests], ['GET', 'POST'])
+
     def test_failure_after_draft_creation_names_the_draft(self):
         server = FakeForgejo(fail=lambda m, url: m == 'POST' and '/assets?name=' in url)
         self.check(server, 'release rmx3997-v99 (id 5) is left on the server as an unpublished draft')
