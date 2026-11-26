@@ -28,8 +28,21 @@ struct regulator_irq {
 	int irq;
 	int retry_cnt;
 	struct delayed_work isr_work;
+};
+
+/*
+ * The work queue lives behind struct regulator_irq in the same allocation,
+ * so struct regulator_irq keeps the stock RMX3997 layout.
+ */
+struct regulator_irq_alloc {
+	struct regulator_irq h;
 	struct workqueue_struct *wq;
 };
+
+static struct workqueue_struct **regulator_irq_wq(struct regulator_irq *h)
+{
+	return &container_of(h, struct regulator_irq_alloc, h)->wq;
+}
 
 /*
  * Should only be called from threaded handler to prevent potential deadlock
@@ -147,7 +160,7 @@ enable_out:
 	return;
 
 reschedule:
-	mod_delayed_work(h->wq, &h->isr_work, msecs_to_jiffies(tmo));
+	mod_delayed_work(*regulator_irq_wq(h), &h->isr_work, msecs_to_jiffies(tmo));
 }
 
 static irqreturn_t regulator_notifier_isr(int irq, void *data)
@@ -245,7 +258,7 @@ static irqreturn_t regulator_notifier_isr(int irq, void *data)
 	}
 
 	if (d->irq_off_ms) {
-		mod_delayed_work(h->wq, &h->isr_work,
+		mod_delayed_work(*regulator_irq_wq(h), &h->isr_work,
 				 msecs_to_jiffies(d->irq_off_ms));
 	}
 
@@ -332,15 +345,17 @@ void *regulator_irq_helper(struct device *dev,
 			   int irq_flags, int common_errs, int *per_rdev_errs,
 			   struct regulator_dev **rdev, int rdev_amount)
 {
+	struct regulator_irq_alloc *a;
 	struct regulator_irq *h;
 	int ret;
 
 	if (!rdev_amount || !d || !d->map_event || !d->name)
 		return ERR_PTR(-EINVAL);
 
-	h = devm_kzalloc(dev, sizeof(*h), GFP_KERNEL);
-	if (!h)
+	a = devm_kzalloc(dev, sizeof(*a), GFP_KERNEL);
+	if (!a)
 		return ERR_PTR(-ENOMEM);
+	h = &a->h;
 
 	h->irq = irq;
 	h->desc = *d;
@@ -357,12 +372,12 @@ void *regulator_irq_helper(struct device *dev,
 
 	if (h->desc.irq_off_ms) {
 		if (h->desc.high_prio) {
-			h->wq = alloc_workqueue("regulator_irq_highpri",
+			a->wq = alloc_workqueue("regulator_irq_highpri",
 						WQ_FREEZABLE | WQ_HIGHPRI, 0);
-			if (!h->wq)
+			if (!a->wq)
 				return ERR_PTR(-ENOMEM);
 		} else {
-			h->wq = system_freezable_wq;
+			a->wq = system_freezable_wq;
 		}
 
 		INIT_DELAYED_WORK(&h->isr_work, regulator_notifier_isr_work);
@@ -373,7 +388,7 @@ void *regulator_irq_helper(struct device *dev,
 	if (ret) {
 		dev_err(dev, "Failed to request IRQ %d\n", irq);
 		if (h->desc.irq_off_ms && h->desc.high_prio)
-			destroy_workqueue(h->wq);
+			destroy_workqueue(a->wq);
 
 		return ERR_PTR(ret);
 	}
@@ -400,7 +415,7 @@ void regulator_irq_helper_cancel(void **handle)
 		if (h->desc.irq_off_ms) {
 			cancel_delayed_work_sync(&h->isr_work);
 			if (h->desc.high_prio)
-				destroy_workqueue(h->wq);
+				destroy_workqueue(*regulator_irq_wq(h));
 		}
 
 		h = NULL;
