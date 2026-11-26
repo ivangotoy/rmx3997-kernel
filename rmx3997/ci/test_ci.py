@@ -231,6 +231,27 @@ class RemoteHeadRetry(unittest.TestCase):
         self.assertIn('FAIL: git ls-remote https://git.example.invalid/o/r.git refs/heads/main: '
                       'fatal: made-up outage', text)
 
+    def test_attempts_share_one_deadline(self):
+        # A stall that git's low-speed abort ends after 60 s is repeated only
+        # within what is left of the one GIT_LS_REMOTE_TIMEOUT budget.
+        clock, seen = [1000.0], []
+
+        def run(argv, **kw):
+            seen.append(kw['timeout'])
+            took = min(60, kw['timeout'])
+            clock[0] += took
+            if took == kw['timeout']:
+                raise subprocess.TimeoutExpired(argv, kw['timeout'])
+            return subprocess.CompletedProcess(argv, 128, '', 'fatal: made-up: Operation too slow')
+
+        with mock.patch.object(upstream.subprocess, 'run', run), \
+                mock.patch.object(upstream.time, 'monotonic', lambda: clock[0]), \
+                mock.patch.object(upstream.time, 'sleep', lambda s: clock.__setitem__(0, clock[0] + s)), \
+                mock.patch('builtins.print'), self.assertRaises(SystemExit):
+            upstream.remote_head('https://git.example.invalid/o/r.git', 'main')
+        self.assertEqual(seen, [upstream.GIT_LS_REMOTE_TIMEOUT, upstream.GIT_LS_REMOTE_TIMEOUT - 65])
+        self.assertLessEqual(clock[0] - 1000.0, upstream.GIT_LS_REMOTE_TIMEOUT)
+
     def test_timeout_is_not_repeated(self):
         res, n, text = self.lookup([subprocess.TimeoutExpired(['git'], 120)])
         self.assertEqual((res, n), (('exit', 1), 1))
