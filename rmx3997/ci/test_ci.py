@@ -104,6 +104,18 @@ class BuildSummary(unittest.TestCase):
         self.assertIn('compiler said no', r.stdout)
 
 
+class ReleaseConfigMglru(unittest.TestCase):
+    """MGLRU is on by default in the release config, as in the GKI kernels,
+    and no host-input rule forbids it."""
+
+    def test_lru_gen_enabled(self):
+        lines = (CI.parent / 'config/production.config').read_text().splitlines()
+        self.assertIn('CONFIG_LRU_GEN=y', lines)
+        self.assertIn('CONFIG_LRU_GEN_ENABLED=y', lines)
+        pins = json.loads((CI / 'host-inputs.json').read_text())
+        self.assertNotIn('CONFIG_LRU_GEN_ENABLED=y', pins['forbidden_config'])
+
+
 class Bbr3SourceChecks(unittest.TestCase):
     """build.sh stops before any build when the BBRv3 loss hook is not the
     flag-dispatched one of the GKI builds."""

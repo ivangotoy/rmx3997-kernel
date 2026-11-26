@@ -49,7 +49,6 @@
     "CONFIG_AMNEZIAWG=y"
   ],
   "forbidden_config": [
-    "CONFIG_LRU_GEN_ENABLED=y",
     "CONFIG_CRYPTO_ZRAM_MULTI=y"
   ],
   "required_symbols": [
