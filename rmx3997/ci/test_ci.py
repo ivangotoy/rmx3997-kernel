@@ -458,6 +458,37 @@ class ReleaseLeftoverMessages(unittest.TestCase):
         self.assertNotIn('FAIL', text)
 
 
+class GitHubCopyNeedsPublishedRelease(unittest.TestCase):
+    """github-release reads the Forgejo release anonymously; a draft, whether
+    the server shows it (200, draft) or hides it (404), stops the copy before
+    any GitHub request."""
+
+    def copy(self, answer):
+        seen = []
+
+        def fetch(url):
+            seen.append(url)
+            return answer
+
+        a = mock.Mock(forgejo_api='https://forge.example.invalid/api/v1', repo='o/r',
+                      github_repo='o/r', tag='rmx3997-v99', wait_tag=0, dry_run=True)
+        with mock.patch.object(rmx_ci, 'fetch', fetch), \
+                mock.patch.object(rmx_ci, 'gh', side_effect=AssertionError('GitHub request')), \
+                mock.patch.dict('os.environ', {}, clear=True), \
+                mock.patch('builtins.print') as p, self.assertRaises(SystemExit) as e:
+            rmx_ci.cmd_github_release(a)
+        self.assertEqual(e.exception.code, 1)
+        self.assertEqual(seen, ['https://forge.example.invalid/api/v1/repos/o/r/releases/tags/rmx3997-v99'])
+        return p.call_args[0][0]
+
+    def test_visible_draft(self):
+        text = self.copy((200, json.dumps({'draft': True, 'tag_name': 'rmx3997-v99'}).encode()))
+        self.assertIn('is not a published release of that tag', text)
+
+    def test_hidden_draft(self):
+        self.assertIn('Forgejo release lookup returned HTTP 404', self.copy((404, b'')))
+
+
 class UpstreamApiRetry(unittest.TestCase):
     """upstream.py api() follows the same policy as rmx_ci.open_url()."""
 
