@@ -816,15 +816,27 @@ static bool page_referenced_one(struct page *page, struct vm_area_struct *vma,
 		}
 
 		if (pvmw.pte) {
-			trace_android_vh_look_around(&pvmw, page, vma, &referenced);
-			if (lru_gen_enabled() && pte_young(*pvmw.pte) &&
-			    !(vma->vm_flags & (VM_SEQ_READ | VM_RAND_READ))) {
-				lru_gen_look_around(&pvmw);
-				referenced++;
-			}
+			pte_t pteval = ptep_get(pvmw.pte);
+			bool young = false;
 
-			if (ptep_clear_flush_young_notify(vma, address,
-						pvmw.pte)) {
+			/*
+			 * PFN swap PTEs, such as device-exclusive ones, that
+			 * actually map pages are "old" from a CPU perspective.
+			 * The MMU notifier takes care of any device aspects.
+			 */
+			if (pte_present(pteval)) {
+				trace_android_vh_look_around(&pvmw, page, vma, &referenced);
+				if (lru_gen_enabled() && pte_young(*pvmw.pte) &&
+				    !(vma->vm_flags & (VM_SEQ_READ | VM_RAND_READ))) {
+					lru_gen_look_around(&pvmw);
+					referenced++;
+				}
+
+				young = ptep_clear_flush_young(vma, address, pvmw.pte);
+			}
+			young |= mmu_notifier_clear_flush_young(vma->vm_mm, address,
+								address + PAGE_SIZE);
+			if (young) {
 				/*
 				 * Don't treat a reference through
 				 * a sequentially read mapping as such.
