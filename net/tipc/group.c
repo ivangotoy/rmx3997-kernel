@@ -74,8 +74,23 @@ struct tipc_member {
 	u16 window;
 	u16 bc_rcv_nxt;
 	u16 bc_syncpt;
-	bool bc_pending;
+	u16 bc_acked;	/* holds the bc_pending flag (0 or 1), stock layout */
 };
+
+/*
+ * Whether this member still owes an ack for the current replicast. The flag
+ * is kept in the stock u16 bc_acked member, so struct tipc_member keeps the
+ * stock RMX3997 layout.
+ */
+static bool tipc_member_bc_pending(struct tipc_member *m)
+{
+	return m->bc_acked;
+}
+
+static void tipc_member_set_bc_pending(struct tipc_member *m, bool pending)
+{
+	m->bc_acked = pending;
+}
 
 struct tipc_group {
 	struct rb_root members;
@@ -343,7 +358,7 @@ static void tipc_group_delete_member(struct tipc_group *grp,
 	 * was the last one, restore the open state so blocked broadcast
 	 * senders can proceed.
 	 */
-	if (grp->bc_ackers && m->bc_pending && !--grp->bc_ackers)
+	if (grp->bc_ackers && tipc_member_bc_pending(m) && !--grp->bc_ackers)
 		*grp->open = true;
 
 	list_del_init(&m->list);
@@ -405,7 +420,7 @@ void tipc_group_update_bc_members(struct tipc_group *grp, int len, bool ack)
 		if (tipc_group_is_receiver(m)) {
 			tipc_group_update_member(m, len);
 			ackers++;
-			m->bc_pending = ack;
+			tipc_member_set_bc_pending(m, ack);
 		}
 	}
 
@@ -801,9 +816,9 @@ void tipc_group_proto_rcv(struct tipc_group *grp, bool *usr_wakeup,
 		if (!m || !grp->bc_ackers)
 			return;
 		acked = msg_grp_bc_acked(hdr);
-		if (acked != grp->bc_snd_nxt || !m->bc_pending)
+		if (acked != grp->bc_snd_nxt || !tipc_member_bc_pending(m))
 			return;
-		m->bc_pending = false;
+		tipc_member_set_bc_pending(m, false);
 		if (--grp->bc_ackers)
 			return;
 		list_del_init(&m->small_win);
