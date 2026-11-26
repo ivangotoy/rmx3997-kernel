@@ -362,6 +362,15 @@ class OpenUrlRetry(unittest.TestCase):
         res, n, _ = self.run_open_url('POST', [http_error('u', 502)])
         self.assertEqual((res, n), ((502, b''), 1))
 
+    def test_truncated_error_body_keeps_the_status(self):
+        class Truncated(io.BytesIO):
+            def read(self, *a):
+                raise http.client.IncompleteRead(b'')
+
+        err = urllib.error.HTTPError('u', 404, 'x', {}, Truncated())
+        res, n, _ = self.run_open_url('GET', [err])
+        self.assertEqual((res, n), ((404, b''), 1))
+
     def test_post_repeats_429(self):
         res, n, _ = self.run_open_url('POST', [http_error('u', 429), Reply(201, b'{}')])
         self.assertEqual((res, n), ((201, b'{}'), 2))

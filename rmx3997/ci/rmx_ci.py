@@ -635,7 +635,11 @@ def open_url(req):
         except urllib.error.HTTPError as e:
             if not (e.code == 429 or (method == 'GET' and e.code in (500, 502, 503, 504))) \
                     or attempt == TRIES:
-                return e.code, e.read()
+                try:
+                    return e.code, e.read()
+                except (OSError, http.client.HTTPException):
+                    # the error body is only a hint; every caller acts on the status
+                    return e.code, b''
             try:
                 wait = max(0, min(int(e.headers.get('Retry-After')), 300))
             except (TypeError, ValueError):
