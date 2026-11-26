@@ -1069,11 +1069,23 @@ static int ipv6_add_addr_hash(struct net_device *dev, struct inet6_ifaddr *ifa)
 	return err;
 }
 
+/*
+ * Origin of a temporary address: its public address and time stamps. Passed
+ * to __ipv6_add_addr() beside the config instead of inside it, so struct
+ * ifa6_config keeps the stock RMX3997 layout.
+ */
+struct ipv6_tempaddr_origin {
+	struct inet6_ifaddr	*ifpub;
+	unsigned long		cstamp;
+	unsigned long		tstamp;
+};
+
 /* On success it returns ifp with increased reference count */
 
 static struct inet6_ifaddr *
-ipv6_add_addr(struct inet6_dev *idev, struct ifa6_config *cfg,
-	      bool can_block, struct netlink_ext_ack *extack)
+__ipv6_add_addr(struct inet6_dev *idev, struct ifa6_config *cfg,
+		const struct ipv6_tempaddr_origin *tmp,
+		bool can_block, struct netlink_ext_ack *extack)
 {
 	gfp_t gfp_flags = can_block ? GFP_KERNEL : GFP_ATOMIC;
 	int addr_type = ipv6_addr_type(cfg->pfx);
@@ -1150,10 +1162,10 @@ ipv6_add_addr(struct inet6_dev *idev, struct ifa6_config *cfg,
 	ifa->tokenized = false;
 
 	ifa->rt = f6i;
-	ifa->ifpub = cfg->ifpub;
-	if (cfg->ifpub) {
-		ifa->cstamp = cfg->cstamp;
-		ifa->tstamp = cfg->tstamp;
+	if (tmp) {
+		ifa->ifpub = tmp->ifpub;
+		ifa->cstamp = tmp->cstamp;
+		ifa->tstamp = tmp->tstamp;
 	} else {
 		unsigned long now = jiffies;
 
@@ -1205,6 +1217,13 @@ out:
 	}
 
 	return ifa;
+}
+
+static struct inet6_ifaddr *
+ipv6_add_addr(struct inet6_dev *idev, struct ifa6_config *cfg,
+	      bool can_block, struct netlink_ext_ack *extack)
+{
+	return __ipv6_add_addr(idev, cfg, NULL, can_block, extack);
 }
 
 enum cleanup_prefix_rt_t {
@@ -1355,6 +1374,7 @@ static int ipv6_create_tempaddr(struct inet6_ifaddr *ifp, bool block)
 	unsigned long regen_advance;
 	unsigned long now = jiffies;
 	s32 cnf_temp_preferred_lft;
+	struct ipv6_tempaddr_origin origin;
 	struct inet6_ifaddr *ift;
 	struct ifa6_config cfg;
 	long max_desync_factor;
@@ -1445,11 +1465,11 @@ retry:
 
 	cfg.pfx = &addr;
 	cfg.scope = ipv6_addr_scope(cfg.pfx);
-	cfg.ifpub = ifp;
-	cfg.cstamp = now;
-	cfg.tstamp = tmp_tstamp;
+	origin.ifpub = ifp;
+	origin.cstamp = now;
+	origin.tstamp = tmp_tstamp;
 
-	ift = ipv6_add_addr(idev, &cfg, block, NULL);
+	ift = __ipv6_add_addr(idev, &cfg, &origin, block, NULL);
 	if (IS_ERR(ift)) {
 		in6_ifa_put(ifp);
 		in6_dev_put(idev);
