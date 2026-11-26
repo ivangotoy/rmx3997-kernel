@@ -21,8 +21,21 @@ struct ovl_aio_req {
 	struct kiocb iocb;
 	refcount_t ref;
 	struct kiocb *orig_iocb;
+};
+
+/*
+ * Whether the request is a write, kept behind struct ovl_aio_req in the same
+ * slab object, so struct ovl_aio_req keeps the stock RMX3997 layout.
+ */
+struct ovl_aio_req_alloc {
+	struct ovl_aio_req req;
 	bool is_write;
 };
+
+static bool *ovl_aio_req_is_write(struct ovl_aio_req *aio_req)
+{
+	return &container_of(aio_req, struct ovl_aio_req_alloc, req)->is_write;
+}
 
 static struct kmem_cache *ovl_aio_request_cachep;
 
@@ -253,7 +266,7 @@ static void ovl_aio_cleanup_handler(struct ovl_aio_req *aio_req)
 	struct kiocb *iocb = &aio_req->iocb;
 	struct kiocb *orig_iocb = aio_req->orig_iocb;
 
-	if (aio_req->is_write) {
+	if (*ovl_aio_req_is_write(aio_req)) {
 		struct inode *inode = file_inode(orig_iocb->ki_filp);
 
 		/* Actually acquired in ovl_write_iter() */
@@ -383,7 +396,7 @@ static ssize_t ovl_write_iter(struct kiocb *iocb, struct iov_iter *iter)
 				     SB_FREEZE_WRITE);
 		real.flags = 0;
 		aio_req->orig_iocb = iocb;
-		aio_req->is_write = true;
+		*ovl_aio_req_is_write(aio_req) = true;
 		kiocb_clone(&aio_req->iocb, iocb, get_file(real.file));
 		aio_req->iocb.ki_flags = ifl;
 		aio_req->iocb.ki_complete = ovl_aio_rw_complete;
@@ -690,7 +703,7 @@ const struct file_operations ovl_file_operations = {
 int __init ovl_aio_request_cache_init(void)
 {
 	ovl_aio_request_cachep = kmem_cache_create("ovl_aio_req",
-						   sizeof(struct ovl_aio_req),
+						   sizeof(struct ovl_aio_req_alloc),
 						   0, SLAB_HWCACHE_ALIGN, NULL);
 	if (!ovl_aio_request_cachep)
 		return -ENOMEM;
