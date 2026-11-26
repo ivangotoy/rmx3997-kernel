@@ -104,6 +104,37 @@ class BuildSummary(unittest.TestCase):
         self.assertIn('compiler said no', r.stdout)
 
 
+class Bbr3SourceChecks(unittest.TestCase):
+    """build.sh stops before any build when the BBRv3 loss hook is not the
+    flag-dispatched one of the GKI builds."""
+    GOOD_TCP_H = '#define TCP_CONG_HAS_LOSS_HOOK\t0x8\n'
+    GOOD_INPUT = 'if (ca_ops && (ca_ops->flags & TCP_CONG_HAS_LOSS_HOOK)) {\n'
+
+    def run_checks(self, tcp_h, tcp_input):
+        text = (CI / 'build.sh').read_text()
+        snippet = text[text.index('# --- bbr3 source checks'):text.index('# --- end bbr3 source checks')]
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, 'include/net').mkdir(parents=True)
+            Path(d, 'net/ipv4').mkdir(parents=True)
+            Path(d, 'include/net/tcp.h').write_text(tcp_h)
+            Path(d, 'net/ipv4/tcp_input.c').write_text(tcp_input)
+            return subprocess.run(['bash', '-c', 'set -Eeuo pipefail\n' + snippet], cwd=d,
+                                  capture_output=True, text=True)
+
+    def test_flag_dispatch_passes(self):
+        self.assertEqual(self.run_checks(self.GOOD_TCP_H, self.GOOD_INPUT).returncode, 0)
+
+    def test_missing_flag_fails(self):
+        r = self.run_checks('#define TCP_CONG_NEEDS_ECN\t0x2\n', self.GOOD_INPUT)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn('loss-hook flag is absent', r.stdout)
+
+    def test_name_compare_fails(self):
+        r = self.run_checks(self.GOOD_TCP_H, '\tif(ca_ops && strncmp(ca_ops->name, "bbr3", 4) == 0)\n')
+        self.assertEqual(r.returncode, 1)
+        self.assertIn('name-compare loss hook remains', r.stdout)
+
+
 class MakefileVersion(unittest.TestCase):
     def test_fields(self):
         mk = 'VERSION = 5\nPATCHLEVEL = 15\nSUBLEVEL = 199\nEXTRAVERSION =\n'

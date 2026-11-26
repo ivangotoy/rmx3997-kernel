@@ -13,6 +13,15 @@ JOBS=${RMX_JOBS:-16}
 SRC=$(git rev-parse --show-toplevel)
 cd "$SRC"
 
+# --- bbr3 source checks
+# As the GKI builds: the BBRv3 loss hook is dispatched by a congestion-control
+# flag, never by comparing the CC name.
+grep -Fq '#define TCP_CONG_HAS_LOSS_HOOK' include/net/tcp.h || { echo "FAIL: BBRv3 loss-hook flag is absent"; exit 1; }
+if grep -Fq 'strncmp(ca_ops->name, "bbr3", 4)' net/ipv4/tcp_input.c; then
+  echo "FAIL: BBRv3 name-compare loss hook remains"; exit 1
+fi
+# --- end bbr3 source checks
+
 ZYC=$HOME/.cache/zyc-clang-18.0.0git-20240124/extracted
 PRE=$HOME/Downloads/rea-lk-analysis/rmx3997-custom-gki-build/kernel/prebuilts
 HOSTCLANG=$PRE/clang/host/linux-x86/clang-r450784e
