@@ -103,9 +103,23 @@ def load(src=REPO):
     return json.loads((Path(src) / MANIFEST).read_text())
 
 
+LS_REMOTE_TRIES = 3
+
+
 def remote_head(url, ref):
-    lines = git('ls-remote', url, 'refs/heads/' + ref, env=LS_REMOTE_ENV,
-                timeout=GIT_LS_REMOTE_TIMEOUT).stdout.strip().splitlines()
+    """Live head of one upstream branch (check and fresh). A failed ls-remote
+    is repeated up to LS_REMOTE_TRIES times, but not after it ran into its
+    deadline: one stalled upstream costs at most GIT_LS_REMOTE_TIMEOUT."""
+    for attempt in range(1, LS_REMOTE_TRIES + 1):
+        r = git('ls-remote', url, 'refs/heads/' + ref, check=False, env=LS_REMOTE_ENV,
+                timeout=GIT_LS_REMOTE_TIMEOUT)
+        if not r.returncode:
+            break
+        if r.returncode == 124 or attempt == LS_REMOTE_TRIES:
+            die('git ls-remote %s refs/heads/%s: %s' % (url, ref, r.stderr.strip()[-600:]))
+        print('ls-remote %s attempt %d failed: %s' % (url, attempt, r.stderr.strip()[-300:]), flush=True)
+        time.sleep(5 * attempt)
+    lines = r.stdout.strip().splitlines()
     if len(lines) != 1:
         die('ls-remote %s %s returned %d refs' % (url, ref, len(lines)))
     return lines[0].split()[0]

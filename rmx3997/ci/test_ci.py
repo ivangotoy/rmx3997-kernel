@@ -198,6 +198,45 @@ class GitNetworkTimeout(unittest.TestCase):
         self.assertNotIn('made-up-token', text)
 
 
+class RemoteHeadRetry(unittest.TestCase):
+    """check/fresh ls-remote: a failed lookup is repeated, a timed-out one is not."""
+
+    def lookup(self, answers):
+        seen = []
+
+        def run(argv, **kw):
+            seen.append(argv[1])
+            a = answers.pop(0)
+            if isinstance(a, BaseException):
+                raise a
+            return subprocess.CompletedProcess(argv, a[0], a[1], a[2])
+
+        with mock.patch.object(upstream.subprocess, 'run', run), \
+                mock.patch.object(upstream.time, 'sleep'), mock.patch('builtins.print') as p:
+            try:
+                res = upstream.remote_head('https://git.example.invalid/o/r.git', 'main')
+            except SystemExit as e:
+                res = ('exit', e.code)
+        return res, len(seen), '\n'.join(str(c[0][0]) for c in p.call_args_list)
+
+    def test_reset_is_repeated(self):
+        res, n, text = self.lookup([(128, '', 'fatal: made-up reset'),
+                                    (0, 'a' * 40 + '\trefs/heads/main\n', '')])
+        self.assertEqual((res, n), ('a' * 40, 2))
+        self.assertIn('attempt 1 failed: fatal: made-up reset', text)
+
+    def test_bounded(self):
+        res, n, text = self.lookup([(128, '', 'fatal: made-up outage')] * upstream.LS_REMOTE_TRIES)
+        self.assertEqual((res, n), (('exit', 1), upstream.LS_REMOTE_TRIES))
+        self.assertIn('FAIL: git ls-remote https://git.example.invalid/o/r.git refs/heads/main: '
+                      'fatal: made-up outage', text)
+
+    def test_timeout_is_not_repeated(self):
+        res, n, text = self.lookup([subprocess.TimeoutExpired(['git'], 120)])
+        self.assertEqual((res, n), (('exit', 1), 1))
+        self.assertIn('timed out after', text)
+
+
 class GitTimeoutEndsHelpers(unittest.TestCase):
     """A timed-out git call also ends the processes git started (its remote
     helper), not only git itself."""
