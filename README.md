@@ -143,7 +143,8 @@ One run does the following, and any failed gate fails the run:
 3. Freshness gate (`python3 rmx3997/ci/upstream.py fresh`): compares every pin
    in `rmx3997/ci/upstreams.json` with the live head of its upstream and prints
    one line per component. A pin that is behind, or a lookup that fails, fails
-   the run here, before any compile.
+   the run here, before any compile. Then fetches stock AnyKernel3 at its pin
+   (`rmx_ci.py anykernel`).
 4. Runs `olddefconfig` and requires the result to equal
    `rmx3997/config/production.config` byte for byte.
 5. Builds `Image` and modules with Full LTO inside a systemd scope
@@ -159,8 +160,9 @@ One run does the following, and any failed gate fails the run:
    if any member shares bytes with the `task_struct` reserve slots 4 to 8 that
    the OEM security guard writes. CRCs cannot see these changes; this gate
    rejects the 5.15.223 build that had SysV IPC in slot 4.
-7. Packages the AnyKernel3 ZIP and fails if the kernel or any ZIP member
-   contains a host build path.
+7. Packages the ZIP from the pinned AnyKernel3 tree, unmodified, plus the
+   `Image`, and fails if the member set breaks the package contract or the
+   kernel or any ZIP member contains a host build path.
 8. Uploads only the ZIP and its checksum as a run artifact. A tag build also
    publishes a release with those two files, then copies that release to the
    GitHub mirror: it waits for the mirrored tag to reach GitHub at the same
@@ -196,8 +198,10 @@ pushed):
 - AOSP security branch: new commits that are not in LTS are cherry-picked.
 - BakaSU, SUSFS, NoMount, Baseband Guard: the upstream diff since the pin is
   applied with a 3-way merge onto the local files.
-- BBRv3, AnyKernel3, ZyC Clang: never applied automatically; they need a
-  manual port and a pin update.
+- BBRv3, ZyC Clang: never applied automatically; they need a manual port and
+  a pin update.
+- AnyKernel3: never applied automatically; a new upstream commit needs a
+  reviewed pin update, and the build then ships that stock tree.
 
 A component that moved upstream and could not be applied (a merge conflict, a
 file that needs a manual port, one of the manual components above, or a branch
