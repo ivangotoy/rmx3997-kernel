@@ -194,11 +194,26 @@ unsigned int damon_nr_regions(struct damon_target *t)
 	return t->nr_regions;
 }
 
+/*
+ * Number of regions after the last merge, per context. It lives behind
+ * struct damon_ctx in the same allocation, so struct damon_ctx keeps the
+ * stock RMX3997 layout. Read kdamond_split_regions() for more details.
+ */
+struct damon_ctx_alloc {
+	struct damon_ctx ctx;
+	unsigned long last_nr_regions;
+};
+
+static unsigned long *damon_last_nr_regions(struct damon_ctx *ctx)
+{
+	return &container_of(ctx, struct damon_ctx_alloc, ctx)->last_nr_regions;
+}
+
 struct damon_ctx *damon_new_ctx(void)
 {
 	struct damon_ctx *ctx;
 
-	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
+	ctx = kzalloc(sizeof(struct damon_ctx_alloc), GFP_KERNEL);
 	if (!ctx)
 		return NULL;
 
@@ -906,14 +921,14 @@ static void kdamond_split_regions(struct damon_ctx *ctx)
 		return;
 
 	/* Maybe the middle of the region has different access frequency */
-	if (ctx->last_nr_regions == nr_regions &&
+	if (*damon_last_nr_regions(ctx) == nr_regions &&
 			nr_regions < ctx->max_nr_regions / 3)
 		nr_subregions = 3;
 
 	damon_for_each_target(t, ctx)
 		damon_split_regions_of(ctx, t, nr_subregions);
 
-	ctx->last_nr_regions = nr_regions;
+	*damon_last_nr_regions(ctx) = nr_regions;
 }
 
 /*
