@@ -36,6 +36,21 @@ static int update_lpi_config(struct kvm *kvm, struct vgic_irq *irq,
  * If this is a "new" LPI, we allocate and initialize a new struct vgic_irq.
  * This function returns a pointer to the _unlocked_ structure.
  */
+/*
+ * An LPI's "mapped by an ITE" flag lives behind its struct vgic_irq in the
+ * same allocation, so struct vgic_irq keeps the stock RMX3997 layout. Only
+ * LPIs, which vgic_add_lpi() allocates, are ever passed to vgic_lpi_mapped().
+ */
+struct vgic_lpi {
+	struct vgic_irq irq;
+	bool mapped;
+};
+
+static bool *vgic_lpi_mapped(struct vgic_irq *irq)
+{
+	return &container_of(irq, struct vgic_lpi, irq)->mapped;
+}
+
 static struct vgic_irq *vgic_add_lpi(struct kvm *kvm, u32 intid,
 				     struct kvm_vcpu *vcpu)
 {
@@ -48,7 +63,7 @@ static struct vgic_irq *vgic_add_lpi(struct kvm *kvm, u32 intid,
 	if (irq)
 		return irq;
 
-	irq = kzalloc(sizeof(struct vgic_irq), GFP_KERNEL_ACCOUNT);
+	irq = kzalloc(sizeof(struct vgic_lpi), GFP_KERNEL_ACCOUNT);
 	if (!irq)
 		return ERR_PTR(-ENOMEM);
 
@@ -832,7 +847,7 @@ static void its_free_ite(struct kvm *kvm, struct its_ite *ite)
 			WARN_ON(its_unmap_vlpi(ite->irq->host_irq));
 
 		ite->irq->hw = false;
-		ite->irq->mapped = false;
+		*vgic_lpi_mapped(ite->irq) = false;
 		raw_spin_unlock_irqrestore(&ite->irq->irq_lock, flags);
 
 		vgic_put_irq(kvm, ite->irq);
@@ -1125,8 +1140,8 @@ static int vgic_its_cmd_handle_mapi(struct kvm *kvm, struct vgic_its *its,
 	if (!IS_ERR(irq)) {
 		/* Mapping one LPI from two events is UNPREDICTABLE: the first ITE keeps it. */
 		raw_spin_lock_irqsave(&irq->irq_lock, flags);
-		if (!irq->mapped) {
-			irq->mapped = true;
+		if (!*vgic_lpi_mapped(irq)) {
+			*vgic_lpi_mapped(irq) = true;
 			irq->target_vcpu = vcpu;
 			ite->irq = irq;
 		}
@@ -2244,8 +2259,8 @@ static int vgic_its_restore_ite(struct vgic_its *its, u32 event_id,
 		return PTR_ERR(irq);
 
 	raw_spin_lock_irqsave(&irq->irq_lock, flags);
-	if (!irq->mapped) {
-		irq->mapped = true;
+	if (!*vgic_lpi_mapped(irq)) {
+		*vgic_lpi_mapped(irq) = true;
 		irq->target_vcpu = vcpu;
 		ite->irq = irq;
 	}
