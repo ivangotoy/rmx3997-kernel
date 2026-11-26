@@ -29,6 +29,7 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -59,12 +60,32 @@ GIT_TRANSFER_TIMEOUT = 1800
 LS_REMOTE_ENV = {'GIT_HTTP_LOW_SPEED_LIMIT': '1000', 'GIT_HTTP_LOW_SPEED_TIME': '60'}
 
 
+def kill_marked(marker):
+    """SIGKILL every process started with RMX_GIT_CALL=marker in its environment:
+    the timed-out git and the remote helpers it started, which survive git's
+    own death (also when reparented) and stay connected to a stalled server."""
+    entry = ('RMX_GIT_CALL=' + marker).encode()
+    for p in Path('/proc').iterdir():
+        if not p.name.isdigit() or int(p.name) == os.getpid():
+            continue
+        try:
+            if entry in (p / 'environ').read_bytes().split(b'\0'):
+                os.kill(int(p.name), signal.SIGKILL)
+        except OSError:
+            continue
+
+
 def git(*args, cwd=None, check=True, inp=None, env=None, timeout=None):
     text = inp is None or isinstance(inp, str)
+    call_env = dict(GIT_ENV, **(env or {}))
+    if timeout is not None:
+        # Marks this call's processes, so a timeout can end all of them.
+        call_env['RMX_GIT_CALL'] = marker = os.urandom(8).hex()
     try:
-        r = subprocess.run(['git', *args], cwd=cwd, env=dict(GIT_ENV, **(env or {})), input=inp,
+        r = subprocess.run(['git', *args], cwd=cwd, env=call_env, input=inp,
                            capture_output=True, text=text, timeout=timeout)
     except subprocess.TimeoutExpired:
+        kill_marked(marker)
         if check:
             die('git %s: timed out after %d s' % (' '.join(args[:3]), timeout))
         empty = '' if text else b''

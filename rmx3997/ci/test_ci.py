@@ -198,6 +198,41 @@ class GitNetworkTimeout(unittest.TestCase):
         self.assertNotIn('made-up-token', text)
 
 
+class GitTimeoutEndsHelpers(unittest.TestCase):
+    """A timed-out git call also ends the processes git started (its remote
+    helper), not only git itself."""
+
+    def test_child_of_timed_out_git_is_killed(self):
+        with tempfile.TemporaryDirectory() as d:
+            pidfile = Path(d, 'child.pid')
+            stub = Path(d, 'git')
+            stub.write_text('#!/bin/sh\nsleep 60 &\necho $! > "$CHILD_PIDFILE"\nexec sleep 30\n')
+            stub.chmod(0o755)
+            env = dict(upstream.GIT_ENV, PATH=d + ':/usr/bin:/bin', CHILD_PIDFILE=str(pidfile))
+            with mock.patch.object(upstream, 'GIT_ENV', env):
+                r = upstream.git('ls-remote', 'https://forge.example.invalid/o/r.git', check=False, timeout=1)
+            self.assertEqual(r.returncode, 124)
+            child = int(pidfile.read_text())
+            def state():
+                try:
+                    return Path('/proc/%d/stat' % child).read_text().rsplit(')', 1)[1].split()[0]
+                except OSError:
+                    return None
+
+            try:
+                for _ in range(50):
+                    if state() in (None, 'Z'):
+                        break
+                    upstream.time.sleep(0.1)
+                else:
+                    self.fail('child of the timed-out git is still running')
+            finally:
+                try:
+                    os.kill(child, 9)
+                except OSError:
+                    pass
+
+
 class Reply:
     """What a stubbed urlopen returns: status and body, or read() raising."""
 
