@@ -28,7 +28,7 @@ endif
 $(shell cd $(BBG_DIR) && test -f .git/shallow && $(GIT_BIN) fetch --unshallow)
 
 REPO_LINK := https://github.com/vc-teahouse/Baseband-guard
-COMMIT_SHA := 028ff7fd509e2104596da7cc1ef8e6ce2a0c9082
+COMMIT_SHA := 48d9fdea643bcb41d204541400e9d8656b97a54f
 
 ifeq ($(strip $(REPO_LINK)),)
   REPO_LINK := unknown

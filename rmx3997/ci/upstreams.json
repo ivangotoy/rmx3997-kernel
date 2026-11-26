@@ -75,7 +75,7 @@
       "mode": "subtree",
       "url": "https://github.com/vc-teahouse/Baseband-guard",
       "ref": "main",
-      "pin": "028ff7fd509e2104596da7cc1ef8e6ce2a0c9082",
+      "pin": "48d9fdea643bcb41d204541400e9d8656b97a54f",
       "paths": {
         "": "security/baseband-guard/"
       },
