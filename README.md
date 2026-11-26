@@ -30,7 +30,7 @@ come from Forgejo Actions; see Releases for downloads.
 
 **Root and security tooling**
 
-- BakaSU (KernelSU fork) built in, SUSFS `c1d1da42` (v2.4.0)
+- BakaSU (KernelSU fork) built in from the `ivangotoy/BakaSU` fork `8fa29976` (35463), SUSFS `c1d1da42` (v2.4.0)
 - NoMount on the upstream track (maxsteeel `dev`), protocol 23
 - Baseband Guard built in
 - CFI enforced for both kernel and OEM modules, stack protector strong
@@ -267,6 +267,7 @@ current entry points.
 | `rmx3997-v11` | 5.15.223 | NoMount `6298d58a` engine update (metamodule 713), adbd and jdwp-control sockets hidden from apps, `select_idle_capacity` scan order, 500 ms default timeout for userspace wakelocks, fanotify, cgroup v1 `devices` controller and `br_netfilter` (all three with unchanged stock struct layouts) |
 | `rmx3997-v12` | 5.15.225 | Upstream update: Linux 5.15.225 (from 5.15.223), BakaSU `7b65bde0`, config refresh |
 | `rmx3997-v13` | 5.15.226 | Upstream update: Linux 5.15.226 (from 5.15.225), `android13-5.15` security branch update (wrapfd driver, not enabled), BakaSU `cac1e793`, NoMount `c803cbf0` (metamodule 790), Baseband Guard `48d9fdea`, stock struct layouts kept, config refresh |
+| `rmx3997-v14` | 5.15.226 | BakaSU from the owner's fork at `8fa29976`, nothing else changed |
 
 Earlier development deliveries (baseline, networking, parity, D1, D2, E) are
 recorded in `rmx3997/delivery-provenance.json`.
