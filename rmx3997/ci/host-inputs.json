@@ -18,7 +18,7 @@
       "sha256": "1841c3ad7132c040d5bbfa30d9e126624d9a72e1a32f90636cc444fe75c144a6"
     },
     "boot_b_layout_template": {
-      "path": "~/Downloads/rmx3997-images/layout-template/boot_b-D2-ZYC.img",
+      "path": "~/Downloads/rmx3997-images/layout-template/RMX3997-layout-template-D2-ZYC.img",
       "sha256": "df8e83eaec4542dfa590a47b7bf2a3c8b732a10b6d422465150103ab37735f51"
     },
     "stock_btf": {
