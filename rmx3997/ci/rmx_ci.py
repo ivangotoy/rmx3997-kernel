@@ -559,7 +559,7 @@ def cmd_package(a):
     m.package(image, zip_path, ident, stage / AK3_DIR, url, pin)
     private = expand(a.private_dir) / base
     private.mkdir(parents=True, exist_ok=True)
-    img_path = private / (base + '-boot_b.img')
+    img_path = private / (base + '.img')
     template = expand(pins['files']['boot_b_layout_template']['path'])
     built = build_boot_image(template, image, img_path, work)
     checked = verify_boot_image(img_path, image, work)
